@@ -1,0 +1,7 @@
+/home/miguel/repos/sec2324-project-base/HDSLedger/Communication/src/main/java/pt/ulisboa/tecnico/hdsledger/communication/ConsensusMessage.java
+/home/miguel/repos/sec2324-project-base/HDSLedger/Communication/src/main/java/pt/ulisboa/tecnico/hdsledger/communication/CommitMessage.java
+/home/miguel/repos/sec2324-project-base/HDSLedger/Communication/src/main/java/pt/ulisboa/tecnico/hdsledger/communication/Message.java
+/home/miguel/repos/sec2324-project-base/HDSLedger/Communication/src/main/java/pt/ulisboa/tecnico/hdsledger/communication/Link.java
+/home/miguel/repos/sec2324-project-base/HDSLedger/Communication/src/main/java/pt/ulisboa/tecnico/hdsledger/communication/builder/ConsensusMessageBuilder.java
+/home/miguel/repos/sec2324-project-base/HDSLedger/Communication/src/main/java/pt/ulisboa/tecnico/hdsledger/communication/PrePrepareMessage.java
+/home/miguel/repos/sec2324-project-base/HDSLedger/Communication/src/main/java/pt/ulisboa/tecnico/hdsledger/communication/PrepareMessage.java
