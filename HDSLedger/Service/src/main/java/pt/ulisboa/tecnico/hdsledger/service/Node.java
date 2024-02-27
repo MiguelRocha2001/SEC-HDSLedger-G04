@@ -41,6 +41,10 @@ public class Node {
             NodeService nodeService = new NodeService(linkToNodes, nodeConfig, leaderConfig,
                     nodeConfigs);
 
+            if (id.equals("1")) {
+                nodeService.startConsensus("TEMP_MESSAGE");
+            }
+
             nodeService.listen();
 
         } catch (Exception e) {

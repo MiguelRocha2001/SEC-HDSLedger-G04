@@ -3,10 +3,17 @@ package pt.ulisboa.tecnico.hdsledger.communication;
 import com.google.gson.Gson;
 
 import pt.ulisboa.tecnico.hdsledger.communication.Message.Type;
+import pt.ulisboa.tecnico.hdsledger.communication.cripto.RSAKeyGenerator;
 import pt.ulisboa.tecnico.hdsledger.utilities.*;
 
 import java.io.IOException;
+import java.io.NotSerializableException;
 import java.net.*;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.interfaces.RSAKey;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -140,6 +147,33 @@ public class Link {
         }).start();
     }
 
+    private byte[] appendArrays(byte[] arr1, byte[] arr2) {
+        byte[] newArray = new byte[arr1.length + arr2.length];
+
+        for (int i = 0; i < newArray.length; i++) {
+            if (i < arr1.length) {
+                newArray[i] = arr1[i];
+            } else {
+                newArray[i] = arr2[i - arr1.length];
+            }
+        }
+        return newArray;
+    }
+
+    private byte[] addSignatureToData(byte[] buf) throws Exception { // TODO: change throws to more specific Exceptions
+        String pathToPrivKey = "src/main/keys/server" + config.getId() + ".key";                
+        PrivateKey privateKey = (PrivateKey) RSAKeyGenerator.read(pathToPrivKey, "priv");
+
+        Signature rsaToSign = Signature.getInstance("SHA1withRSA");
+        rsaToSign.initSign(privateKey);
+        rsaToSign.update(buf);
+        byte[] signature = rsaToSign.sign();
+        byte[] buffSigned = appendArrays(buf, signature);
+
+        return buffSigned;
+    }
+
+
     /*
      * Sends a message to a specific node without guarantee of delivery
      * Mainly used to send ACKs, if they are lost, the original message will be
@@ -155,13 +189,39 @@ public class Link {
         new Thread(() -> {
             try {
                 byte[] buf = new Gson().toJson(data).getBytes();
-                DatagramPacket packet = new DatagramPacket(buf, buf.length, hostname, port);
+
+                byte[] buffSigned = addSignatureToData(buf);
+
+                //DatagramPacket packet = new DatagramPacket(buf, buf.length, hostname, port); // Without signature
+                DatagramPacket packet = new DatagramPacket(buffSigned, buffSigned.length, hostname, port);
+
                 socket.send(packet);
             } catch (IOException e) {
                 e.printStackTrace();
                 throw new HDSSException(ErrorMessage.SocketSendingError);
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new HDSSException(ErrorMessage.SocketSendingError); // TODO: change later
             }
         }).start();
+    }
+
+    private byte[] removeSignature(byte[] buf) throws Exception {
+        throw new Exception("NOT IMPLEMENTED");
+    }
+
+    private byte[] removeMessage(byte[] buf) throws Exception {
+        throw new Exception("NOT IMPLEMENTED");
+    }
+
+    private boolean verifySignature(String senderNodeId, byte[] originalMessage, byte[] signature) throws Exception {
+        String pathToPubKey = "src/main/keys/public" + senderNodeId + ".key";                
+        PublicKey publicKey = (PublicKey) RSAKeyGenerator.read(pathToPubKey, "pub");
+
+        Signature rsaForVerify = Signature.getInstance("SHA1withRSA");
+        rsaForVerify.initVerify(publicKey);
+        rsaForVerify.update(originalMessage);
+        return rsaForVerify.verify(signature);
     }
 
     /*
@@ -170,13 +230,15 @@ public class Link {
     public Message receive() throws IOException, ClassNotFoundException {
 
         Message message = null;
+        byte[] signature;
+        byte[] originalMessage;
         String serialized = "";
         Boolean local = false;
         DatagramPacket response = null;
         
         if (this.localhostQueue.size() > 0) {
             message = this.localhostQueue.poll();
-            local = true; 
+            local = true;
             this.receivedAcks.add(message.getMessageId());
         } else {
             byte[] buf = new byte[65535];
@@ -185,12 +247,21 @@ public class Link {
             socket.receive(response);
 
             byte[] buffer = Arrays.copyOfRange(response.getData(), 0, response.getLength());
-            serialized = new String(buffer);
+            serialized = new String(buffer);  
+
+            // TODO: split between original message and siganture
+            // and then descerialize original message
+            signature = removeSignature(buffer);
+            originalMessage = removeMessage(buffer);
+
             message = new Gson().fromJson(serialized, Message.class);
         }
 
         String senderId = message.getSenderId();
         int messageId = message.getMessageId();
+
+        // TODO: verify signature
+        verifySignature(senderId, originalMessage, signature);
 
         if (!nodes.containsKey(senderId))
             throw new HDSSException(ErrorMessage.NoSuchNode);
@@ -249,7 +320,7 @@ public class Link {
             // it will discard duplicates
             unreliableSend(address, port, responseMessage);
         }
-        
+
         return message;
     }
 }
