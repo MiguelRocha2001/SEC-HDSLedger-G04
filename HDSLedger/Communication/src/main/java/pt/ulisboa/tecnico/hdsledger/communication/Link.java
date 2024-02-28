@@ -126,7 +126,7 @@ public class Link {
                     LOGGER.log(Level.INFO, MessageFormat.format(
                             "{0} - Sending {1} message to {2}:{3} with message ID {4} - Attempt #{5}", config.getId(),
                             data.getType(), destAddress, destPort, messageId, count++));
-
+        
                     unreliableSend(destAddress, destPort, data);
 
                     // Wait (using exponential back-off), then look for ACK
@@ -148,29 +148,22 @@ public class Link {
     }
 
     private byte[] appendArrays(byte[] arr1, byte[] arr2) {
-        byte[] newArray = new byte[arr1.length + arr2.length];
-
-        for (int i = 0; i < newArray.length; i++) {
-            if (i < arr1.length) {
-                newArray[i] = arr1[i];
-            } else {
-                newArray[i] = arr2[i - arr1.length];
-            }
-        }
-        return newArray;
-    }
+        byte[] result = new byte[arr1.length + arr2.length];
+        System.arraycopy(arr1, 0, result, 0, arr1.length);
+        System.arraycopy(arr2, 0, result, arr1.length, arr2.length);
+        return result;
+    }    
 
     private byte[] addSignatureToData(byte[] buf) throws Exception { // TODO: change throws to more specific Exceptions
-        String pathToPrivKey = "src/main/keys/server" + config.getId() + ".key";                
+        String pathToPrivKey = "src/main/resources/keys/server" + config.getId() + ".key";                
         PrivateKey privateKey = (PrivateKey) RSAKeyGenerator.read(pathToPrivKey, "priv");
 
         Signature rsaToSign = Signature.getInstance("SHA1withRSA");
         rsaToSign.initSign(privateKey);
         rsaToSign.update(buf);
         byte[] signature = rsaToSign.sign();
-        byte[] buffSigned = appendArrays(buf, signature);
 
-        return buffSigned;
+        return appendArrays(buf, signature);
     }
 
 
@@ -192,8 +185,10 @@ public class Link {
 
                 byte[] buffSigned = addSignatureToData(buf);
 
+                byte[] buffSignedEncoded = Base64.getEncoder().encodeToString(buffSigned).getBytes(); // encodes to Base 64
+                
                 //DatagramPacket packet = new DatagramPacket(buf, buf.length, hostname, port); // Without signature
-                DatagramPacket packet = new DatagramPacket(buffSigned, buffSigned.length, hostname, port);
+                DatagramPacket packet = new DatagramPacket(buffSignedEncoded, buffSignedEncoded.length, hostname, port);
 
                 socket.send(packet);
             } catch (IOException e) {
@@ -207,15 +202,25 @@ public class Link {
     }
 
     private byte[] removeSignature(byte[] buf) throws Exception {
-        throw new Exception("NOT IMPLEMENTED");
+        byte[] signature = new byte[512];
+
+        for (int i = 0; i < signature.length; i++) {
+            signature[i] = buf[buf.length - 512 + i];
+        }
+        return signature;
     }
 
     private byte[] removeMessage(byte[] buf) throws Exception {
-        throw new Exception("NOT IMPLEMENTED");
+        byte[] message = new byte[buf.length - 512];
+
+        for (int i = 0; i < message.length; i++) {
+            message[i] = buf[i];
+        }
+        return message;
     }
 
     private boolean verifySignature(String senderNodeId, byte[] originalMessage, byte[] signature) throws Exception {
-        String pathToPubKey = "src/main/keys/public" + senderNodeId + ".key";                
+        String pathToPubKey = "src/main/resources/keys/public" + senderNodeId + ".key";                
         PublicKey publicKey = (PublicKey) RSAKeyGenerator.read(pathToPubKey, "pub");
 
         Signature rsaForVerify = Signature.getInstance("SHA1withRSA");
@@ -227,16 +232,17 @@ public class Link {
     /*
      * Receives a message from any node in the network (blocking)
      */
-    public Message receive() throws IOException, ClassNotFoundException {
+    public Message receive() throws IOException, ClassNotFoundException, Exception { // TODO: remove throws "Exception" later
 
         Message message = null;
-        byte[] signature;
-        byte[] originalMessage;
+        byte[] signature = null;
+        byte[] originalMessage = null;
         String serialized = "";
         Boolean local = false;
         DatagramPacket response = null;
         
         if (this.localhostQueue.size() > 0) {
+
             message = this.localhostQueue.poll();
             local = true;
             this.receivedAcks.add(message.getMessageId());
@@ -247,12 +253,17 @@ public class Link {
             socket.receive(response);
 
             byte[] buffer = Arrays.copyOfRange(response.getData(), 0, response.getLength());
-            serialized = new String(buffer);  
+            
+            buffer = Base64.getDecoder().decode(buffer); // decodes from Base 64
 
-            // TODO: split between original message and siganture
-            // and then descerialize original message
-            signature = removeSignature(buffer);
-            originalMessage = removeMessage(buffer);
+            try {
+                signature = removeSignature(buffer);
+                originalMessage = removeMessage(buffer);
+            } catch (Exception e) {
+                System.out.println("Message: " + e.getMessage());
+            }
+
+            serialized = new String(originalMessage);
 
             message = new Gson().fromJson(serialized, Message.class);
         }
@@ -260,8 +271,12 @@ public class Link {
         String senderId = message.getSenderId();
         int messageId = message.getMessageId();
 
-        // TODO: verify signature
-        verifySignature(senderId, originalMessage, signature);
+        if (local == false && signature != null && originalMessage != null) {
+            boolean verifies = verifySignature(senderId, originalMessage, signature);
+            LOGGER.log(Level.INFO, "Verifies: " + verifies);
+        } else {
+            LOGGER.log(Level.INFO, "Not because message is local");
+        }
 
         if (!nodes.containsKey(senderId))
             throw new HDSSException(ErrorMessage.NoSuchNode);
@@ -307,6 +322,7 @@ public class Link {
             default -> {}
         }
 
+        // send ACK
         if (!local) {
             InetAddress address = InetAddress.getByName(response.getAddress().getHostAddress());
             int port = response.getPort();

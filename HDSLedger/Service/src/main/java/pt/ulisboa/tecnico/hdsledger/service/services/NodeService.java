@@ -63,6 +63,7 @@ public class NodeService implements UDPService {
 
         this.prepareMessages = new MessageBucket(nodesConfig.length);
         this.commitMessages = new MessageBucket(nodesConfig.length);
+
     }
 
     public ProcessConfig getConfig() {
@@ -384,6 +385,8 @@ public class NodeService implements UDPService {
                         }).start();
                     }
                 } catch (IOException | ClassNotFoundException e) {
+                    e.printStackTrace();
+                } catch(Exception e) { // TODO: remove this later
                     e.printStackTrace();
                 }
             }).start();
