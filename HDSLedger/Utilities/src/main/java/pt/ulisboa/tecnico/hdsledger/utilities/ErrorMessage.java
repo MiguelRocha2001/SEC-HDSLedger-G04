@@ -5,7 +5,9 @@ public enum ErrorMessage {
     ConfigFileFormat("The configuration file has wrong syntax"),
     NoSuchNode("Can't send a message to a non existing node"),
     SocketSendingError("Error while sending message"),
-    CannotOpenSocket("Error while opening socket");
+    CannotOpenSocket("Error while opening socket"),
+    MessageVerificationFail("Digital signature could not be verified"),
+    ProgrammingError("Programming error"); // TODO: Change to a more specific error
 
     private final String message;
 

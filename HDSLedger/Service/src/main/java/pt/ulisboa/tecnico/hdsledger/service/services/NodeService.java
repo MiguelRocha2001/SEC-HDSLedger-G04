@@ -386,8 +386,6 @@ public class NodeService implements UDPService {
                     }
                 } catch (IOException | ClassNotFoundException e) {
                     e.printStackTrace();
-                } catch(Exception e) { // TODO: remove this later
-                    e.printStackTrace();
                 }
             }).start();
         } catch (Exception e) {

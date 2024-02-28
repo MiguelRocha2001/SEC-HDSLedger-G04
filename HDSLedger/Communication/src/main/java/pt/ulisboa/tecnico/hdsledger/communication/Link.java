@@ -3,17 +3,15 @@ package pt.ulisboa.tecnico.hdsledger.communication;
 import com.google.gson.Gson;
 
 import pt.ulisboa.tecnico.hdsledger.communication.Message.Type;
-import pt.ulisboa.tecnico.hdsledger.communication.cripto.RSAKeyGenerator;
+import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
 import pt.ulisboa.tecnico.hdsledger.utilities.*;
 
 import java.io.IOException;
-import java.io.NotSerializableException;
+import java.security.spec.InvalidKeySpecException;
 import java.net.*;
+import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.Signature;
-import java.security.interfaces.RSAKey;
+import java.security.SignatureException;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -147,26 +145,6 @@ public class Link {
         }).start();
     }
 
-    private byte[] appendArrays(byte[] arr1, byte[] arr2) {
-        byte[] result = new byte[arr1.length + arr2.length];
-        System.arraycopy(arr1, 0, result, 0, arr1.length);
-        System.arraycopy(arr2, 0, result, arr1.length, arr2.length);
-        return result;
-    }    
-
-    private byte[] addSignatureToData(byte[] buf) throws Exception { // TODO: change throws to more specific Exceptions
-        String pathToPrivKey = "src/main/resources/keys/server" + config.getId() + ".key";                
-        PrivateKey privateKey = (PrivateKey) RSAKeyGenerator.read(pathToPrivKey, "priv");
-
-        Signature rsaToSign = Signature.getInstance("SHA1withRSA");
-        rsaToSign.initSign(privateKey);
-        rsaToSign.update(buf);
-        byte[] signature = rsaToSign.sign();
-
-        return appendArrays(buf, signature);
-    }
-
-
     /*
      * Sends a message to a specific node without guarantee of delivery
      * Mainly used to send ACKs, if they are lost, the original message will be
@@ -183,7 +161,7 @@ public class Link {
             try {
                 byte[] buf = new Gson().toJson(data).getBytes();
 
-                byte[] buffSigned = addSignatureToData(buf);
+                byte[] buffSigned = CriptoUtils.addSignatureToData(buf, config.getId());
 
                 byte[] buffSignedEncoded = Base64.getEncoder().encodeToString(buffSigned).getBytes(); // encodes to Base 64
                 
@@ -194,49 +172,23 @@ public class Link {
             } catch (IOException e) {
                 e.printStackTrace();
                 throw new HDSSException(ErrorMessage.SocketSendingError);
-            } catch (Exception e) {
+            } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException | InvalidKeySpecException e) {
                 e.printStackTrace();
+                // TODO: warn about digital signature error
                 throw new HDSSException(ErrorMessage.SocketSendingError); // TODO: change later
             }
         }).start();
     }
 
-    private byte[] removeSignature(byte[] buf) throws Exception {
-        byte[] signature = new byte[512];
-
-        for (int i = 0; i < signature.length; i++) {
-            signature[i] = buf[buf.length - 512 + i];
-        }
-        return signature;
-    }
-
-    private byte[] removeMessage(byte[] buf) throws Exception {
-        byte[] message = new byte[buf.length - 512];
-
-        for (int i = 0; i < message.length; i++) {
-            message[i] = buf[i];
-        }
-        return message;
-    }
-
-    private boolean verifySignature(String senderNodeId, byte[] originalMessage, byte[] signature) throws Exception {
-        String pathToPubKey = "src/main/resources/keys/public" + senderNodeId + ".key";                
-        PublicKey publicKey = (PublicKey) RSAKeyGenerator.read(pathToPubKey, "pub");
-
-        Signature rsaForVerify = Signature.getInstance("SHA1withRSA");
-        rsaForVerify.initVerify(publicKey);
-        rsaForVerify.update(originalMessage);
-        return rsaForVerify.verify(signature);
-    }
-
     /*
      * Receives a message from any node in the network (blocking)
      */
-    public Message receive() throws IOException, ClassNotFoundException, Exception { // TODO: remove throws "Exception" later
+    public Message receive() throws IOException, ClassNotFoundException {
 
-        Message message = null;
         byte[] signature = null;
         byte[] originalMessage = null;
+
+        Message message = null;
         String serialized = "";
         Boolean local = false;
         DatagramPacket response = null;
@@ -256,12 +208,8 @@ public class Link {
             
             buffer = Base64.getDecoder().decode(buffer); // decodes from Base 64
 
-            try {
-                signature = removeSignature(buffer);
-                originalMessage = removeMessage(buffer);
-            } catch (Exception e) {
-                System.out.println("Message: " + e.getMessage());
-            }
+            signature = CriptoUtils.removeSignature(buffer);
+            originalMessage = CriptoUtils.removeMessage(buffer);
 
             serialized = new String(originalMessage);
 
@@ -271,11 +219,32 @@ public class Link {
         String senderId = message.getSenderId();
         int messageId = message.getMessageId();
 
-        if (local == false && signature != null && originalMessage != null) {
-            boolean verifies = verifySignature(senderId, originalMessage, signature);
-            LOGGER.log(Level.INFO, "Verifies: " + verifies);
+        if (local == false) {
+            if (originalMessage == null)
+                throw new HDSSException(ErrorMessage.ProgrammingError);
+            if (signature == null)
+                throw new HDSSException(ErrorMessage.ProgrammingError);
+
+            try {
+                boolean verifies = CriptoUtils.verifySignature(senderId, originalMessage, signature);
+                if (!verifies) {
+                    LOGGER.log(Level.WARNING, "Message could not be verified!");
+                    throw new HDSSException(ErrorMessage.MessageVerificationFail);
+                } else {
+                    LOGGER.log(Level.WARNING, "Message verified.");
+                }
+            } catch(
+                IOException |
+                NoSuchAlgorithmException |
+                InvalidKeySpecException |
+                InvalidKeyException |
+                SignatureException e
+            ) {
+                e.printStackTrace();
+                throw new HDSSException(ErrorMessage.ProgrammingError); // TODO: maybe other exception type ???
+            }
         } else {
-            LOGGER.log(Level.INFO, "Not because message is local");
+            LOGGER.log(Level.WARNING, "Not verifying since message is local");
         }
 
         if (!nodes.containsKey(senderId))
