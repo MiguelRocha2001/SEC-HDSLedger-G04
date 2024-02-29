@@ -2,21 +2,15 @@ package pt.ulisboa.tecnico.hdsledger.client.services;
 
 import java.io.IOException;
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
+import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.ClientMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.CommitMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.LeaderChangeMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.communication.PrePrepareMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.PrepareMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.builder.ConsensusMessageBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
@@ -25,19 +19,24 @@ public class ClientService implements UDPService {
 
     private static final CustomLogger LOGGER = new CustomLogger(ClientService.class.getName());
     // Nodes configurations
-    private final ProcessConfig[] nodesConfig;
+    private final ProcessConfig[] serverConfig;
 
-    // Current node is leader
     private final ProcessConfig config;
+
+    private String leaderId;
 
     // Link to communicate with nodes
     private final Link link;
 
-    public ClientService(Link link, ProcessConfig config, ProcessConfig[] nodesConfig) {
+    public ClientService(
+        Link link, 
+        ProcessConfig config, 
+        ProcessConfig[] serverConfig
+    ){
 
         this.link = link;
         this.config = config;
-        this.nodesConfig = nodesConfig;
+        this.serverConfig = serverConfig;
     }
 
     public ProcessConfig getConfig() {
@@ -56,14 +55,24 @@ public class ClientService implements UDPService {
         return consensusMessage;
     }
 
-    public void appendString(String value) {
+    private void resultReceived(ClientMessage clientMessage) {
 
+        LOGGER.log(Level.INFO,
+            MessageFormat.format(
+                "{0} - Consensus decided!",
+                config.getId()));
+
+        return;
     }
 
-    private void resultReceived(ClientMessage clientMessage) {
-        // TODO: implement this
-        //throw new Exception("Not implemented exception");
-        return;
+    private void appendRequest(String value) {
+        link.send(leaderId, new AppendRequestMessage(config.getId(), value));
+    }
+
+    public void onLeaderChange(LeaderChangeMessage message) {
+        leaderId = message.getLeaderProcessId();
+        String value = message.getValueToBeAppended();
+        appendRequest(value);
     }
 
     @Override
@@ -79,9 +88,12 @@ public class ClientService implements UDPService {
                         new Thread(() -> {
 
                             switch (message.getType()) {
-                                
-                                case RESULT ->
+
+                                case APPEND_VALUE_RESULT ->
                                     resultReceived((ClientMessage) message);
+
+                                case LIDER_CHANGE ->
+                                    onLeaderChange((LeaderChangeMessage) message);
 
                                 default ->
                                 LOGGER.log(Level.INFO,

@@ -2,12 +2,13 @@ package pt.ulisboa.tecnico.hdsledger.communication;
 
 import com.google.gson.Gson;
 
-public class ClientMessage extends Message {
+public class StartConsensusMessage extends Message {
 
     private String message;
 
-    public ClientMessage(String senderId, Type type) {
-        super(senderId, type);
+    public StartConsensusMessage(String senderId, String message) {
+        super(senderId, Type.CONSENSUS_START);
+        this.message = message;
     }
 
     public AppendRequestMessage deserializeAppendRequestMessage() {

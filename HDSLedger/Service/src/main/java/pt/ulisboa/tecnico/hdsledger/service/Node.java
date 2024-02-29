@@ -2,7 +2,8 @@ package pt.ulisboa.tecnico.hdsledger.service;
 
 import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
-import pt.ulisboa.tecnico.hdsledger.service.services.NodeService;
+import pt.ulisboa.tecnico.hdsledger.service.services.ConsensusService;
+import pt.ulisboa.tecnico.hdsledger.service.services.BlockchainService;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfigBuilder;
@@ -38,14 +39,19 @@ public class Node {
                     ConsensusMessage.class);
 
             // Services that implement listen from UDPService
-            NodeService nodeService = new NodeService(linkToNodes, nodeConfig, leaderConfig,
+            ConsensusService consensusService = new ConsensusService(linkToNodes, nodeConfig, leaderConfig,
                     nodeConfigs);
+            
+            BlockchainService blockchainService = new BlockchainService(linkToNodes, consensusService, nodeConfig, leaderConfig);
 
+            /*
             if (id.equals("1")) {
                 nodeService.startConsensus("TEMP_MESSAGE");
             }
+            */
 
-            nodeService.listen();
+            consensusService.listen();
+            blockchainService.listen();
 
         } catch (Exception e) {
             e.printStackTrace();

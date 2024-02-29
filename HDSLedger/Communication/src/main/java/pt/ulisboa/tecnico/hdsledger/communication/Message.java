@@ -12,7 +12,9 @@ public class Message implements Serializable {
     private Type type;
 
     public enum Type {
-        APPEND, PRE_PREPARE, PREPARE, COMMIT, ACK, IGNORE, RESULT;
+        APPEND, PRE_PREPARE, PREPARE, COMMIT, ACK, IGNORE, // Consensus - Consensus
+        APPEND_REQUEST, APPEND_VALUE_RESULT, // Client - Server
+        VALUE_DECIDED, CONSENSUS_START, LIDER_CHANGE // Consensus - Blockchain
     }
 
     public Message(String senderId, Type type) {

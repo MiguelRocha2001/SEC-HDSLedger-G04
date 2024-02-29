@@ -1,11 +1,3 @@
-- Maybe, check if are processes interatcing with the system, that are not registered as expected processes;
-- Ask lab professor on how to do good testing.
-- How is the comunication made betrween client and server? UDP?
-- Do we need to add security between client - server?: just authentication with assymetric keys.
-- What are "upcalls" in the context of the project?
-- What kind of components do we need to test? All the link layer? Or just authentication?
-- Should we use perfect links or even more complex abstractions as Reliable broadcast, etc: Just add digital signatures to every message and justify that we just want integrity and authentication on every message;
-
 - We could use digital certificates and then distribute accordingly;
 - Client app has a command line interface. The library hides the complexity of comunicating with the blockchain;
 - Implement round change in blockchain;
@@ -25,3 +17,4 @@ If the leader is byzantine, receives the request from the client and changes the
 - Make specific tests for STEP_2.
 - In the report, what can go wrong? thats the important part. What can go right is not so important. For example: we are using signatures here because its important to mantain integrity.
 - Actually, we can just use digital signatures for everything, and not worry about performance issues.
+- The client could contact a server node (random), and then, of its not the lider, it replies with the lider id.

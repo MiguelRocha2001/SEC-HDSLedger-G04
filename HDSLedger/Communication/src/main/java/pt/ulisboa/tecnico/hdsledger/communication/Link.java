@@ -83,6 +83,10 @@ public class Link {
         nodes.forEach((destId, dest) -> send(destId, gson.fromJson(gson.toJson(data), data.getClass())));
     }
 
+    public void sendToRandom(Message data) {
+        send("0", data); // TODO: change to random
+    }
+
     /*
      * Sends a message to a specific node with guarantee of delivery
      *

@@ -1,0 +1,8 @@
+- Maybe, check if are processes interatcing with the system, that are not registered as expected processes;
+- Ask lab professor on how to do good testing.
+- How is the comunication made betrween client and server? UDP?
+- Do we need to add security between client - server?: just authentication with assymetric keys.
+- What are "upcalls" in the context of the project?
+- What kind of components do we need to test? All the link layer? Or just authentication?
+- Should we use perfect links or even more complex abstractions as Reliable broadcast, etc: Just add digital signatures to every message and justify that we just want integrity and authentication on every message;
+- What should be the result of the consensus protocol? The index of the appended message in the sequence of blocks (stored in the array)?

@@ -2,20 +2,20 @@ package pt.ulisboa.tecnico.hdsledger.communication;
 
 import com.google.gson.Gson;
 
-public class AppendRequestMessage {
+public class AppendRequestMessage extends Message {
 
-    // Value
-    private String value;
+    private String message;
 
-    public AppendRequestMessage(String value) {
-        this.value = value;
+    public AppendRequestMessage(String senderId, String message) {
+        super(senderId, Type.APPEND_REQUEST);
+        this.message = message;
     }
 
-    public String getValue() {
-        return value;
+    public AppendRequestMessage deserializeAppendRequestMessage() {
+        return new Gson().fromJson(this.message, AppendRequestMessage.class);
     }
 
-    public String toJson() {
-        return new Gson().toJson(this);
+    public String getMessage() {
+        return message;
     }
 }

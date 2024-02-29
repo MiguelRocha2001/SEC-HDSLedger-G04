@@ -2,7 +2,6 @@ package pt.ulisboa.tecnico.hdsledger.client;
 
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.client.services.ClientService;
-import pt.ulisboa.tecnico.hdsledger.communication.ClientMessage;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfigBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
@@ -23,11 +22,11 @@ public class Client {
             nodesConfigPath += args[1];
 
             // Create configuration instances
-            ProcessConfig[] nodeConfigs = new ProcessConfigBuilder().fromFile(nodesConfigPath);
+            ProcessConfig[] serverConfigs = new ProcessConfigBuilder().fromFile(nodesConfigPath);
             ProcessConfig nodeConfig = Arrays.stream(nodeConfigs).filter(c -> c.getId().equals(id)).findAny().get();
             
             // Abstraction to send and receive messages
-            Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), nodeConfigs,
+            Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), serverConfigs,
                     ClientMessage.class);
 
             // Services that implement listen from UDPService
