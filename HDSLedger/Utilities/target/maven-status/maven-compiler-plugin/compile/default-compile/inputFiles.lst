@@ -1,6 +1,9 @@
-/home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Utilities/src/main/java/pt/ulisboa/tecnico/hdsledger/utilities/ProcessConfigBuilder.java
+/home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Utilities/src/main/java/pt/ulisboa/tecnico/hdsledger/utilities/ServerConfig.java
+/home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Utilities/src/main/java/pt/ulisboa/tecnico/hdsledger/utilities/ClientConfig.java
 /home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Utilities/src/main/java/pt/ulisboa/tecnico/hdsledger/utilities/CustomLogger.java
+/home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Utilities/src/main/java/pt/ulisboa/tecnico/hdsledger/utilities/ClientConfigBuilder.java
 /home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Utilities/src/main/java/pt/ulisboa/tecnico/hdsledger/utilities/CollapsingSet.java
 /home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Utilities/src/main/java/pt/ulisboa/tecnico/hdsledger/utilities/HDSSException.java
 /home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Utilities/src/main/java/pt/ulisboa/tecnico/hdsledger/utilities/ErrorMessage.java
+/home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Utilities/src/main/java/pt/ulisboa/tecnico/hdsledger/utilities/ServerConfigBuilder.java
 /home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Utilities/src/main/java/pt/ulisboa/tecnico/hdsledger/utilities/ProcessConfig.java

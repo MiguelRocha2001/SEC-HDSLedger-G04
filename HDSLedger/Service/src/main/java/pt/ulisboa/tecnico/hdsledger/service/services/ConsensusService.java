@@ -23,18 +23,18 @@ import pt.ulisboa.tecnico.hdsledger.communication.builder.ConsensusMessageBuilde
 import pt.ulisboa.tecnico.hdsledger.service.models.InstanceInfo;
 import pt.ulisboa.tecnico.hdsledger.service.models.MessageBucket;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
-import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
 
 public class ConsensusService implements UDPService {
 
     private static final CustomLogger LOGGER = new CustomLogger(ConsensusService.class.getName());
     // Nodes configurations
-    private final ProcessConfig[] nodesConfig;
+    private final ServerConfig[] nodesConfig;
 
     // Current node is leader
-    private final ProcessConfig config;
+    private final ServerConfig config;
     // Leader configuration
-    private final ProcessConfig leaderConfig;
+    private final ServerConfig leaderConfig;
 
     // Link to communicate with nodes
     private final Link link;
@@ -56,8 +56,8 @@ public class ConsensusService implements UDPService {
     // Ledger (for now, just a list of strings)
     private ArrayList<String> ledger = new ArrayList<String>();
 
-    public ConsensusService(Link link, ProcessConfig config,
-            ProcessConfig leaderConfig, ProcessConfig[] nodesConfig) {
+    public ConsensusService(Link link, ServerConfig config,
+            ServerConfig leaderConfig, ServerConfig[] nodesConfig) {
 
         this.link = link;
         this.config = config;
@@ -69,7 +69,7 @@ public class ConsensusService implements UDPService {
 
     }
 
-    public ProcessConfig getConfig() {
+    public ServerConfig getConfig() {
         return this.config;
     }
 

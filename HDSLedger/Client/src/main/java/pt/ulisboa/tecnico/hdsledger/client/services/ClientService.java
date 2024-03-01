@@ -5,21 +5,22 @@ import java.text.MessageFormat;
 import java.util.logging.Level;
 
 import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.ClientMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.LeaderChangeMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.communication.PrePrepareMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.builder.ConsensusMessageBuilder;
-import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
+import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
 
 public class ClientService implements UDPService {
 
     private static final CustomLogger LOGGER = new CustomLogger(ClientService.class.getName());
     // Nodes configurations
-    private final ProcessConfig[] serverConfig;
+    private final ServerConfig[] serverConfig;
 
     private final ProcessConfig config;
 
@@ -31,7 +32,7 @@ public class ClientService implements UDPService {
     public ClientService(
         Link link, 
         ProcessConfig config, 
-        ProcessConfig[] serverConfig
+        ServerConfig[] serverConfig
     ){
 
         this.link = link;
@@ -55,7 +56,7 @@ public class ClientService implements UDPService {
         return consensusMessage;
     }
 
-    private void resultReceived(ClientMessage clientMessage) {
+    private void resultReceived(AppendRequestResultMessage message) {
 
         LOGGER.log(Level.INFO,
             MessageFormat.format(
@@ -89,8 +90,8 @@ public class ClientService implements UDPService {
 
                             switch (message.getType()) {
 
-                                case APPEND_VALUE_RESULT ->
-                                    resultReceived((ClientMessage) message);
+                                case APPEND_REQUEST_RESULT ->
+                                    resultReceived((AppendRequestResultMessage) message);
 
                                 case LIDER_CHANGE ->
                                     onLeaderChange((LeaderChangeMessage) message);

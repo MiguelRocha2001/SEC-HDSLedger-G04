@@ -1,10 +1,13 @@
 package pt.ulisboa.tecnico.hdsledger.client;
 
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
+import pt.ulisboa.tecnico.hdsledger.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.client.services.ClientService;
-import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
-import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfigBuilder;
+import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
+import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfigBuilder;
+import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
+import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 
 import java.util.Arrays;
 
@@ -19,19 +22,22 @@ public class Client {
         try {
             // Command line arguments
             String id = args[0];
-            nodesConfigPath += args[1];
+            String hostname = args[1];
+            int port = Integer.parseInt(args[2]);
 
-            // Create configuration instances
-            ProcessConfig[] serverConfigs = new ProcessConfigBuilder().fromFile(nodesConfigPath);
-            ProcessConfig nodeConfig = Arrays.stream(nodeConfigs).filter(c -> c.getId().equals(id)).findAny().get();
+            // Create configuration instances of the vailable server processes
+            ServerConfig[] serverConfigs = new ServerConfigBuilder().fromFile(nodesConfigPath);
+            ProcessConfig[] processesConfig = ServerConfigBuilder.fromServerConfigToProcessConfig(serverConfigs);
+
+            ProcessConfig nodeConfig = new ProcessConfig(id, hostname, port);
             
             // Abstraction to send and receive messages
-            Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), serverConfigs,
-                    ClientMessage.class);
+            Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), processesConfig,
+                    Message.class);
 
             // Services that implement listen from UDPService
             ClientService nodeService = new ClientService(linkToNodes, nodeConfig,
-                    nodeConfigs);
+                    serverConfigs);
 
             nodeService.listen();
 

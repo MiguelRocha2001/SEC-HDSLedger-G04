@@ -1,5 +1,6 @@
-/home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Service/src/main/java/pt/ulisboa/tecnico/hdsledger/service/services/NodeService.java
 /home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Service/src/main/java/pt/ulisboa/tecnico/hdsledger/service/models/InstanceInfo.java
+/home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Service/src/main/java/pt/ulisboa/tecnico/hdsledger/service/services/ConsensusService.java
 /home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Service/src/main/java/pt/ulisboa/tecnico/hdsledger/service/services/UDPService.java
+/home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Service/src/main/java/pt/ulisboa/tecnico/hdsledger/service/services/BlockchainService.java
 /home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Service/src/main/java/pt/ulisboa/tecnico/hdsledger/service/Node.java
 /home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Service/src/main/java/pt/ulisboa/tecnico/hdsledger/service/models/MessageBucket.java
