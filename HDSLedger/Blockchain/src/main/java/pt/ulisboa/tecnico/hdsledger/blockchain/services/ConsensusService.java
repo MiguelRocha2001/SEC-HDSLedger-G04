@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.hdsledger.service.services;
+package pt.ulisboa.tecnico.hdsledger.blockchain.services;
 
 import java.io.IOException;
 import java.text.MessageFormat;

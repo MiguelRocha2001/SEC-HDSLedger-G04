@@ -1,9 +1,9 @@
-package pt.ulisboa.tecnico.hdsledger.service;
+package pt.ulisboa.tecnico.hdsledger.blockchain;
 
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
-import pt.ulisboa.tecnico.hdsledger.service.services.ConsensusService;
-import pt.ulisboa.tecnico.hdsledger.service.services.BlockchainService;
+import pt.ulisboa.tecnico.hdsledger.blockchain.services.ConsensusService;
+import pt.ulisboa.tecnico.hdsledger.blockchain.services.BlockchainService;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfigBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;

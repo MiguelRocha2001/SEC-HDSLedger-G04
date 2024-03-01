@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.hdsledger.service.services;
+package pt.ulisboa.tecnico.hdsledger.blockchain.services;
 
 import java.io.IOException;
 import java.text.MessageFormat;
@@ -12,7 +12,6 @@ import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.communication.StartConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
-import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
 
 public class BlockchainService implements UDPService {
