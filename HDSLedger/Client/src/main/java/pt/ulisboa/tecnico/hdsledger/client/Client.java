@@ -33,8 +33,7 @@ public class Client {
             ProcessConfig nodeConfig = new ProcessConfig(id, hostname, port);
             
             // Abstraction to send and receive messages
-            Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), processesConfig,
-                    AppendRequestResultMessage.class);
+            Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), processesConfig);
 
             // Services that implement listen from UDPService
             ClientService nodeService = new ClientService(linkToNodes, nodeConfig,

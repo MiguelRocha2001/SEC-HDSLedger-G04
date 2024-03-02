@@ -31,8 +31,6 @@ public class Link {
     private final Map<String, ProcessConfig> nodes = new ConcurrentHashMap<>();
     // Reference to the node itself
     private final ProcessConfig config;
-    // Class to deserialize messages to
-    private final Class<? extends Message> messageClass;
     // Set of received messages from specific node (prevent duplicates)
     private final Map<String, CollapsingSet> receivedMessages = new ConcurrentHashMap<>();
     // Set of received ACKs from specific node
@@ -43,15 +41,14 @@ public class Link {
     private final Queue<Message> localhostQueue = new ConcurrentLinkedQueue<>();
     private CriptoUtils cripto;
 
-    public Link(ProcessConfig self, int port, ProcessConfig[] nodes, Class<? extends Message> messageClass) {
-        this(self, port, nodes, messageClass, false, 200);
+    public Link(ProcessConfig self, int port, ProcessConfig[] nodes) {
+        this(self, port, nodes, false, 200);
     }
 
-    public Link(ProcessConfig self, int port, ProcessConfig[] nodes, Class<? extends Message> messageClass,
+    public Link(ProcessConfig self, int port, ProcessConfig[] nodes,
             boolean activateLogs, int baseSleepTime) {
 
         this.config = self;
-        this.messageClass = messageClass;
         this.BASE_SLEEP_TIME = baseSleepTime;
 
         Arrays.stream(nodes).forEach(node -> {
@@ -187,6 +184,22 @@ public class Link {
         }).start();
     }
 
+    private Class<? extends Message> getMessageType(Message message) {
+        Type type = message.getType();
+        
+        if (
+            type == Type.APPEND_REQUEST |
+            type == Type.APPEND | 
+            type == Type.PRE_PREPARE | 
+            type == Type.PREPARE | 
+            type == Type.COMMIT
+        ) {
+            return ConsensusMessage.class;
+        } else {
+            return null; // TODO: implement this
+        }
+    }
+
     /*
      * Receives a message from any node in the network (blocking)
      */
@@ -265,8 +278,10 @@ public class Link {
         }
 
         // It's not an ACK -> Deserialize for the correct type
-        if (!local)
-            message = new Gson().fromJson(serialized, this.messageClass);
+        if (!local) {
+            Class<? extends Message> type = getMessageType(message);
+            message = new Gson().fromJson(serialized, type);
+        }
 
         boolean isRepeated = !receivedMessages.get(message.getSenderId()).add(messageId);
         Type originalType = message.getType();

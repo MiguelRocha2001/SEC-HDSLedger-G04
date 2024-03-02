@@ -9,15 +9,20 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
+import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.ErrorMessage;
 import pt.ulisboa.tecnico.hdsledger.utilities.HDSSException;
 import pt.ulisboa.tecnico.hdsledger.utilities.Pair;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 
 public class CriptoUtils {
+
+    private static final CustomLogger LOGGER = new CustomLogger(CriptoUtils.class.getName());
 
     private String KEY_LOCATION = "../keys/";
 
@@ -33,6 +38,7 @@ public class CriptoUtils {
         }
     }
 
+    // TODO: should only load public keys for other processes
     private Map<String, Pair<PublicKey, PrivateKey>> loadKeys(ProcessConfig[] nodes)
         throws IOException, NoSuchAlgorithmException, InvalidKeySpecException
     {
@@ -47,6 +53,9 @@ public class CriptoUtils {
             PublicKey publicKey = (PublicKey) RSAKeyGenerator.read(pathToPubKey, "pub");
 
             keys.put(nodeId, new Pair<>(publicKey, privateKey));
+            
+            LOGGER.log(Level.INFO, MessageFormat.format("Process {0} keys loaded",
+                    nodeId));
         }
 
         return keys;
@@ -100,14 +109,33 @@ public class CriptoUtils {
             IOException, 
             NoSuchAlgorithmException, 
             InvalidKeySpecException, 
-            InvalidKeyException, 
+            InvalidKeyException,
             SignatureException
     {
-        PublicKey publicKey = keys.get(senderNodeId).getKey();
+        Pair<PublicKey, PrivateKey> nodeKeys = null;
 
-        Signature rsaForVerify = Signature.getInstance("SHA1withRSA");
-        rsaForVerify.initVerify(publicKey);
-        rsaForVerify.update(originalMessage);
-        return rsaForVerify.verify(signature);
+        for (Map.Entry<String, Pair<PublicKey, PrivateKey>> entry : keys.entrySet()) {
+            String nodeId = entry.getKey();
+            if (nodeId.equals(senderNodeId)) {
+                nodeKeys = entry.getValue();
+                break; // Exit the loop once the keys are found
+            }
+        }
+        
+        System.out.println("keys lenght: " + keys.size());
+        if (nodeKeys != null) {
+            PublicKey publicKey = nodeKeys.getKey();
+            
+            Signature rsaForVerify = Signature.getInstance("SHA1withRSA");
+            rsaForVerify.initVerify(publicKey);
+            rsaForVerify.update(originalMessage);
+            return rsaForVerify.verify(signature);
+        
+        } else {
+            
+            // Handle the case where keys for the specified node ID are not found
+            throw new HDSSException(ErrorMessage.ProgrammingError); // TODO: improve later
+
+        }
     }
 }
