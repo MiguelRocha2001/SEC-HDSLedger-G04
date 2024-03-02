@@ -44,24 +44,12 @@ public class ClientService implements UDPService {
         return this.config;
     }
 
-    public ConsensusMessage createConsensusMessage(String value, int instance, int round) {
-        PrePrepareMessage prePrepareMessage = new PrePrepareMessage(value);
-
-        ConsensusMessage consensusMessage = new ConsensusMessageBuilder(config.getId(), Message.Type.PRE_PREPARE)
-                .setConsensusInstance(instance)
-                .setRound(round)
-                .setMessage(prePrepareMessage.toJson())
-                .build();
-
-        return consensusMessage;
-    }
-
     private void resultReceived(AppendRequestResultMessage message) {
 
         LOGGER.log(Level.INFO,
             MessageFormat.format(
-                "{0} - Value appended in block: {1}",
-                config.getId(), message.getBlockIndex()));
+                "Value {0} appended in block: {1}",
+                message.getAppendedValue(), message.getBlockIndex()));
 
         return;
     }
@@ -113,5 +101,4 @@ public class ClientService implements UDPService {
             e.printStackTrace();
         }
     }
-
 }

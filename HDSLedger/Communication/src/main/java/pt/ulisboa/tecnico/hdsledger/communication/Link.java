@@ -196,8 +196,10 @@ public class Link {
             return ConsensusMessage.class;
         } if (type == Type.APPEND_REQUEST)
             return AppendRequestMessage.class;
+        if (type == Type.APPEND_REQUEST_RESULT)
+            return AppendRequestResultMessage.class;
         else
-            return null; // TODO: implement this
+            return null; // TODO: maybe, throw an Exception
     }
 
     /*
@@ -267,7 +269,8 @@ public class Link {
                 throw new HDSSException(ErrorMessage.ProgrammingError); // TODO: maybe other exception type ???
             }
         } else {
-            LOGGER.log(Level.WARNING, "Not verifying since message is local");
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Message {1} is local and wont be verified",
+                        config.getId(), message.getMessageId()));
         }
 
         if (!nodes.containsKey(senderId))

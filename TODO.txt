@@ -2,3 +2,4 @@
 - The block number is probably represented by the consensus instance number. Maybe, if there are multiple clients making requests, the values should be buffered until they are decided;
 - Store all keys (clients and servers) in just a folder, and then load them in Link layer;
 - We should create two distinct links for server processes, because, when consensus service broadcasts a message, it sends it also to the clients;
+- Check cuncurrency issues;

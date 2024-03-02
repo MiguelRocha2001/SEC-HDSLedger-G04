@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.CommitMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.LeaderChangeMessage;
@@ -23,6 +24,7 @@ import pt.ulisboa.tecnico.hdsledger.communication.builder.ConsensusMessageBuilde
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.InstanceInfo;
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.MessageBucket;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
+import pt.ulisboa.tecnico.hdsledger.utilities.Pair;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
 
 public class NodeService implements UDPService {
@@ -52,6 +54,8 @@ public class NodeService implements UDPService {
     private final AtomicInteger consensusInstance = new AtomicInteger(0);
     // Last decided consensus instance
     private final AtomicInteger lastDecidedConsensusInstance = new AtomicInteger(0);
+
+    private final ArrayList<Pair<String, String>> requests = new ArrayList<Pair<String, String>>();
 
     // Ledger (for now, just a list of strings)
     private ArrayList<String> ledger = new ArrayList<String>();
@@ -328,14 +332,12 @@ public class NodeService implements UDPService {
                 
                 int index = consensusInstance - 1;
                 ledger.add(index, value);
-
-                // TODO: warn blockchain service
-                
                 
                 LOGGER.log(Level.INFO,
                     MessageFormat.format(
                             "{0} - Current Ledger: {1}",
                             config.getId(), String.join("", ledger)));
+
             }
 
             lastDecidedConsensusInstance.getAndIncrement();
@@ -344,6 +346,22 @@ public class NodeService implements UDPService {
                     MessageFormat.format(
                             "{0} - Decided on Consensus Instance {1}, Round {2}, Successful? {3}",
                             config.getId(), consensusInstance, round, true));
+
+            // Warns clients
+            for (int u = 0; u < requests.size(); u++) {
+                String clientId = requests.get(u).getKey();
+                String valueToAppend = requests.get(u).getValue();
+                if (valueToAppend.equals(value)) {
+                    requests.remove(u);
+
+                    LOGGER.log(Level.INFO,
+                        MessageFormat.format(
+                            "{0} - Sending APPEND_REQUEST_RESULT to client: {1}",
+                            config.getId(), clientId));
+
+                    link.send(clientId, new AppendRequestResultMessage(config.getId(), consensusInstance, valueToAppend));
+                }
+            }
 
         }
     }
@@ -357,6 +375,8 @@ public class NodeService implements UDPService {
                 config.getId(), senderId));
 
         String valueToAppend = message.getMessage();
+        
+        requests.add(new Pair<String,String>(senderId, valueToAppend));
 
         startConsensus(valueToAppend);
     }
