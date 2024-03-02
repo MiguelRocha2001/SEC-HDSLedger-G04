@@ -10,7 +10,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
-import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.CommitMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.LeaderChangeMessage;
@@ -20,8 +19,8 @@ import pt.ulisboa.tecnico.hdsledger.communication.PrePrepareMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.PrepareMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.StartConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.builder.ConsensusMessageBuilder;
-import pt.ulisboa.tecnico.hdsledger.service.models.InstanceInfo;
-import pt.ulisboa.tecnico.hdsledger.service.models.MessageBucket;
+import pt.ulisboa.tecnico.hdsledger.blockchain.models.InstanceInfo;
+import pt.ulisboa.tecnico.hdsledger.blockchain.models.MessageBucket;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
 
@@ -97,6 +96,18 @@ public class ConsensusService implements UDPService {
         return consensusMessage;
     }
 
+    public void startConsensus(StartConsensusMessage message) {
+
+        String value = message.getMessage(); 
+
+        startConsensus(value);
+
+        if (!this.config.isLeader()) {
+            // broadcasts correct leader
+            link.send(message.getSenderId(), new LeaderChangeMessage(config.getId(), leaderConfig.getId(), value));
+        }
+    }
+
     /*
      * Start an instance of consensus for a value
      * Only the current leader will start a consensus instance
@@ -104,8 +115,7 @@ public class ConsensusService implements UDPService {
      *
      * @param inputValue Value to value agreed upon
      */
-    public void startConsensus(StartConsensusMessage message) {
-        String value = message.getMessage();        
+    public void startConsensus(String value) {
 
         // Set initial consensus values
         int localConsensusInstance = this.consensusInstance.incrementAndGet();
@@ -135,9 +145,6 @@ public class ConsensusService implements UDPService {
                 MessageFormat.format("{0} - Node is leader, sending PRE-PREPARE message", config.getId()));
             this.link.broadcast(this.createConsensusMessage(value, localConsensusInstance, instance.getCurrentRound()));
         } else {
-            // broadcasts leader change
-            link.send(message.getSenderId(), new LeaderChangeMessage(config.getId(), leaderConfig.getId(), value));
-
             LOGGER.log(Level.INFO,
                     MessageFormat.format("{0} - Node is not leader, waiting for PRE-PREPARE message", config.getId()));
         }

@@ -7,7 +7,9 @@ public enum ErrorMessage {
     SocketSendingError("Error while sending message"),
     CannotOpenSocket("Error while opening socket"),
     MessageVerificationFail("Digital signature could not be verified"),
-    ProgrammingError("Programming error"); // TODO: Change to a more specific error
+    
+    ProgrammingError("Programming error"), // TODO: Change to a more specific error
+    CannotLoadKeys("Assymetric keys could not be loaded");
 
     private final String message;
 

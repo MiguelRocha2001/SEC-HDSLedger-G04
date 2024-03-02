@@ -2,8 +2,11 @@ package pt.ulisboa.tecnico.hdsledger.blockchain.services;
 
 import java.io.IOException;
 import java.text.MessageFormat;
-import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.logging.Level;
+import java.util.Iterator;
 
 import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestResultMessage;
@@ -26,7 +29,7 @@ public class BlockchainService implements UDPService {
 
     private ConsensusService nodeService;
 
-    private ArrayList<String> pendingRequests = new ArrayList<>(); // Client ids with pending requests
+    private Map<String, String> pendingRequests = new HashMap<String, String>(); // Client Id -> value
 
     public BlockchainService(Link link, ConsensusService nodeService, ServerConfig config, ServerConfig leaderConfig) {
         this.nodeService = nodeService;
@@ -51,25 +54,35 @@ public class BlockchainService implements UDPService {
         String valueToAppend = appendRequest.getMessage();
 
         StartConsensusMessage msg = new StartConsensusMessage(config.getId(), valueToAppend);
+        nodeService.startConsensus(msg);
+        /*
         if (isLeader())
             nodeService.startConsensus(msg);
         else {
             link.send(leaderId, msg); // leaderId should never be null
         }
+        */
 
         return;
     }
 
+    /*
     public void valueDecided(ConsensusDecidedMessage message) {
+        
+        String appendedValue = message.getAppendedValue();
+        Iterator<Map.Entry<String, String>> iterator = pendingRequests.entrySet().iterator();
 
-        for (int i = 0; i < pendingRequests.size(); i++) {
-            String clientId = pendingRequests.get(i);
-            if (clientId == message.getClientId()) {
-                pendingRequests.remove(i);
-                link.send(clientId, new AppendRequestResultMessage(config.getId()));
+        while (iterator.hasNext()) {
+            Map.Entry<String, String> entry = iterator.next();
+            if (Objects.equals(appendedValue, entry.getValue())) {
+                // Send response back to client
+                link.send(entry.getKey(), new AppendRequestResultMessage(config.getId(), message.getBlockIndex()));
+                // Remove entry
+                iterator.remove();
             }
         }
     }
+    */
 
     @Override
     public void listen() {
@@ -88,8 +101,10 @@ public class BlockchainService implements UDPService {
                                 case APPEND_REQUEST ->
                                     appendString((AppendRequestMessage) message);
                                 
+                                /*
                                 case VALUE_DECIDED ->
                                     valueDecided((ConsensusDecidedMessage) message);
+                                */
 
                                 default ->
                                     LOGGER.log(Level.INFO,

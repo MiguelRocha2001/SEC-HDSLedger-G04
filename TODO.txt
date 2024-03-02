@@ -1,0 +1,3 @@
+- Check if to start consensus, all nodes/processes need to call startConsensus();
+- The block number is probably represented by the consensus instance number. Maybe, if there are multiple clients making requests, the values should be buffered until they are decided.
+- Store all keys (clients and servers) in just a folder, and then load them in Link layer.

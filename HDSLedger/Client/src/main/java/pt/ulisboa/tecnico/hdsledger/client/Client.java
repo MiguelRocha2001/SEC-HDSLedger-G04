@@ -1,5 +1,6 @@
 package pt.ulisboa.tecnico.hdsledger.client;
 
+import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.client.services.ClientService;
@@ -33,7 +34,7 @@ public class Client {
             
             // Abstraction to send and receive messages
             Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), processesConfig,
-                    Message.class);
+                    AppendRequestResultMessage.class);
 
             // Services that implement listen from UDPService
             ClientService nodeService = new ClientService(linkToNodes, nodeConfig,

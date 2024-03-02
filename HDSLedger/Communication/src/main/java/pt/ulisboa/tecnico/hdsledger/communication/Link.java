@@ -41,6 +41,7 @@ public class Link {
     private final AtomicInteger messageCounter = new AtomicInteger(0);
     // Send messages to self by pushing to queue instead of through the network
     private final Queue<Message> localhostQueue = new ConcurrentLinkedQueue<>();
+    private CriptoUtils cripto;
 
     public Link(ProcessConfig self, int port, ProcessConfig[] nodes, Class<? extends Message> messageClass) {
         this(self, port, nodes, messageClass, false, 200);
@@ -67,6 +68,9 @@ public class Link {
         if (!activateLogs) {
             LogManager.getLogManager().reset();
         }
+
+        cripto = new CriptoUtils(nodes);
+
     }
 
     public void ackAll(List<Integer> messageIds) {
@@ -165,11 +169,10 @@ public class Link {
             try {
                 byte[] buf = new Gson().toJson(data).getBytes();
 
-                byte[] buffSigned = CriptoUtils.addSignatureToData(buf, config.getId());
+                byte[] buffSigned = cripto.addSignatureToData(buf, config.getId());
 
                 byte[] buffSignedEncoded = Base64.getEncoder().encodeToString(buffSigned).getBytes(); // encodes to Base 64
                 
-                //DatagramPacket packet = new DatagramPacket(buf, buf.length, hostname, port); // Without signature
                 DatagramPacket packet = new DatagramPacket(buffSignedEncoded, buffSignedEncoded.length, hostname, port);
 
                 socket.send(packet);
@@ -230,7 +233,7 @@ public class Link {
                 throw new HDSSException(ErrorMessage.ProgrammingError);
 
             try {
-                boolean verifies = CriptoUtils.verifySignature(senderId, originalMessage, signature);
+                boolean verifies = cripto.verifySignature(senderId, originalMessage, signature);
                 if (!verifies) {
                     LOGGER.log(Level.WARNING, "Message could not be verified!");
                     throw new HDSSException(ErrorMessage.MessageVerificationFail);

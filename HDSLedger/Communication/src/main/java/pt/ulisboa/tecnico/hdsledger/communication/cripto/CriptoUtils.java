@@ -2,14 +2,55 @@ package pt.ulisboa.tecnico.hdsledger.communication.cripto;
 
 import java.io.IOException;
 import java.security.InvalidKeyException;
+import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
+import java.util.HashMap;
+import java.util.Map;
+
+import pt.ulisboa.tecnico.hdsledger.utilities.ErrorMessage;
+import pt.ulisboa.tecnico.hdsledger.utilities.HDSSException;
+import pt.ulisboa.tecnico.hdsledger.utilities.Pair;
+import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 
 public class CriptoUtils {
+
+    private String KEY_LOCATION = "../keys/";
+
+    private Map<String, Pair<PublicKey, PrivateKey>> keys = new HashMap<>();
+
+    public CriptoUtils(ProcessConfig[] nodes) {
+        try {
+            this.keys = loadKeys(nodes); 
+        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+            // TODO: log error using costumn logger
+            e.printStackTrace();
+            throw new HDSSException(ErrorMessage.CannotLoadKeys);
+        }
+    }
+
+    private Map<String, Pair<PublicKey, PrivateKey>> loadKeys(ProcessConfig[] nodes)
+        throws IOException, NoSuchAlgorithmException, InvalidKeySpecException
+    {
+        Map<String, Pair<PublicKey, PrivateKey>> keys = new HashMap<>();
+
+        for (int u=0; u < nodes.length; u++) {
+            String nodeId = nodes[u].getId();
+
+            String pathToPrivKey = KEY_LOCATION + "private" + nodeId + ".key";
+            PrivateKey privateKey = (PrivateKey) RSAKeyGenerator.read(pathToPrivKey, "priv");
+            String pathToPubKey = KEY_LOCATION + "public" + nodeId + ".key";                
+            PublicKey publicKey = (PublicKey) RSAKeyGenerator.read(pathToPubKey, "pub");
+
+            keys.put(nodeId, new Pair<>(publicKey, privateKey));
+        }
+
+        return keys;
+    }
 
     private static byte[] appendArrays(byte[] arr1, byte[] arr2) {
         byte[] result = new byte[arr1.length + arr2.length];
@@ -18,7 +59,7 @@ public class CriptoUtils {
         return result;
     }
 
-    public static byte[] addSignatureToData(byte[] buf, String nodeId) 
+    public byte[] addSignatureToData(byte[] buf, String nodeId) 
         throws 
             IOException, 
             NoSuchAlgorithmException, 
@@ -26,8 +67,7 @@ public class CriptoUtils {
             SignatureException,
             InvalidKeySpecException
     {
-        String pathToPrivKey = "src/main/resources/keys/server" + nodeId + ".key";                
-        PrivateKey privateKey = (PrivateKey) RSAKeyGenerator.read(pathToPrivKey, "priv");
+        PrivateKey privateKey = keys.get(nodeId).getValue();
 
         Signature rsaToSign = Signature.getInstance("SHA1withRSA");
         rsaToSign.initSign(privateKey);
@@ -55,7 +95,7 @@ public class CriptoUtils {
         return message;
     }
 
-    public static boolean verifySignature(String senderNodeId, byte[] originalMessage, byte[] signature)
+    public boolean verifySignature(String senderNodeId, byte[] originalMessage, byte[] signature)
         throws 
             IOException, 
             NoSuchAlgorithmException, 
@@ -63,8 +103,7 @@ public class CriptoUtils {
             InvalidKeyException, 
             SignatureException
     {
-        String pathToPubKey = "src/main/resources/keys/public" + senderNodeId + ".key";                
-        PublicKey publicKey = (PublicKey) RSAKeyGenerator.read(pathToPubKey, "pub");
+        PublicKey publicKey = keys.get(senderNodeId).getKey();
 
         Signature rsaForVerify = Signature.getInstance("SHA1withRSA");
         rsaForVerify.initVerify(publicKey);

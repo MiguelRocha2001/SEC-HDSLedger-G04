@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.hdsledger.service.models;
+package pt.ulisboa.tecnico.hdsledger.blockchain.models;
 
 import java.util.HashMap;
 import java.util.Map;

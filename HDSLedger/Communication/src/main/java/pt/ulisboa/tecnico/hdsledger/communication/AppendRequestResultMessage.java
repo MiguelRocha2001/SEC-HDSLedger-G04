@@ -4,8 +4,13 @@ import com.google.gson.Gson;
 
 public class AppendRequestResultMessage extends Message {
 
-    public AppendRequestResultMessage(String senderId) {
+    private int blockIndex;
+
+    public AppendRequestResultMessage(String senderId, int blockIndex) {
         super(senderId, Type.APPEND_REQUEST_RESULT);
+        this.blockIndex = blockIndex;
     }
+
+    public int getBlockIndex() { return blockIndex; }
     
 }

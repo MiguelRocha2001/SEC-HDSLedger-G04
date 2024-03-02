@@ -60,8 +60,8 @@ public class ClientService implements UDPService {
 
         LOGGER.log(Level.INFO,
             MessageFormat.format(
-                "{0} - Consensus decided!",
-                config.getId()));
+                "{0} - Value appended in block: {1}",
+                config.getId(), message.getBlockIndex()));
 
         return;
     }

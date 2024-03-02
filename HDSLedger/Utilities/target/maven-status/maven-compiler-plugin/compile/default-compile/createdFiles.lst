@@ -4,6 +4,7 @@ pt/ulisboa/tecnico/hdsledger/utilities/ErrorMessage.class
 pt/ulisboa/tecnico/hdsledger/utilities/ServerConfigBuilder.class
 pt/ulisboa/tecnico/hdsledger/utilities/CustomLog.class
 pt/ulisboa/tecnico/hdsledger/utilities/ClientConfig.class
+pt/ulisboa/tecnico/hdsledger/utilities/Pair.class
 pt/ulisboa/tecnico/hdsledger/utilities/ServerConfig.class
 pt/ulisboa/tecnico/hdsledger/utilities/ProcessConfig.class
 pt/ulisboa/tecnico/hdsledger/utilities/CustomLogger.class
