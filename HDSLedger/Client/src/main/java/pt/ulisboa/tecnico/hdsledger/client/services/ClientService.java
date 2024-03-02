@@ -66,8 +66,9 @@ public class ClientService implements UDPService {
         return;
     }
 
-    private void appendRequest(String value) {
-        link.send(leaderId, new AppendRequestMessage(config.getId(), value));
+    public void appendRequest(String value) {
+        link.broadcast(new AppendRequestMessage(config.getId(), value));
+        //link.send(leaderId, new AppendRequestMessage(config.getId(), value));
     }
 
     public void onLeaderChange(LeaderChangeMessage message) {

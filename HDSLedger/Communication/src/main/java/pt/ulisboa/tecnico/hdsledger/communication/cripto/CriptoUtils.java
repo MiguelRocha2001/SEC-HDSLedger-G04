@@ -1,6 +1,9 @@
 package pt.ulisboa.tecnico.hdsledger.communication.cripto;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
@@ -24,14 +27,15 @@ public class CriptoUtils {
 
     private static final CustomLogger LOGGER = new CustomLogger(CriptoUtils.class.getName());
 
-    private String KEY_LOCATION = "../keys/";
+    private String KEY_LOCATION = "../resources/keys/";
+    private Path directory = Paths.get(KEY_LOCATION);
 
     private Map<String, Pair<PublicKey, PrivateKey>> keys = new HashMap<>();
 
-    public CriptoUtils(ProcessConfig[] nodes) {
+    public CriptoUtils() {
         try {
-            this.keys = loadKeys(nodes); 
-        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+            this.keys = loadKeys(); 
+        } catch (IOException e) {
             // TODO: log error using costumn logger
             e.printStackTrace();
             throw new HDSSException(ErrorMessage.CannotLoadKeys);
@@ -39,24 +43,37 @@ public class CriptoUtils {
     }
 
     // TODO: should only load public keys for other processes
-    private Map<String, Pair<PublicKey, PrivateKey>> loadKeys(ProcessConfig[] nodes)
-        throws IOException, NoSuchAlgorithmException, InvalidKeySpecException
+    private Map<String, Pair<PublicKey, PrivateKey>> loadKeys() throws IOException
     {
         Map<String, Pair<PublicKey, PrivateKey>> keys = new HashMap<>();
 
-        for (int u=0; u < nodes.length; u++) {
-            String nodeId = nodes[u].getId();
+        // Iterate over all files in the directory
+        Files.walk(directory)
+            .filter(Files::isRegularFile)
+            .forEach(filePath -> {
 
-            String pathToPrivKey = KEY_LOCATION + "private" + nodeId + ".key";
-            PrivateKey privateKey = (PrivateKey) RSAKeyGenerator.read(pathToPrivKey, "priv");
-            String pathToPubKey = KEY_LOCATION + "public" + nodeId + ".key";                
-            PublicKey publicKey = (PublicKey) RSAKeyGenerator.read(pathToPubKey, "pub");
+                String filename = filePath.getFileName().toString();
+                String nodeId = filename.charAt(filename.length() - 5) + ""; // files are in form of <private[NUM].key>
 
-            keys.put(nodeId, new Pair<>(publicKey, privateKey));
-            
-            LOGGER.log(Level.INFO, MessageFormat.format("Process {0} keys loaded",
-                    nodeId));
-        }
+                // avoids loading repeated keys
+                if (!keys.containsKey(nodeId)) {
+                    String pathToPrivKey = KEY_LOCATION + "private" + nodeId + ".key";
+                    String pathToPubKey = KEY_LOCATION + "public" + nodeId + ".key";                
+    
+                    try {
+                        PrivateKey privateKey = (PrivateKey) RSAKeyGenerator.read(pathToPrivKey, "priv");
+                        PublicKey publicKey = (PublicKey) RSAKeyGenerator.read(pathToPubKey, "pub");
+    
+                        keys.put(nodeId, new Pair<>(publicKey, privateKey));
+    
+                        LOGGER.log(Level.INFO, MessageFormat.format("Process {0} keys loaded", nodeId));
+                    } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException e) {
+                        // TODO: log error using costumn logger
+                        e.printStackTrace();
+                        throw new HDSSException(ErrorMessage.CannotLoadKeys);
+                    }
+                }
+            });
 
         return keys;
     }

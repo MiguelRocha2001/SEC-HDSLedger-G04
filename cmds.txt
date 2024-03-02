@@ -1,4 +1,10 @@
-Using maven:
-    $ mvn clean install
-    $ cd Service
-    $ mvn compile exec:java -Dexec.args="1 regular_config.json"
+Server:
+    Using maven:
+        $ mvn clean install
+        $ cd Service
+        $ mvn compile exec:java -Dexec.args="1 regular_config.json"
+
+Client;
+    Using maven:
+        $ cd Client
+        $ mvn compile exec:java -Dexec.args="5 localhost 3005"

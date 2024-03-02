@@ -16,11 +16,5 @@
         "isLeader": false,
         "hostname": "localhost",
         "port": 3003
-    },
-    {
-        "id": "4",
-        "isLeader": false,
-        "hostname": "localhost",
-        "port": 3004
     }
 ]

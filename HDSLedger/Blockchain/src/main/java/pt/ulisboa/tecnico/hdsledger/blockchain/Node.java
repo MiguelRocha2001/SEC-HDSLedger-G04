@@ -1,7 +1,7 @@
 package pt.ulisboa.tecnico.hdsledger.blockchain;
 
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
-import pt.ulisboa.tecnico.hdsledger.blockchain.services.ConsensusService;
+import pt.ulisboa.tecnico.hdsledger.blockchain.services.NodeService;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfigBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
@@ -17,7 +17,7 @@ public class Node {
 
     private static final CustomLogger LOGGER = new CustomLogger(Node.class.getName());
     // Hardcoded path to files
-    private static String processesConfigPath = "src/main/resources/";
+    private static String PROCESSES_CONFIG_PATH = "../resources/";
 
     public static void main(String[] args) {
 
@@ -26,8 +26,8 @@ public class Node {
             String id = args[0];
 
             // Create configuration instances
-            ServerConfig[] serverConfigsAux = new ServerConfigBuilder().fromFile(processesConfigPath + "blockchainConfig.json");
-            ClientConfig[] clientConfigsAux = new ClientConfigBuilder().fromFile(processesConfigPath + "clientConfig.json");
+            ServerConfig[] serverConfigsAux = new ServerConfigBuilder().fromFile(PROCESSES_CONFIG_PATH + "blockchainConfig.json");
+            ClientConfig[] clientConfigsAux = new ClientConfigBuilder().fromFile(PROCESSES_CONFIG_PATH + "clientConfig.json");
 
             ProcessConfig[] serverConfigs = ServerConfigBuilder.fromServerConfigToProcessConfig(serverConfigsAux);
             ProcessConfig[] clientConfigs = ClientConfigBuilder.fromClientConfigToProcessConfig(clientConfigsAux);
@@ -47,14 +47,16 @@ public class Node {
             Link link = new Link(nodeConfig, nodeConfig.getPort(), nodesConfig);
             
             // Services that implement listen from UDPService
-            ConsensusService consensusService = new ConsensusService(link, nodeConfigAux, leaderConfig,
+            NodeService nodeService = new NodeService(link, nodeConfigAux, leaderConfig,
             serverConfigsAux);
             
-            consensusService.listen();
+            nodeService.listen();
 
+            /*
             if (nodeConfigAux.isLeader()) {
-                consensusService.startConsensus("SOME RANDOM VALUE");
+                nodeService.startConsensus("SOME RANDOM VALUE");
             }
+            */
 
         } catch (Exception e) {
             e.printStackTrace();

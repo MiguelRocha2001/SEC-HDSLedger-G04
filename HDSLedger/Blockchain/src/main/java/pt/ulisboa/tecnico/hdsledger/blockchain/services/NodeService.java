@@ -25,9 +25,9 @@ import pt.ulisboa.tecnico.hdsledger.blockchain.models.MessageBucket;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
 
-public class ConsensusService implements UDPService {
+public class NodeService implements UDPService {
 
-    private static final CustomLogger LOGGER = new CustomLogger(ConsensusService.class.getName());
+    private static final CustomLogger LOGGER = new CustomLogger(NodeService.class.getName());
     // Nodes configurations
     private final ServerConfig[] nodesConfig;
 
@@ -56,7 +56,7 @@ public class ConsensusService implements UDPService {
     // Ledger (for now, just a list of strings)
     private ArrayList<String> ledger = new ArrayList<String>();
 
-    public ConsensusService(Link link, ServerConfig config,
+    public NodeService(Link link, ServerConfig config,
             ServerConfig leaderConfig, ServerConfig[] nodesConfig) {
 
         this.link = link;
@@ -356,8 +356,7 @@ public class ConsensusService implements UDPService {
                 "{0} - Received APPEND-REQUEST message from {1}",
                 config.getId(), senderId));
 
-        AppendRequestMessage appendRequest = message.deserializeAppendRequestMessage();
-        String valueToAppend = appendRequest.getMessage();
+        String valueToAppend = message.getMessage();
 
         startConsensus(valueToAppend);
     }

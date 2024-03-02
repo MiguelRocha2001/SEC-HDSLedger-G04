@@ -66,7 +66,7 @@ public class Link {
             LogManager.getLogManager().reset();
         }
 
-        cripto = new CriptoUtils(nodes);
+        cripto = new CriptoUtils();
 
     }
 
@@ -188,7 +188,6 @@ public class Link {
         Type type = message.getType();
         
         if (
-            type == Type.APPEND_REQUEST |
             type == Type.APPEND | 
             type == Type.PRE_PREPARE | 
             type == Type.PREPARE | 

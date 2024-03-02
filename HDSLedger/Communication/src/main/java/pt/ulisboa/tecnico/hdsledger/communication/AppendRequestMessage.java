@@ -11,10 +11,6 @@ public class AppendRequestMessage extends Message {
         this.message = message;
     }
 
-    public AppendRequestMessage deserializeAppendRequestMessage() {
-        return new Gson().fromJson(this.message, AppendRequestMessage.class);
-    }
-
     public String getMessage() {
         return message;
     }
