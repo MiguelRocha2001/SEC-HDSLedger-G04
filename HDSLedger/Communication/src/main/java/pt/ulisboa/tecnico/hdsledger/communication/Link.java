@@ -195,9 +195,10 @@ public class Link {
             type == Type.COMMIT
         ) {
             return ConsensusMessage.class;
-        } else {
+        } if (type == Type.APPEND_REQUEST)
+            return AppendRequestMessage.class;
+        else
             return null; // TODO: implement this
-        }
     }
 
     /*
@@ -248,10 +249,13 @@ public class Link {
             try {
                 boolean verifies = cripto.verifySignature(senderId, originalMessage, signature);
                 if (!verifies) {
-                    LOGGER.log(Level.WARNING, "Message could not be verified!");
-                    throw new HDSSException(ErrorMessage.MessageVerificationFail);
+                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Message {1} could not be verified",
+                        config.getId(), message.getMessageId()));
+                    message.setType(Message.Type.IGNORE);
+                    //throw new HDSSException(ErrorMessage.MessageVerificationFail);
                 } else {
-                    LOGGER.log(Level.WARNING, "Message verified.");
+                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Message {1} from sender {2} verified",
+                        config.getId(), message.getMessageId(), message.getSenderId()));
                 }
             } catch(
                 IOException |
@@ -278,7 +282,7 @@ public class Link {
         }
 
         // It's not an ACK -> Deserialize for the correct type
-        if (!local) {
+        if (!local && message.getType() != Type.IGNORE) {
             Class<? extends Message> type = getMessageType(message);
             message = new Gson().fromJson(serialized, type);
         }
@@ -296,7 +300,9 @@ public class Link {
             }
             case IGNORE -> {
                 if (!originalType.equals(Type.COMMIT))
-                    return message;
+                    return message; // this is weird because, IGNORE means that the message was already received,
+                                    // and maybe we should send the ACK so the other process doesnt continue to
+                                    // send us the same msg, that we well ignore continuously, since is repeated
             }
             case PREPARE -> {
                 ConsensusMessage consensusMessage = (ConsensusMessage) message;

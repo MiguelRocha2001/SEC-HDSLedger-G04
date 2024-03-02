@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
+import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.CommitMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.LeaderChangeMessage;
@@ -94,18 +95,6 @@ public class ConsensusService implements UDPService {
                 .build();
 
         return consensusMessage;
-    }
-
-    public void startConsensus(StartConsensusMessage message) {
-
-        String value = message.getMessage(); 
-
-        startConsensus(value);
-
-        if (!this.config.isLeader()) {
-            // broadcasts correct leader
-            link.send(message.getSenderId(), new LeaderChangeMessage(config.getId(), leaderConfig.getId(), value));
-        }
     }
 
     /*
@@ -359,6 +348,20 @@ public class ConsensusService implements UDPService {
         }
     }
 
+    private void appendString(AppendRequestMessage message) {
+        String senderId = message.getSenderId();
+
+        LOGGER.log(Level.INFO,
+            MessageFormat.format(
+                "{0} - Received APPEND-REQUEST message from {1}",
+                config.getId(), senderId));
+
+        AppendRequestMessage appendRequest = message.deserializeAppendRequestMessage();
+        String valueToAppend = appendRequest.getMessage();
+
+        startConsensus(valueToAppend);
+    }
+
     @Override
     public void listen() {
         try {
@@ -384,8 +387,8 @@ public class ConsensusService implements UDPService {
                                 case COMMIT ->
                                     uponCommit((ConsensusMessage) message);
 
-                                case CONSENSUS_START ->
-                                    startConsensus(((StartConsensusMessage) message));
+                                case APPEND_REQUEST ->
+                                    appendString((AppendRequestMessage) message);
 
                                 case ACK ->
                                     LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received ACK message from {1}",
@@ -395,11 +398,13 @@ public class ConsensusService implements UDPService {
                                     LOGGER.log(Level.INFO,
                                             MessageFormat.format("{0} - Received IGNORE message from {1}",
                                                     config.getId(), message.getSenderId()));
-                                    
+
+                                /*
                                 default ->
                                     LOGGER.log(Level.INFO,
                                             MessageFormat.format("{0} - Received unknown message from {1}",
                                                     config.getId(), message.getSenderId()));
+                                */
 
                             }
 

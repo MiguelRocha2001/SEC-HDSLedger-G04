@@ -25,15 +25,15 @@ public class RSAKeyGenerator {
         final String pubkeyPath = args[2];
 
         if (mode.toLowerCase().startsWith("w")) {
-            System.out.println("Generate and save keys");
+            //System.out.println("Generate and save keys");
             write(privkeyPath, pubkeyPath);
         } else {
-            System.out.println("Load keys");
+            //System.out.println("Load keys");
             read(privkeyPath, "priv");
             read(pubkeyPath, "pub");
         }
 
-        System.out.println("Done.");
+        //System.out.println("Done.");
     }
 
     public static void write(String privKeyPath, String pubKeyPath) throws GeneralSecurityException, IOException {
@@ -68,7 +68,7 @@ public class RSAKeyGenerator {
     }
 
     public static Key read(String keyPath, String type) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
-        System.out.println("Reading key from file " + keyPath + " ...");
+        //System.out.println("Reading key from file " + keyPath + " ...");
         byte[] encoded;
         try (FileInputStream fis = new FileInputStream(keyPath)) {
             encoded = new byte[fis.available()];

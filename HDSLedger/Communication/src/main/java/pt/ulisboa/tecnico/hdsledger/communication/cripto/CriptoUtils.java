@@ -122,7 +122,6 @@ public class CriptoUtils {
             }
         }
         
-        System.out.println("keys lenght: " + keys.size());
         if (nodeKeys != null) {
             PublicKey publicKey = nodeKeys.getKey();
             

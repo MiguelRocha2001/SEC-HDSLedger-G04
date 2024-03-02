@@ -1,26 +1,17 @@
 package pt.ulisboa.tecnico.hdsledger.blockchain;
 
-import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.blockchain.services.ConsensusService;
-import pt.ulisboa.tecnico.hdsledger.blockchain.services.BlockchainService;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfigBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
-import pt.ulisboa.tecnico.hdsledger.utilities.ErrorMessage;
-import pt.ulisboa.tecnico.hdsledger.utilities.HDSSException;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfigBuilder;
 
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.logging.Level;
-import java.net.*;
 
 public class Node {
 
@@ -59,10 +50,7 @@ public class Node {
             ConsensusService consensusService = new ConsensusService(link, nodeConfigAux, leaderConfig,
             serverConfigsAux);
             
-            BlockchainService blockchainService = new BlockchainService(link, consensusService, nodeConfigAux, leaderConfig);
-
             consensusService.listen();
-            blockchainService.listen();
 
             if (nodeConfigAux.isLeader()) {
                 consensusService.startConsensus("SOME RANDOM VALUE");
