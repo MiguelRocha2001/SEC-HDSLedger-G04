@@ -7,3 +7,4 @@
 - Should we use perfect links or even more complex abstractions as Reliable broadcast, etc: Just add digital signatures to every message and justify that we just want integrity and authentication on every message;
 - What should be the result of the consensus protocol? The index of the appended message in the sequence of blocks (stored in the array)?
 - Should we stop sending not achknowledge msgs after consensus is decided/over? If, for instance, PREPARE messages sent to processes that are not correct, are not acknowledged, they will be kept sending until the process received an ACK.
+- What is the timeout for the leader change timer?

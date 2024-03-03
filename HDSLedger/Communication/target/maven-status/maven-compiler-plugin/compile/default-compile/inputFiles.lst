@@ -2,6 +2,7 @@
 /home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Communication/src/main/java/pt/ulisboa/tecnico/hdsledger/communication/PrePrepareMessage.java
 /home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Communication/src/main/java/pt/ulisboa/tecnico/hdsledger/communication/ConsensusMessage.java
 /home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Communication/src/main/java/pt/ulisboa/tecnico/hdsledger/communication/StartConsensusMessage.java
+/home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Communication/src/main/java/pt/ulisboa/tecnico/hdsledger/communication/RoundChangeMessage.java
 /home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Communication/src/main/java/pt/ulisboa/tecnico/hdsledger/communication/PrepareMessage.java
 /home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Communication/src/main/java/pt/ulisboa/tecnico/hdsledger/communication/CommitMessage.java
 /home/miguel/repos/SEC-HDSLedger-G04/HDSLedger/Communication/src/main/java/pt/ulisboa/tecnico/hdsledger/communication/builder/ConsensusMessageBuilder.java

@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import pt.ulisboa.tecnico.hdsledger.communication.CommitMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.PrepareMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.RoundChangeMessage;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 
 public class MessageBucket {
@@ -73,6 +74,35 @@ public class MessageBucket {
         }).map((Map.Entry<String, Integer> entry) -> {
             return entry.getKey();
         }).findFirst();
+    }
+
+    /**
+     * Checks if there is a quorum of ROUND CHANGE messages.
+     */
+    public boolean hasValidRoundChangeQuorum(String nodeId, int instance, int round) {
+        return bucket.get(instance).get(round).size() >= quorumSize;
+    }
+
+    /**
+     * Assuming that there is a quorum, returns the heighest prepared value, or null,
+     * if there isn't any.
+     */
+    public Optional<String> getHeighestPreparedValueIfAny(String nodeId, int instance, int round) {
+        
+        int heighestPreparedRound = -1; // TODO: check if this is safe
+        String heighestPreparedValue = null;
+
+        for (Map.Entry<String, ConsensusMessage> entry : bucket.get(instance).get(round).entrySet()) {
+            
+            RoundChangeMessage roundChangeMessage = entry.getValue().deserializeRoundChangeMessage();
+            
+            int preparedRound = roundChangeMessage.getPreparedRound();
+            if (preparedRound > heighestPreparedRound) {
+                heighestPreparedValue = roundChangeMessage.getPreparedValue();
+            }
+        }
+
+        return Optional.ofNullable(heighestPreparedValue);
     }
 
     public Map<String, ConsensusMessage> getMessages(int instance, int round) {
