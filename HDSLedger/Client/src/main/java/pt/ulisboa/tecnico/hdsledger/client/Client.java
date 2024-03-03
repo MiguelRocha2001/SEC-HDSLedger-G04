@@ -4,36 +4,40 @@ import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.client.services.ClientService;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfigBuilder;
+import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfig;
+import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfigBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 
+import java.util.Arrays;
 import java.util.Scanner;
 
 public class Client {
 
     private static final CustomLogger LOGGER = new CustomLogger(Client.class.getName());
-    private static String NODES_CONFIG_FILE_PATH = "../resources/";
+    private static String PROCESSE_CONFIG_PATH = "../resources/";
 
     public static void main(String[] args) {
 
         try {
             // Command line arguments
             String id = args[0];
-            String hostname = args[1];
-            int port = Integer.parseInt(args[2]);
 
             // Create configuration instances of the vailable server processes
-            ServerConfig[] serverConfigs = new ServerConfigBuilder().fromFile(NODES_CONFIG_FILE_PATH + "blockchainConfig.json");
-            ProcessConfig[] serversConfig = ServerConfigBuilder.fromServerConfigToProcessConfig(serverConfigs);
+            ServerConfig[] serverConfigsAux = new ServerConfigBuilder().fromFile(PROCESSE_CONFIG_PATH + "blockchainConfig.json");
+            ClientConfig[] clientConfigsAux = new ClientConfigBuilder().fromFile(PROCESSE_CONFIG_PATH + "clientConfig.json");
 
-            ProcessConfig nodeConfig = new ProcessConfig(id, hostname, port);
-            
+            ProcessConfig[] serverConfigs = ServerConfigBuilder.fromServerConfigToProcessConfig(serverConfigsAux);
+
+            ClientConfig clientConfigAux = Arrays.stream(clientConfigsAux).filter(c -> c.getId().equals(id)).findAny().get();
+            ProcessConfig nodeConfig = new ProcessConfig(id, clientConfigAux.getHostname(), clientConfigAux.getPort());
+
             // Abstraction to send and receive messages
-            Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), serversConfig);
+            Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), serverConfigs);
 
             // Services that implement listen from UDPService
             ClientService clientService = new ClientService(linkToNodes, nodeConfig,
-                    serverConfigs);
+                    serverConfigsAux);
 
             clientService.listen();
 

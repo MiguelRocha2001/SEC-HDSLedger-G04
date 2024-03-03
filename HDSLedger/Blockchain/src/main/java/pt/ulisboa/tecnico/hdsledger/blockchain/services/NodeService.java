@@ -363,6 +363,11 @@ public class NodeService implements UDPService {
                 }
             }
 
+            // start new consensus instance, if theres more pending requests
+            if (isLeader(config.getId()) && !requests.isEmpty()) {
+                String nextRequestValueToAppend = requests.get(0).getValue();
+                startConsensus(nextRequestValueToAppend);
+            }
         }
     }
 

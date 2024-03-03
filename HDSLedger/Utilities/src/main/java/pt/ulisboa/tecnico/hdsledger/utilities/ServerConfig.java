@@ -27,5 +27,16 @@ public class ServerConfig {
         return hostname;
     }
 
+    /*
+    public static ProcessConfig[] toProcessConfig(ServerConfig[] configs) {
+        ProcessConfig[] processConfig = new ProcessConfig[configs.length];
 
+        for (int u = 0; u < processConfig.length; u++) {
+            ServerConfig serverConfig = configs[u];
+            processConfig[u] = new ProcessConfig(serverConfig.getId(), serverConfig.getHostname(), serverConfig.getPort());
+        }
+
+        return processConfig;
+    }
+    */
 }

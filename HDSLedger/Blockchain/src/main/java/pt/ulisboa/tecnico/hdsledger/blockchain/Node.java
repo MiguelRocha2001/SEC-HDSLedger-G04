@@ -17,7 +17,7 @@ public class Node {
 
     private static final CustomLogger LOGGER = new CustomLogger(Node.class.getName());
     // Hardcoded path to files
-    private static String PROCESSES_CONFIG_PATH = "../resources/";
+    private static String PROCESSE_CONFIG_PATH = "../resources/";
 
     public static void main(String[] args) {
 
@@ -26,8 +26,8 @@ public class Node {
             String id = args[0];
 
             // Create configuration instances
-            ServerConfig[] serverConfigsAux = new ServerConfigBuilder().fromFile(PROCESSES_CONFIG_PATH + "blockchainConfig.json");
-            ClientConfig[] clientConfigsAux = new ClientConfigBuilder().fromFile(PROCESSES_CONFIG_PATH + "clientConfig.json");
+            ServerConfig[] serverConfigsAux = new ServerConfigBuilder().fromFile(PROCESSE_CONFIG_PATH + "blockchainConfig.json");
+            ClientConfig[] clientConfigsAux = new ClientConfigBuilder().fromFile(PROCESSE_CONFIG_PATH + "clientConfig.json");
 
             ProcessConfig[] serverConfigs = ServerConfigBuilder.fromServerConfigToProcessConfig(serverConfigsAux);
             ProcessConfig[] clientConfigs = ClientConfigBuilder.fromClientConfigToProcessConfig(clientConfigsAux);
