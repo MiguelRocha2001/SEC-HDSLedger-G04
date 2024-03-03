@@ -26,7 +26,7 @@ def quit_handler(*args):
 os.system("mvn clean install")
 
 # Spawn blockchain nodes
-with open(f"Blockchain/src/main/resources/{server_config}") as f:
+with open(f"resources/{server_config}") as f:
     data = json.load(f)
     processes = list()
     for key in data:

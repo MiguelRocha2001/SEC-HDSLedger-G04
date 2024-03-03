@@ -5,13 +5,10 @@ import java.text.MessageFormat;
 import java.util.logging.Level;
 
 import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.LeaderChangeMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
-import pt.ulisboa.tecnico.hdsledger.communication.PrePrepareMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.builder.ConsensusMessageBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
