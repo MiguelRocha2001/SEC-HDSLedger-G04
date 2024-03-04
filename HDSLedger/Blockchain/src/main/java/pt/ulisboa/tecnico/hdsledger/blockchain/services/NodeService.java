@@ -5,6 +5,8 @@ import java.sql.Time;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,6 +30,8 @@ import pt.ulisboa.tecnico.hdsledger.communication.builder.ConsensusMessageBuilde
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.InstanceInfo;
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.MessageBucket;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
+import pt.ulisboa.tecnico.hdsledger.utilities.ErrorMessage;
+import pt.ulisboa.tecnico.hdsledger.utilities.HDSSException;
 import pt.ulisboa.tecnico.hdsledger.utilities.Pair;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
 
@@ -179,6 +183,16 @@ public class NodeService implements UDPService {
         }
     }
 
+    private boolean justifyPrePrepareMessage(int instance, int round) {
+        if (round == 1) return true;
+
+        if (round > 1) {
+            return justifyRoundChange(instance, round);
+        } else {
+            throw new HDSSException(ErrorMessage.ProgrammingError);
+        }
+    }
+
     /*
      * Handle pre prepare messages and if the message
      * came from leader and is justified them broadcast prepare
@@ -200,10 +214,17 @@ public class NodeService implements UDPService {
                 MessageFormat.format(
                         "{0} - Received PRE-PREPARE message from {1} Consensus Instance {2}, Round {3}",
                         config.getId(), senderId, consensusInstance, round));
-
+                        
         // Verify if pre-prepare was sent by leader
         if (!isLeader(senderId))
             return;
+
+        try {
+            if (!justifyPrePrepareMessage(consensusInstance, round))
+                return;
+        } catch(Exception e) {
+
+        }
 
         // Set instance value
         this.instanceInfo.putIfAbsent(consensusInstance, new InstanceInfo(value));
@@ -413,6 +434,14 @@ public class NodeService implements UDPService {
         }
     }
 
+    private boolean justifyRoundChange(int instance, int round) {
+        Optional<String> value = roundChangeMessages.getHeighestPreparedValueIfAny(config.getId(), instance, round);
+        InstanceInfo instanceInfo = this.instanceInfo.get(instance);
+
+        return !value.isPresent() || value.get() == instanceInfo.getPreparedValue();
+
+    }
+
     public void uponRoundChange(ConsensusMessage message) {
         int consensusInstance = message.getConsensusInstance();
         int round = message.getRound();
@@ -423,11 +452,25 @@ public class NodeService implements UDPService {
 
         roundChangeMessages.addMessage(message);
 
-        if (roundChangeMessages.hasValidRoundChangeQuorum(config.getId(), consensusInstance, round)) {
+        // if CHANGE-ROUND consensus instance was already decided
+        if (lastDecidedConsensusInstance.get() < consensusInstance) {
             
+            Collection<ConsensusMessage> receivedCommitMessages = commitMessages.getMessages(consensusInstance, round)
+                    .values();
+
+            // sends the whole quorum
+            for (ConsensusMessage msg : receivedCommitMessages)
+                link.send(message.getSenderId(), msg);
+        }
+
+        if (
+            roundChangeMessages.hasValidRoundChangeQuorum(config.getId(), consensusInstance, round) &&
+            isLeader(config.getId()) &&
+            justifyRoundChange(consensusInstance, round)
+        ) {
             Optional<String> value = roundChangeMessages.getHeighestPreparedValueIfAny(config.getId(), consensusInstance, round);
 
-            InstanceInfo instance = this.instanceInfo.get(consensusInstance);
+            InstanceInfo instance = this.instanceInfo.get(consensusInstance);        
 
             if (value.isPresent())
                 instance.setInputValue(value.get());

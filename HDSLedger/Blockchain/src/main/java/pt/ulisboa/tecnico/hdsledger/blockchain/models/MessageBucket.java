@@ -1,6 +1,8 @@
 package pt.ulisboa.tecnico.hdsledger.blockchain.models;
 
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -74,6 +76,16 @@ public class MessageBucket {
         }).map((Map.Entry<String, Integer> entry) -> {
             return entry.getKey();
         }).findFirst();
+    }
+
+    public List<CommitMessage> getCommitMessages(String nodeId, int instance, int round) {
+        LinkedList<CommitMessage> commitMessages = new LinkedList<>();
+        bucket.get(instance).get(round).values().forEach((message) -> {
+            CommitMessage commitMessage = message.deserializeCommitMessage();
+            commitMessages.add(commitMessage);
+        });
+
+        return commitMessages;
     }
 
     /**
