@@ -250,13 +250,15 @@ public class Link {
             try {
                 boolean verifies = cripto.verifySignature(senderId, originalMessage, signature);
                 if (!verifies) {
-                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Message {1} could not be verified",
+                    LOGGER.log(Level.WARNING, MessageFormat.format("{0} - Message {1} could not be verified",
                         config.getId(), message.getMessageId()));
                     message.setType(Message.Type.IGNORE);
                     //throw new HDSSException(ErrorMessage.MessageVerificationFail);
                 } else {
-                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Message {1} from sender {2} verified",
-                        config.getId(), message.getMessageId(), message.getSenderId()));
+                    //LOGGER.log(Level.INFO, MessageFormat.format("{0} - Message {1} from sender {2} verified",
+                    //    config.getId(), message.getMessageId(), message.getSenderId()));
+
+                    // Do nothing
                 }
             } catch(
                 IOException |

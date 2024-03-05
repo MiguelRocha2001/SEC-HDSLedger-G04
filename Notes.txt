@@ -18,3 +18,5 @@ If the leader is byzantine, receives the request from the client and changes the
 - In the report, what can go wrong? thats the important part. What can go right is not so important. For example: we are using signatures here because its important to mantain integrity.
 - Actually, we can just use digital signatures for everything, and not worry about performance issues.
 - The client could contact a server node (random), and then, of its not the lider, it replies with the lider id.
+
+- Digital signatures allow a third process to verify authenticity of a message sent from P1 to P2.

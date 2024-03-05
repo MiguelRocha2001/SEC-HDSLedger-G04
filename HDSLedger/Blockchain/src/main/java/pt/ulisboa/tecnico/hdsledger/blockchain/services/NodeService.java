@@ -71,8 +71,8 @@ public class NodeService implements UDPService {
     // Ledger (for now, just a list of strings)
     private ArrayList<String> ledger = new ArrayList<String>();
 
-    private long TIMEOUT = 9999;
-    Timer timer = new Timer();
+    private long TIMEOUT = 999999;
+    Timer timer;
 
     public NodeService(Link link, ServerConfig config, ServerConfig[] nodesConfig) {
 
@@ -109,7 +109,7 @@ public class NodeService implements UDPService {
     private boolean isLeader(String id, int round) {
         for (int u = 0; u < nodesConfig.length; u++) {
             if (u == round - 1) // remember: rounds start on 1
-                return id == nodesConfig[u].getId();
+                return id.equals(nodesConfig[u].getId());
         }
         throw new HDSSException(ErrorMessage.ProgrammingError);
     }
@@ -127,27 +127,40 @@ public class NodeService implements UDPService {
     }
 
     // triggers round change
-    TimerTask task = new TimerTask() {
-        @Override
-        public void run() {
-            int localConsensusInstance = consensusInstance.get();
-            InstanceInfo consensus = instanceInfo.get(localConsensusInstance);
-            
-            int currentRound = consensus.getCurrentRound();
-            int newRound = currentRound + 1;
-            consensus.setCurrentRound(newRound); // increments current round
+    private TimerTask createTimerTaks() {
+        return new TimerTask() {
+            @Override
+            public void run() {
+                int localConsensusInstance = consensusInstance.get();
+                InstanceInfo consensus = instanceInfo.get(localConsensusInstance);
+                
+                int currentRound = consensus.getCurrentRound();
+                int newRound = currentRound + 1;
+                consensus.setCurrentRound(newRound); // increments current round
+    
+                RoundChangeMessage message = new RoundChangeMessage(consensus.getPreparedValue(), consensus.getPreparedRound());
+    
+                ConsensusMessage consensusMessage = new ConsensusMessageBuilder(config.getId(), Message.Type.ROUND_CHANGE)
+                        .setConsensusInstance(consensusInstance.get())
+                        .setRound(newRound)
+                        .setMessage(message.toJson())
+                        .build();
+    
+                link.broadcast(consensusMessage); // broadcasts ROUND_CHANGE message
+            }
+        };
+    }
 
-            RoundChangeMessage message = new RoundChangeMessage(consensus.getPreparedValue(), consensus.getPreparedRound());
-
-            ConsensusMessage consensusMessage = new ConsensusMessageBuilder(config.getId(), Message.Type.ROUND_CHANGE)
-                    .setConsensusInstance(consensusInstance.get())
-                    .setRound(newRound)
-                    .setMessage(message.toJson())
-                    .build();
-
-            link.broadcast(consensusMessage); // broadcasts ROUND_CHANGE message
+    private void schedualeTask() {
+        if (timer != null) {
+            timer.cancel();
+            timer.purge();
+            timer = new Timer();    
+        } else {
+            timer = new Timer();
         }
-    };
+        timer.schedule(createTimerTaks(), TIMEOUT); // set timer
+    }
 
     /*
      * Start an instance of consensus for a value
@@ -185,10 +198,21 @@ public class NodeService implements UDPService {
         if (isLeader(config.getId(), instance.getCurrentRound())) {
             LOGGER.log(Level.INFO,
                 MessageFormat.format("{0} - Node is leader, sending PRE-PREPARE message", config.getId()));
-            this.link.broadcast(this.createConsensusMessage(value, localConsensusInstance, instance.getCurrentRound()));
+
+            if (!config.isByzantine())
+                this.link.broadcast(this.createConsensusMessage(value, localConsensusInstance, instance.getCurrentRound()));
+
+            // sends a different value to each process
+            else {
+                for (ServerConfig node : nodesConfig) {
+                    int valueLength = RandomIntGenerator.generateRandomInt(1, 5);
+                    String randomValue = RandomStringGenerator.generateRandomString(valueLength);
+                    this.link.send(node.getId(), this.createConsensusMessage(randomValue, localConsensusInstance, instance.getCurrentRound()));
+                }
+            }
 
             // set timer
-            timer.schedule(task, TIMEOUT);
+            schedualeTask();
         } else {
             LOGGER.log(Level.INFO,
                     MessageFormat.format("{0} - Node is not leader, waiting for PRE-PREPARE message", config.getId()));
@@ -230,12 +254,20 @@ public class NodeService implements UDPService {
         InstanceInfo instance = this.instanceInfo.get(consensusInstance);
 
         // Verify if pre-prepare was sent by leader
-        if (!isLeader(senderId, instance.getCurrentRound())) // compare against the current round and not the one in the received message
+        if (!isLeader(senderId, instance.getCurrentRound())) { // compare against the current round and not the one in the received message
+            LOGGER.log(Level.WARNING,
+                    MessageFormat.format("{0} - Received PRE-PREPARE message from a node {1}, that is not the lider. Not doing anything.", 
+                    config.getId(), senderId));
             return;
+        }
 
         try {
-            if (!justifyPrePrepareMessage(consensusInstance, round))
+            if (!justifyPrePrepareMessage(consensusInstance, round)) {
+                LOGGER.log(Level.WARNING,
+                    MessageFormat.format("{0} - Received PRE-PREPARE message from a node {1}, that is not justified.", 
+                    config.getId(), senderId));
                 return;
+            }
         } catch(Exception e) {
 
         }
@@ -253,9 +285,9 @@ public class NodeService implements UDPService {
                                     + "replying again to make sure it reaches the initial sender",
                             config.getId(), consensusInstance, round));
         }
-
+        
         // set timer
-        timer.schedule(task, TIMEOUT);
+        schedualeTask();
 
         PrepareMessage prepareMessage = new PrepareMessage(prePrepareMessage.getValue());
 

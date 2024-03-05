@@ -42,12 +42,10 @@ public class ClientService implements UDPService {
     }
 
     private void resultReceived(AppendRequestResultMessage message) {
-
         LOGGER.log(Level.INFO,
             MessageFormat.format(
                 "Value {0} appended in block: {1}",
                 message.getAppendedValue(), message.getBlockIndex()));
-
         return;
     }
 
@@ -82,10 +80,10 @@ public class ClientService implements UDPService {
                                 case LIDER_CHANGE ->
                                     onLeaderChange((LeaderChangeMessage) message);
 
-                                default ->
-                                LOGGER.log(Level.INFO,
-                                        MessageFormat.format("{0} - Received unknown message from {1}",
-                                                config.getId(), message.getSenderId()));
+                                //default ->
+                                //LOGGER.log(Level.INFO,
+                                //        MessageFormat.format("{0} - Received unknown message from {1}",
+                                //                config.getId(), message.getSenderId()));
                             }
 
                         }).start();
