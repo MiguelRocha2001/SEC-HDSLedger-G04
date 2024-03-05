@@ -34,8 +34,6 @@ public class Node {
 
             ProcessConfig[] nodesConfig = ProcessConfig.joinArrays(serverConfigs, clientConfigs);
 
-            ServerConfig leaderConfig = Arrays.stream(serverConfigsAux).filter(ServerConfig::isLeader).findAny().get();
-
             ServerConfig nodeConfigAux = Arrays.stream(serverConfigsAux).filter(c -> c.getId().equals(id)).findAny().get();
             ProcessConfig nodeConfig = new ProcessConfig(nodeConfigAux.getId(), nodeConfigAux.getHostname(), nodeConfigAux.getPort());
 
@@ -47,7 +45,7 @@ public class Node {
             Link link = new Link(nodeConfig, nodeConfig.getPort(), nodesConfig);
             
             // Services that implement listen from UDPService
-            NodeService nodeService = new NodeService(link, nodeConfigAux, leaderConfig,
+            NodeService nodeService = new NodeService(link, nodeConfigAux,
             serverConfigsAux);
             
             nodeService.listen();

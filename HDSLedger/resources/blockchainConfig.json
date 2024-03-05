@@ -15,6 +15,7 @@
         "id": "3",
         "isLeader": false,
         "hostname": "localhost",
-        "port": 3003
+        "port": 3003,
+        "atack": "DONT_RESPOND"
     }
 ]

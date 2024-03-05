@@ -1,5 +1,6 @@
 package pt.ulisboa.tecnico.hdsledger.utilities;
 
+
 public class ServerConfig {
     public ServerConfig() {}
 
@@ -10,6 +11,8 @@ public class ServerConfig {
     private String id;
 
     private int port;
+
+    private Atack atack; // null means it isn't byzantine
 
     public boolean isLeader() {
         return isLeader;
@@ -27,16 +30,15 @@ public class ServerConfig {
         return hostname;
     }
 
-    /*
-    public static ProcessConfig[] toProcessConfig(ServerConfig[] configs) {
-        ProcessConfig[] processConfig = new ProcessConfig[configs.length];
-
-        for (int u = 0; u < processConfig.length; u++) {
-            ServerConfig serverConfig = configs[u];
-            processConfig[u] = new ProcessConfig(serverConfig.getId(), serverConfig.getHostname(), serverConfig.getPort());
-        }
-
-        return processConfig;
+    public void setAtack(Atack atack) {
+        this.atack = atack;
     }
-    */
+
+    public Atack getAtack() {
+        return atack;
+    }
+
+    public boolean isByzantine() {
+        return atack != null;
+    }
 }
