@@ -1,6 +1,4 @@
-- Check if to start consensus, all nodes/processes need to call startConsensus();
-- The block number is probably represented by the consensus instance number. Maybe, if there are multiple clients making requests, the values should be buffered until they are decided;
-- Store all keys (clients and servers) in just a folder, and then load them in Link layer;
+- Check if to start consensus, all nodes/processes need to call startConsensus(): I think they do not. Only the leader to start consensus.
 - We should create two distinct links for server processes, because, when consensus service broadcasts a message, it sends it also to the clients;
 - Check cuncurrency issues;
 - Split ServerConfig into two classes: byzanthine and not byzantine processes;

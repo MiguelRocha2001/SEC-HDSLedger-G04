@@ -195,9 +195,17 @@ public class NodeService implements UDPService {
         InstanceInfo instance = this.instanceInfo.get(localConsensusInstance);
 
         // Leader broadcasts PRE-PREPARE message
-        if (isLeader(config.getId(), instance.getCurrentRound())) {
-            LOGGER.log(Level.INFO,
-                MessageFormat.format("{0} - Node is leader, sending PRE-PREPARE message", config.getId()));
+        if (
+            isLeader(config.getId(), instance.getCurrentRound()) ||
+            config.isByzantine() && config.getAtack() == Atack.FAKE_LEADER
+        ) {
+            if (isLeader(config.getId(), instance.getCurrentRound())) {
+                LOGGER.log(Level.INFO,
+                    MessageFormat.format("{0} - Node is leader, sending PRE-PREPARE message", config.getId()));
+            } else {
+                LOGGER.log(Level.INFO,
+                    MessageFormat.format("{0} - Node is byzanine leader, sending PRE-PREPARE message", config.getId()));
+            }
 
             if (!config.isByzantine())
                 this.link.broadcast(this.createConsensusMessage(value, localConsensusInstance, instance.getCurrentRound()));
@@ -360,6 +368,10 @@ public class NodeService implements UDPService {
 
             // generates a random value with random size
             if (config.isByzantine() && config.getAtack() == Atack.BYZANTINE_UPON_PREPARE_QUORUM) {
+                
+                LOGGER.log(Level.INFO,
+                    MessageFormat.format("{0} - Node is byzantine, setting a fake/random PREPARE VALUE after receiving a prepare message", config.getId()));
+
                 int valueLength = RandomIntGenerator.generateRandomInt(1, 5);
                 String randomValue = RandomStringGenerator.generateRandomString(valueLength);
                 instance.setPreparedValue(randomValue);
@@ -527,6 +539,10 @@ public class NodeService implements UDPService {
 
             // generates a random value with random size
             if (config.isByzantine() && config.getAtack() == Atack.BYZANTINE_UPON_ROUND_CHANGE_QUORUM) {
+
+                LOGGER.log(Level.INFO,
+                    MessageFormat.format("{0} - Node is byzantine, setting a fake/random VALUE in round change", config.getId()));
+
                 int valueLength = RandomIntGenerator.generateRandomInt(1, 5);
                 String randomValue = RandomStringGenerator.generateRandomString(valueLength);
                 instance.setInputValue(randomValue);

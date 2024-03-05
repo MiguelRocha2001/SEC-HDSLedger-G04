@@ -1,6 +1,6 @@
 - Maybe, check if are processes interatcing with the system, that are not registered as expected processes;
 - Ask lab professor on how to do good testing.
-- How is the comunication made betrween client and server? UDP?
+- How is the comunication made between client and server? UDP?
 - Do we need to add security between client - server?: just authentication with assymetric keys.
 - What are "upcalls" in the context of the project?
 - What kind of components do we need to test? All the link layer? Or just authentication?

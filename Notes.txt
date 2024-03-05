@@ -4,14 +4,14 @@
 - Blockchain is array of strings;
 - The library catches the request and triggers the concensus;
 - Main challenge: what can go bad on every step of the process.
-- The library will never atack the request. Behaves well; Blockchain can only have f byzantine prozesses. The network is unreliable. Therer are already abstractions implemented to fight this. What should the link garantee? What at does it already garantee? WHat should we implement? UDP simulates fair loss;
-- Think of how to maintain the blockchain consistent having in mind byzantine processes: We could have a process not the leader faking being the leader. Think about that. We need to consider that leaders can by byzantine. Thats wy we use round changes. 
+- The library will never atack the request. Behaves well; Blockchain can only have f byzantine prozesses. The network is unreliable. Therer are already abstractions implemented to fighht this. What should the link garantee? What at does it already garantee? What should we implement? UDP simulates fair loss;
+- Think of how to maintain the blockchain consistent having in mind byzantine processes: We could have a process not the leader faking being the leader. Think about that. We need to consider that leaders can be byzantine. Thats why we use round changes.
 Only the leader can trigger consensus. What if the leader is byzantine?
-If the leader is byzantine, receives the request from the client and changes the value on porpuse? How to solve this?
-- Digital signature is way havier vs MACs. Thjere are situations when we may not need all digitaal signatures garantee properties.
-- If we want to use systetric keys, we should distribute them and not assume they are already distributed. Make key exchange first. It is expensive but if the blockchain runs infinitly, it will prevail over the overhead of exchanging the keys. But theory teacher said theres no need to use symetric encription and we could just use assymetric encription for everyting;
+If the leader is byzantine, receives the request from the client and changes the value on porpose? How to solve this?
+- Digital signature is way havier than MACs. There are situations when we may not need all digital signatures garanteing properties.
+- If we want to use symetric keys, we should distribute them and not assume they are already distributed. Make key exchange first. It is expensive but if the blockchain runs infinitly, it will prevail over the overhead of exchanging the keys. But theory teacher said theres no need to use symetric encription and we could just use assymetric encription for everyting;
 - Dont make tests for normal functioning of the system that was already provided and it works; 
-- Do tests for byzantine cases: the blockchain have byzantine members. Include the maximum byzantine cases in tests. A client byzantine is few cases. The members of tthe blockchain being byzantine are much more cases to test. 
+- Do tests for byzantine cases: the blockchain have byzantine members. Include the maximum byzantine cases in tests. A client byzantine is few cases. The members of the blockchain being byzantine are much more cases to test. 
 - Understand very well how the link layer is being used on the consensus service. How are messages created, etc.
 - Understand very well the normal case and only then, go to round changes.
 - Make specific tests for STEP_2.
