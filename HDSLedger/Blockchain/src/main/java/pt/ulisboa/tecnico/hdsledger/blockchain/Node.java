@@ -1,6 +1,9 @@
 package pt.ulisboa.tecnico.hdsledger.blockchain;
 
+import pt.ulisboa.tecnico.hdsledger.communication.BlockchainRequestMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
+import pt.ulisboa.tecnico.hdsledger.blockchain.services.BlockchainService;
 import pt.ulisboa.tecnico.hdsledger.blockchain.services.NodeService;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfigBuilder;
@@ -42,19 +45,15 @@ public class Node {
                     nodeConfigAux.isLeader()));
 
             // Abstraction to send and receive messages
-            Link link = new Link(nodeConfig, nodeConfig.getPort(), nodesConfig);
+            Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), nodesConfig, ConsensusMessage.class);
+            Link linkToClients = new Link(nodeConfig, nodeConfig.getPort(), clientConfigs, BlockchainRequestMessage.class);
             
             // Services that implement listen from UDPService
-            NodeService nodeService = new NodeService(link, nodeConfigAux,
-            serverConfigsAux);
+            NodeService nodeService = new NodeService(linkToNodes, nodeConfigAux, serverConfigsAux, linkToClients);
+            BlockchainService blockchainService = new BlockchainService(linkToClients, nodeConfigAux, clientConfigsAux, nodeService);
             
             nodeService.listen();
-
-            /*
-            if (nodeConfigAux.isLeader()) {
-                nodeService.startConsensus("SOME RANDOM VALUE");
-            }
-            */
+            blockchainService.listen();
 
         } catch (Exception e) {
             e.printStackTrace();

@@ -37,8 +37,4 @@ public class ServerConfig {
     public Atack getAtack() {
         return atack;
     }
-
-    public boolean isByzantine() {
-        return atack != null;
-    }
 }

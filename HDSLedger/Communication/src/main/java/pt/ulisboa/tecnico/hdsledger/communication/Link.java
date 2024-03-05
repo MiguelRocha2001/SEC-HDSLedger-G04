@@ -35,21 +35,24 @@ public class Link {
     private final Map<String, CollapsingSet> receivedMessages = new ConcurrentHashMap<>();
     // Set of received ACKs from specific node
     private final CollapsingSet receivedAcks = new CollapsingSet();
+    // Class to deserialize messages to
+    private final Class<? extends Message> messageClass;
     // Message counter
     private final AtomicInteger messageCounter = new AtomicInteger(0);
     // Send messages to self by pushing to queue instead of through the network
     private final Queue<Message> localhostQueue = new ConcurrentLinkedQueue<>();
     private CriptoUtils cripto;
 
-    public Link(ProcessConfig self, int port, ProcessConfig[] nodes) {
-        this(self, port, nodes, false, 200);
+    public Link(ProcessConfig self, int port, ProcessConfig[] nodes, Class<? extends Message> messageClass) {
+        this(self, port, nodes, false, 200, messageClass);
     }
 
     public Link(ProcessConfig self, int port, ProcessConfig[] nodes,
-            boolean activateLogs, int baseSleepTime) {
+            boolean activateLogs, int baseSleepTime, Class<? extends Message> messageClass) {
 
         this.config = self;
         this.BASE_SLEEP_TIME = baseSleepTime;
+        this.messageClass = messageClass;
 
         Arrays.stream(nodes).forEach(node -> {
             String id = node.getId();
@@ -184,6 +187,7 @@ public class Link {
         }).start();
     }
 
+    /*
     private Class<? extends Message> getMessageType(Message message) {
         Type type = message.getType();
         
@@ -201,6 +205,7 @@ public class Link {
         else
             return null; // TODO: maybe, throw an Exception
     }
+    */
 
     /*
      * Receives a message from any node in the network (blocking)
@@ -287,8 +292,8 @@ public class Link {
 
         // It's not an ACK -> Deserialize for the correct type
         if (!local && message.getType() != Type.IGNORE) {
-            Class<? extends Message> type = getMessageType(message);
-            message = new Gson().fromJson(serialized, type);
+            //Class<? extends Message> type = getMessageType(message);
+            message = new Gson().fromJson(serialized, this.messageClass);
         }
 
         boolean isRepeated = !receivedMessages.get(message.getSenderId()).add(messageId);

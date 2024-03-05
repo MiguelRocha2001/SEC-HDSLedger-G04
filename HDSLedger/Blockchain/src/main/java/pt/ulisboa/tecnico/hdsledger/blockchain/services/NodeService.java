@@ -48,7 +48,8 @@ public class NodeService implements UDPService {
     private final ServerConfig config;
 
     // Link to communicate with nodes
-    private final Link link;
+    private final Link linkToNodes;
+    private final Link linkToClients;
 
     // Consensus instance -> Round -> List of prepare messages
     private final MessageBucket prepareMessages;
@@ -74,9 +75,10 @@ public class NodeService implements UDPService {
     private long TIMEOUT = 999999;
     Timer timer;
 
-    public NodeService(Link link, ServerConfig config, ServerConfig[] nodesConfig) {
+    public NodeService(Link linkToNodes, ServerConfig config, ServerConfig[] nodesConfig, Link linkToClients) {
 
-        this.link = link;
+        this.linkToNodes = linkToNodes;
+        this.linkToClients = linkToClients;
         this.config = config;
         this.nodesConfig = nodesConfig;
 
@@ -98,7 +100,7 @@ public class NodeService implements UDPService {
         return this.ledger;
     }
 
-    private ServerConfig getCurrentLeader(int round) {
+    public ServerConfig getCurrentLeader(int round) {
         for (int u = 0; u < nodesConfig.length; u++) {
             if (u == round - 1) // remember: rounds start on 1
                 return nodesConfig[u];
@@ -146,7 +148,7 @@ public class NodeService implements UDPService {
                         .setMessage(message.toJson())
                         .build();
     
-                link.broadcast(consensusMessage); // broadcasts ROUND_CHANGE message
+                linkToNodes.broadcast(consensusMessage); // broadcasts ROUND_CHANGE message
             }
         };
     }
@@ -162,6 +164,12 @@ public class NodeService implements UDPService {
         timer.schedule(createTimerTaks(), TIMEOUT); // set timer
     }
 
+    public enum StartConsensusResult {
+        EXISTING_CONSENSUS,
+        IAM_NOT_THE_LEADER,
+        STARTED
+    }
+
     /*
      * Start an instance of consensus for a value
      * Only the current leader will start a consensus instance
@@ -169,7 +177,7 @@ public class NodeService implements UDPService {
      *
      * @param inputValue Value to value agreed upon
      */
-    public void startConsensus(String value) {
+    public StartConsensusResult startConsensus(String value) {
 
         // Set initial consensus values
         int localConsensusInstance = this.consensusInstance.incrementAndGet();
@@ -179,7 +187,7 @@ public class NodeService implements UDPService {
         if (existingConsensus != null) {
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Node already started consensus for instance {1}",
                     config.getId(), localConsensusInstance));
-            return;
+            return StartConsensusResult.EXISTING_CONSENSUS;
         }
 
         // Only start a consensus instance if the last one was decided
@@ -197,7 +205,7 @@ public class NodeService implements UDPService {
         // Leader broadcasts PRE-PREPARE message
         if (
             isLeader(config.getId(), instance.getCurrentRound()) ||
-            config.isByzantine() && config.getAtack() == Atack.FAKE_LEADER
+            config.getAtack() == Atack.FAKE_LEADER
         ) {
             if (isLeader(config.getId(), instance.getCurrentRound())) {
                 LOGGER.log(Level.INFO,
@@ -207,23 +215,27 @@ public class NodeService implements UDPService {
                     MessageFormat.format("{0} - Node is byzanine leader, sending PRE-PREPARE message", config.getId()));
             }
 
-            if (!config.isByzantine())
-                this.link.broadcast(this.createConsensusMessage(value, localConsensusInstance, instance.getCurrentRound()));
+            if (config.getAtack() == null) // not byzantine
+                this.linkToNodes.broadcast(this.createConsensusMessage(value, localConsensusInstance, instance.getCurrentRound()));
 
             // sends a different value to each process
             else {
                 for (ServerConfig node : nodesConfig) {
                     int valueLength = RandomIntGenerator.generateRandomInt(1, 5);
                     String randomValue = RandomStringGenerator.generateRandomString(valueLength);
-                    this.link.send(node.getId(), this.createConsensusMessage(randomValue, localConsensusInstance, instance.getCurrentRound()));
+                    this.linkToNodes.send(node.getId(), this.createConsensusMessage(randomValue, localConsensusInstance, instance.getCurrentRound()));
                 }
             }
 
             // set timer
             schedualeTask();
+
+            return StartConsensusResult.STARTED;
         } else {
             LOGGER.log(Level.INFO,
                     MessageFormat.format("{0} - Node is not leader, waiting for PRE-PREPARE message", config.getId()));
+            
+            return StartConsensusResult.IAM_NOT_THE_LEADER;
         }
     }
 
@@ -307,7 +319,7 @@ public class NodeService implements UDPService {
                 .setReplyToMessageId(senderMessageId)
                 .build();
 
-        this.link.broadcast(consensusMessage);
+        this.linkToNodes.broadcast(consensusMessage);
     }
 
     /*
@@ -356,7 +368,7 @@ public class NodeService implements UDPService {
                     .setMessage(instance.getCommitMessage().toJson())
                     .build();
 
-            link.send(senderId, m);
+            linkToNodes.send(senderId, m);
             return;
         }
 
@@ -367,7 +379,7 @@ public class NodeService implements UDPService {
             instance.setPreparedRound(round);
 
             // generates a random value with random size
-            if (config.isByzantine() && config.getAtack() == Atack.BYZANTINE_UPON_PREPARE_QUORUM) {
+            if (config.getAtack() == Atack.BYZANTINE_UPON_PREPARE_QUORUM) {
                 
                 LOGGER.log(Level.INFO,
                     MessageFormat.format("{0} - Node is byzantine, setting a fake/random PREPARE VALUE after receiving a prepare message", config.getId()));
@@ -394,7 +406,7 @@ public class NodeService implements UDPService {
                         .setMessage(c.toJson())
                         .build();
 
-                link.send(senderMessage.getSenderId(), m);
+                linkToNodes.send(senderMessage.getSenderId(), m);
             });
         }
     }
@@ -487,7 +499,7 @@ public class NodeService implements UDPService {
                             "{0} - Sending APPEND_REQUEST_RESULT to client: {1}",
                             config.getId(), clientId));
 
-                    link.send(clientId, new AppendRequestResultMessage(config.getId(), consensusInstance, valueToAppend));
+                    linkToClients.send(clientId, new AppendRequestResultMessage(config.getId(), consensusInstance, valueToAppend));
                 }
             }
 
@@ -525,7 +537,7 @@ public class NodeService implements UDPService {
 
             // sends the whole quorum
             for (ConsensusMessage msg : receivedCommitMessages)
-                link.send(message.getSenderId(), msg);
+                linkToNodes.send(message.getSenderId(), msg);
         }
 
         if (
@@ -538,7 +550,7 @@ public class NodeService implements UDPService {
             InstanceInfo instance = this.instanceInfo.get(consensusInstance);        
 
             // generates a random value with random size
-            if (config.isByzantine() && config.getAtack() == Atack.BYZANTINE_UPON_ROUND_CHANGE_QUORUM) {
+            if (config.getAtack() == Atack.BYZANTINE_UPON_ROUND_CHANGE_QUORUM) {
 
                 LOGGER.log(Level.INFO,
                     MessageFormat.format("{0} - Node is byzantine, setting a fake/random VALUE in round change", config.getId()));
@@ -550,30 +562,13 @@ public class NodeService implements UDPService {
                 if (value.isPresent())
                     instance.setInputValue(value.get());
 
-                // othewrise, value stays the same 
+                // othewrise, value stays the same
             }
 
             // broadcast PRE PREPARE message
             int localConsensusInstance = this.consensusInstance.get();
-            this.link.broadcast(this.createConsensusMessage(value.get(), localConsensusInstance, instance.getCurrentRound()));
+            this.linkToNodes.broadcast(this.createConsensusMessage(value.get(), localConsensusInstance, instance.getCurrentRound()));
         }
-
-
-    }
-
-    private void appendString(AppendRequestMessage message) {
-        String senderId = message.getSenderId();
-
-        LOGGER.log(Level.INFO,
-            MessageFormat.format(
-                "{0} - Received APPEND-REQUEST message from {1}",
-                config.getId(), senderId));
-
-        String valueToAppend = message.getMessage();
-        
-        requests.add(new Pair<String,String>(senderId, valueToAppend));
-
-        startConsensus(valueToAppend);
     }
 
     @Override
@@ -583,12 +578,12 @@ public class NodeService implements UDPService {
             new Thread(() -> {
                 try {
                     while (true) {
-                        Message message = link.receive();
+                        Message message = linkToNodes.receive();
 
                         // Separate thread to handle each message
                         new Thread(() -> {
 
-                            if (config.isByzantine() && config.getAtack() == Atack.DONT_RESPOND) {
+                            if (config.getAtack() == Atack.DONT_RESPOND) { // byzantine node
                                 // Do nothing...
                             } else {
                                 switch (message.getType()) {
@@ -604,9 +599,6 @@ public class NodeService implements UDPService {
     
                                     case ROUND_CHANGE ->
                                         uponRoundChange((ConsensusMessage) message);
-    
-                                    case APPEND_REQUEST ->
-                                        appendString((AppendRequestMessage) message);
     
                                     case ACK ->
                                         LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received ACK message from {1}",

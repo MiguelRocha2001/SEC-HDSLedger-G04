@@ -1,5 +1,6 @@
 package pt.ulisboa.tecnico.hdsledger.client;
 
+import pt.ulisboa.tecnico.hdsledger.communication.BlockchainResponseMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.client.services.ClientService;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
@@ -33,7 +34,7 @@ public class Client {
             ProcessConfig nodeConfig = new ProcessConfig(id, clientConfigAux.getHostname(), clientConfigAux.getPort());
 
             // Abstraction to send and receive messages
-            Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), serverConfigs);
+            Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), serverConfigs, BlockchainResponseMessage.class);
 
             // Services that implement listen from UDPService
             ClientService clientService = new ClientService(linkToNodes, nodeConfig,
