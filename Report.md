@@ -50,9 +50,16 @@ This service holds the logic acossiated to the consensus algorithm.
 
 The comunication is mostly done between nodes, and the only time the clients are contacted is to infom that it's own value was decided/appended to the blockchain. Also, tthe comunication is done the same way as in the Blockchain Service.
 
-The consensus algorithm implemented is the IBFT protocol, which aims to decide a value, having in mind possible bizantine nodes. The normal case operation (pre-prepare, prepare and commit phases) was already implemented previously, by another group. Yet, they are extended to allow the node to simulate byzantine behaviours. TALK ABOUT THIS EXTENSIONS
+The consensus algorithm implemented is the IBFT protocol, which aims to decide a value, having in mind possible bizantine nodes. The normal case operation (pre-prepare, prepare and commit phases) was already implemented previously, by another group. Yet, they are extended to allow the node to simulate byzantine behaviours. <TALK ABOUT THIS EXTENSIONS>
 
 Besides the normal case implementation, the View-Change was also implemented, allowing for progression/liveness whenever a node is not correct. The implementation follows the algorithm described in the IBFT paper, and thus, the details of it's implementation are not relevant here.
 
 
-### Link layer
+### Comununication
+To support comunication between processes, (Client <-> Node) and (Node <-> Node), the Link (Link.java) layer was used, since it was already provided and mostly implemented. This service uses UDP, to closely simulate a Fair Loss link. 
+
+Some abstractions/layers were already implemented, such as the use of ACKs to enforce realiable delivery, and the detection of duplicated messaged, using message IDs. Therefore, to implement a perfect authenticated Link, the authentication using digital signatures was implemented <WHY IS THIS NEEDED>? MACs could also be used to ensure integrity, but they dont provide non repudiation. Yet, as a future task, we need to access if we really need non repudiuation and just garantee of integrity.
+
+In practice, the original message is signed and the signature is appended to the end of the message, to be sent with it. In the receiver, the signature is extracted and verified against the original message. The signature size is always the same, and thus, it is easy to make the separation on the receiver side.
+
+
