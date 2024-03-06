@@ -63,3 +63,9 @@ Some abstractions/layers were already implemented, such as the use of ACKs to en
 In practice, the original message is signed and the signature is appended to the end of the message, to be sent with it. In the receiver, the signature is extracted and verified against the original message. The signature size is always the same, and thus, it is easy to make the separation on the receiver side.
 
 
+# Dependability
+With the IBFT protocol, safety is ensured across rounds. This is duo to the justification mechanisms that ensures that if a new leader (duo to a round change) proposes a value, and a value was already decided in a previous round by another previous leader, then, this value will be decided by any new leader.
+
+Confidentiality is not implemented for this stage, for simplicity, since it is not required for the well funtioning of the blockchain.
+
+Itegrity is ensured with the use of digital signatures, not allwoing byzanthine processes to change any message content. The main threat is if the byzantine process relays an authenticated message that was sent by a correct process in a previous instance/round. Yet, this wont make much harm since that message refers only to a previous instance.
