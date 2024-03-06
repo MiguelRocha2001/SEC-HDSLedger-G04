@@ -12,11 +12,15 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
+
+import com.google.gson.Gson;
+
 import java.util.Timer;
 import java.util.TimerTask;
 
 import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestResultMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.BlockchainResponseMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.CommitMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.LeaderChangeMessage;
@@ -67,7 +71,7 @@ public class NodeService implements UDPService {
     // Last decided consensus instance
     private final AtomicInteger lastDecidedConsensusInstance = new AtomicInteger(0);
 
-    private final ArrayList<Pair<String, String>> requests = new ArrayList<Pair<String, String>>();
+    private final ArrayList<Pair<String, String>> requests;
 
     // Ledger (for now, just a list of strings)
     private ArrayList<String> ledger = new ArrayList<String>();
@@ -75,12 +79,13 @@ public class NodeService implements UDPService {
     private long TIMEOUT = 999999;
     Timer timer;
 
-    public NodeService(Link linkToNodes, ServerConfig config, ServerConfig[] nodesConfig, Link linkToClients) {
+    public NodeService(Link linkToNodes, ServerConfig config, ServerConfig[] nodesConfig, Link linkToClients, ArrayList<Pair<String, String>> requests) {
 
         this.linkToNodes = linkToNodes;
         this.linkToClients = linkToClients;
         this.config = config;
         this.nodesConfig = nodesConfig;
+        this.requests = requests;
 
         this.prepareMessages = new MessageBucket(nodesConfig.length);
         this.commitMessages = new MessageBucket(nodesConfig.length);
@@ -100,6 +105,7 @@ public class NodeService implements UDPService {
         return this.ledger;
     }
 
+    // TODO: what if there is only two nodes and round == 3 ?
     public ServerConfig getCurrentLeader(int round) {
         for (int u = 0; u < nodesConfig.length; u++) {
             if (u == round - 1) // remember: rounds start on 1
@@ -499,7 +505,10 @@ public class NodeService implements UDPService {
                             "{0} - Sending APPEND_REQUEST_RESULT to client: {1}",
                             config.getId(), clientId));
 
-                    linkToClients.send(clientId, new AppendRequestResultMessage(config.getId(), consensusInstance, valueToAppend));
+                    
+                    AppendRequestResultMessage result = new AppendRequestResultMessage(config.getId(), consensusInstance, valueToAppend);
+                    String resultStr = new Gson().toJson(result);
+                    linkToClients.send(clientId, new BlockchainResponseMessage(config.getId(), Message.Type.APPEND_REQUEST_RESULT, resultStr));
                 }
             }
 

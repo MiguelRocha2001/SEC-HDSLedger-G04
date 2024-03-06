@@ -3,19 +3,14 @@
         "id": "1",
         "isLeader": true,
         "hostname": "localhost",
-        "port": 3001
+        "port": 3001,
+        "clientPort": 4001
     },
     {
         "id": "2",
         "isLeader": false,
         "hostname": "localhost",
-        "port": 3002
-    },
-    {
-        "id": "3",
-        "isLeader": false,
-        "hostname": "localhost",
-        "port": 3003,
-        "atack": "DONT_RESPOND"
+        "port": 3002,
+        "clientPort": 4002
     }
 ]

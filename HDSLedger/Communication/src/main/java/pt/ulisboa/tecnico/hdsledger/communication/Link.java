@@ -63,8 +63,10 @@ public class Link {
         try {
             this.socket = new DatagramSocket(port, InetAddress.getByName(config.getHostname()));
         } catch (UnknownHostException | SocketException e) {
+            System.out.println(e.getMessage());
             throw new HDSSException(ErrorMessage.CannotOpenSocket);
         }
+        
         if (!activateLogs) {
             LogManager.getLogManager().reset();
         }
@@ -105,8 +107,12 @@ public class Link {
         new Thread(() -> {
             try {
                 ProcessConfig node = nodes.get(nodeId);
-                if (node == null)
+                if (node == null) {
+                    LOGGER.log(Level.WARNING,
+                            MessageFormat.format("{0} - Cant send a message to invalid node {1}",
+                                    config.getId(), node));
                     throw new HDSSException(ErrorMessage.NoSuchNode);
+                }
 
                 data.setMessageId(messageCounter.getAndIncrement());
 
@@ -280,8 +286,13 @@ public class Link {
                         config.getId(), message.getMessageId()));
         }
 
-        if (!nodes.containsKey(senderId))
-            throw new HDSSException(ErrorMessage.NoSuchNode);
+        if (!nodes.containsKey(senderId)) {
+            LOGGER.log(Level.WARNING,
+                            MessageFormat.format("{0} - Cant receive message from invalid sender {1}",
+                                    config.getId(), senderId));
+            //throw new HDSSException(ErrorMessage.NoSuchNode);
+            message.setType(Message.Type.IGNORE);
+        }
 
         // Handle ACKS, since it's possible to receive multiple acks from the same
         // message

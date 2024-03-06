@@ -26,16 +26,16 @@ public class BlockchainService implements UDPService {
     // Link to communicate with nodes
     private final Link link;
   
-    private final ArrayList<Pair<String, String>> requests = new ArrayList<Pair<String, String>>();
+    private final ArrayList<Pair<String, String>> requests;
     private final NodeService nodeService;
     
 
-
-    public BlockchainService(Link link, ServerConfig config, ClientConfig[] clientsConfig, NodeService nodeService) {
+    public BlockchainService(Link link, ServerConfig config, ClientConfig[] clientsConfig, NodeService nodeService, ArrayList<Pair<String, String>> requests) {
         this.link = link;
         this.config = config;
         this.clientConfigs = clientsConfig;
         this.nodeService = nodeService;
+        this.requests = requests;
     }
 
     private void appendString(BlockchainRequestMessage message) {
@@ -46,8 +46,8 @@ public class BlockchainService implements UDPService {
                 "{0} - Received APPEND-REQUEST message from {1}",
                 config.getId(), senderId));
 
-        String valueToAppend = message.getMessage();
-        
+        String valueToAppend = message.deserializeAppendRequest().getMessage();
+    
         requests.add(new Pair<String,String>(senderId, valueToAppend));
 
         StartConsensusResult res = nodeService.startConsensus(valueToAppend);

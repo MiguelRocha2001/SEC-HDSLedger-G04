@@ -12,10 +12,6 @@ public class BlockchainRequestMessage extends Message {
         this.message = message;
     }
 
-    public void deserializeAppendRequest(AppendRequestMessage appendRequestMessage) {
-        message = new Gson().toJson(appendRequestMessage);
-    }
-
     public AppendRequestMessage deserializeAppendRequest() {
         return new Gson().fromJson(message, AppendRequestMessage.class);
     }

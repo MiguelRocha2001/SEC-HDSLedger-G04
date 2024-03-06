@@ -35,7 +35,6 @@ public class ClientService implements UDPService {
         ProcessConfig config, 
         ServerConfig[] serverConfig
     ){
-
         this.link = link;
         this.config = config;
         this.serverConfig = serverConfig;
@@ -49,9 +48,9 @@ public class ClientService implements UDPService {
         //link.broadcast(new AppendRequestMessage(config.getId(), value));
 
         AppendRequestMessage request = new AppendRequestMessage(config.getId(), value);
-        String str = new Gson().toJson(request);
+        String requestStr = new Gson().toJson(request);
 
-        link.send(leaderId, new BlockchainRequestMessage(config.getId(), Message.Type.APPEND_REQUEST, str));
+        link.broadcast(new BlockchainRequestMessage(config.getId(), Message.Type.APPEND_REQUEST, requestStr));
     }
 
     private void resultReceived(BlockchainResponseMessage message) {

@@ -11,6 +11,7 @@ public class ServerConfig {
     private String id;
 
     private int port;
+    private int clientPort;
 
     private Atack atack; // null means it isn't byzantine
 
@@ -20,6 +21,10 @@ public class ServerConfig {
 
     public int getPort() {
         return port;
+    }
+
+    public int getClientPort() {
+        return clientPort;
     }
 
     public String getId() {
