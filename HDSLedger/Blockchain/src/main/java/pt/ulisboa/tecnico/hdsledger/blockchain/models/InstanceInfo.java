@@ -11,9 +11,15 @@ public class InstanceInfo {
     private CommitMessage commitMessage;
     private String inputValue;
     private int committedRound = -1;
+    private String leaderId;
 
     public InstanceInfo(String inputValue) {
         this.inputValue = inputValue;
+    }
+
+    public InstanceInfo(String inputValue, String leaderId) {
+        this.inputValue = inputValue;
+        this.leaderId = leaderId;
     }
 
     public int getCurrentRound() {
@@ -62,5 +68,13 @@ public class InstanceInfo {
 
     public void setCommitMessage(CommitMessage commitMessage) {
         this.commitMessage = commitMessage;
+    }
+
+    public String getLeaderId() {
+        return leaderId;
+    }
+
+    public void setLeaderId(String leaderId) {
+        this.leaderId = leaderId;
     }
 }

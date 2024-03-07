@@ -69,3 +69,14 @@ With the IBFT protocol, safety is ensured across rounds. This is duo to the just
 Confidentiality is not implemented for this stage, for simplicity, since it is not required for the well functioning of the blockchain.
 
 Integrity is ensured with the use of digital signatures, not allowing byzantine processes to change any message content. The main threat is if the byzantine process relays an authenticated message that was sent by a correct process in a previous instance/round. Yet, this wont make much harm since that message refers only to a previous instance.
+
+# Bizantine Behavior
+To prove that this system is resilient to several byzantine atacks, the system was tested with multiple configurations, each one corresponding to a different set of processes and respective behaviors:
+
+- correctConfig: all nodes are correct, and the system don't face any atacks;
+
+- ignoreRequestsConfig: a single node will ignore the requests coming towards him. In particular, this one will start as leader (id = 1). The tests will show that, after all nodes start consensus, the other nodes will get their timers expired, and they will change their view, so the node with id = 2 will become the new leader, and, since it is correct, it will lead the consensus to a decision/conclusion.
+
+-
+
+Note: the system is only capable of garantee resilience if the maximum number of byzantine nodes is f and N = 3f, at least, N being the total number of nodes.

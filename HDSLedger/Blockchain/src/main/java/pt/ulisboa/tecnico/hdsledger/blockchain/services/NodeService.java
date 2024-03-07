@@ -53,6 +53,7 @@ public class NodeService implements UDPService {
 
     // Link to communicate with nodes
     private final Link linkToNodes;
+    // Link to communicate with clients
     private final Link linkToClients;
 
     // Consensus instance -> Round -> List of prepare messages
@@ -76,6 +77,8 @@ public class NodeService implements UDPService {
     // Ledger (for now, just a list of strings)
     private ArrayList<String> ledger = new ArrayList<String>();
 
+    //private String leaderId;
+
     private long TIMEOUT = 3000;
     Timer timer;
 
@@ -90,7 +93,6 @@ public class NodeService implements UDPService {
         this.prepareMessages = new MessageBucket(nodesConfig.length);
         this.commitMessages = new MessageBucket(nodesConfig.length);
         this.roundChangeMessages = new MessageBucket(nodesConfig.length);
-
     }
 
     public ServerConfig getConfig() {
@@ -106,18 +108,14 @@ public class NodeService implements UDPService {
     }
 
     // TODO: what if there is only two nodes and round == 3 ?
-    public ServerConfig getCurrentLeader(int round) {
+    public String getNextLeader(String leaderId) {
         for (int u = 0; u < nodesConfig.length; u++) {
-            if (u == round - 1) // remember: rounds start on 1
-                return nodesConfig[u];
-        }
-        throw new HDSSException(ErrorMessage.ProgrammingError);
-    }
-
-    private boolean isLeader(String id, int round) {
-        for (int u = 0; u < nodesConfig.length; u++) {
-            if (u == round - 1) // remember: rounds start on 1
-                return id.equals(nodesConfig[u].getId());
+            if (leaderId == nodesConfig[u].getId()) {
+                if (u == nodesConfig.length - 1)
+                    return nodesConfig[0].getId();
+                else
+                    return nodesConfig[u+1].getId();
+            }
         }
         throw new HDSSException(ErrorMessage.ProgrammingError);
     }
@@ -134,19 +132,21 @@ public class NodeService implements UDPService {
         return consensusMessage;
     }
 
+
     // triggers round change
-    private TimerTask createTimerTaks() {
+    private TimerTask createRoundChangeTimerTaks() {
         return new TimerTask() {
             @Override
             public void run() {
                 int localConsensusInstance = consensusInstance.get();
-                InstanceInfo consensus = instanceInfo.get(localConsensusInstance);
+                InstanceInfo instance = instanceInfo.get(localConsensusInstance);
+                instance.setLeaderId(getNextLeader(instance.getLeaderId()));
                 
-                int currentRound = consensus.getCurrentRound();
+                int currentRound = instance.getCurrentRound();
                 int newRound = currentRound + 1;
-                consensus.setCurrentRound(newRound); // increments current round
+                instance.setCurrentRound(newRound); // increments current round
     
-                RoundChangeMessage message = new RoundChangeMessage(consensus.getPreparedValue(), consensus.getPreparedRound());
+                RoundChangeMessage message = new RoundChangeMessage(instance.getPreparedValue(), instance.getPreparedRound());
     
                 ConsensusMessage consensusMessage = new ConsensusMessageBuilder(config.getId(), Message.Type.ROUND_CHANGE)
                         .setConsensusInstance(consensusInstance.get())
@@ -167,7 +167,7 @@ public class NodeService implements UDPService {
         } else {
             timer = new Timer();
         }
-        timer.schedule(createTimerTaks(), TIMEOUT); // set timer
+        timer.schedule(createRoundChangeTimerTaks(), TIMEOUT); // set timer
     }
 
     public enum StartConsensusResult {
@@ -189,6 +189,10 @@ public class NodeService implements UDPService {
         int localConsensusInstance = this.consensusInstance.incrementAndGet();
         InstanceInfo existingConsensus = this.instanceInfo.put(localConsensusInstance, new InstanceInfo(value));
 
+        // If it's the first consensus instance, the first node is assigned as the leader
+        if (localConsensusInstance == 1) 
+            this.instanceInfo.get(1).setLeaderId(nodesConfig[0].getId());
+
         // If startConsensus was already called for a given round
         if (existingConsensus != null) {
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Node already started consensus for instance {1}",
@@ -208,14 +212,19 @@ public class NodeService implements UDPService {
 
         InstanceInfo instance = this.instanceInfo.get(localConsensusInstance);
 
+        if (localConsensusInstance != 1) {
+            String oldLeader = this.instanceInfo.get(lastDecidedConsensusInstance.get()).getLeaderId();
+            instance.setLeaderId(oldLeader); // leader stays the same
+        }
+
         StartConsensusResult toReturn;
 
         // Leader broadcasts PRE-PREPARE message
         if (
-            isLeader(config.getId(), instance.getCurrentRound()) ||
+            config.getId().equals(instance.getLeaderId()) ||
             config.getByzantineBehavior() == ByzantineBehavior.FAKE_LEADER
         ) {
-            if (isLeader(config.getId(), instance.getCurrentRound())) {
+            if (config.getId().equals(instance.getLeaderId())) {
                 LOGGER.log(Level.INFO,
                     MessageFormat.format("{0} - Node is leader, sending PRE-PREPARE message", config.getId()));
             } else {
@@ -284,7 +293,7 @@ public class NodeService implements UDPService {
         InstanceInfo instance = this.instanceInfo.get(consensusInstance);
 
         // Verify if pre-prepare was sent by leader
-        if (!isLeader(senderId, instance.getCurrentRound())) { // compare against the current round and not the one in the received message
+        if (!senderId.equals(instance.getLeaderId())) { // compare against the current round and not the one in the received message
             LOGGER.log(Level.WARNING,
                     MessageFormat.format("{0} - Received PRE-PREPARE message from a node {1}, that is not the lider. Not doing anything.", 
                     config.getId(), senderId));
@@ -563,19 +572,21 @@ public class NodeService implements UDPService {
                 linkToNodes.send(message.getSenderId(), msg);
         }
 
+        InstanceInfo instance = this.instanceInfo.get(consensusInstance);        
+
+        System.out.println("LeaderId: " + instance.getLeaderId());
+
         if (
             roundChangeMessages.hasValidRoundChangeQuorum(config.getId(), consensusInstance, round) &&
-            isLeader(config.getId(), round) &&
+            config.getId().equals(instance.getLeaderId()) && 
             justifyRoundChange(consensusInstance, round)
         ) {
 
             LOGGER.log(Level.INFO,
-                MessageFormat.format("{0} - Received quorum of ROUND_CHANGE messages.",
+                MessageFormat.format("{0} - Received quorum of ROUND_CHANGE messages",
                     config.getId(), message.getSenderId(), consensusInstance, round));
 
             Optional<String> value = roundChangeMessages.getHeighestPreparedValueIfAny(config.getId(), consensusInstance, round);
-
-            InstanceInfo instance = this.instanceInfo.get(consensusInstance);        
 
             // generates a random value with random size
             if (config.getByzantineBehavior() == ByzantineBehavior.BYZANTINE_UPON_ROUND_CHANGE_QUORUM) {

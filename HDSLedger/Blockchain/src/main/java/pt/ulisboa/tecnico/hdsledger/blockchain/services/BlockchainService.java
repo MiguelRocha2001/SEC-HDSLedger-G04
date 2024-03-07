@@ -53,8 +53,10 @@ public class BlockchainService implements UDPService {
 
         StartConsensusResult res = nodeService.startConsensus(valueToAppend);
         
+        /*
         if (res == StartConsensusResult.IAM_NOT_THE_LEADER)
-            this.link.send(senderId, new LeaderChangeMessage(config.getId(), nodeService.getCurrentLeader(1).getId())); // round 1 because a new instance always starts on round 1
+            this.link.send(senderId, new LeaderChangeMessage(config.getId(), nodeService.)); // round 1 because a new instance always starts on round 1
+        */
     }
 
     @Override
