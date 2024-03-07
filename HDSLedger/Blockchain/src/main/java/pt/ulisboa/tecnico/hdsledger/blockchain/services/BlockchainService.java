@@ -16,7 +16,7 @@ import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
 
 public class BlockchainService implements UDPService {
 
-    private static final CustomLogger LOGGER = new CustomLogger(NodeService.class.getName());
+    private static final CustomLogger LOGGER = new CustomLogger(BlockchainService.class.getName());
 
     // Nodes configurations
     private final ClientConfig[] clientConfigs;

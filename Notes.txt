@@ -20,3 +20,10 @@ If the leader is byzantine, receives the request from the client and changes the
 - The client could contact a server node (random), and then, of its not the lider, it replies with the lider id.
 
 - Digital signatures allow a third process to verify authenticity of a message sent from P1 to P2.
+
+
+- Report dependability: Temos X garantia pq usamos y e z mecanismos: garantias que sao dadas pelas assumptions. Algumas sao dadas pelo paper, outras sao dadas pelo codigo base que nos foi dado. E outras garantias que sao dadas por aquilo que nos acrescentamos. Falar disto no report.
+- Falar de assumptions.
+
+
+- Start timer after consensus start even if its not the leader. This means that client needs to broadcast append request to all processes: or maybe just a byzantine quorum.

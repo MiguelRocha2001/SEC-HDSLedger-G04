@@ -44,7 +44,7 @@ public class Link {
     private CriptoUtils cripto;
 
     public Link(ProcessConfig self, int port, ProcessConfig[] nodes, Class<? extends Message> messageClass) {
-        this(self, port, nodes, false, 200, messageClass);
+        this(self, port, nodes, true, 200, messageClass);
     }
 
     public Link(ProcessConfig self, int port, ProcessConfig[] nodes,
@@ -66,13 +66,12 @@ public class Link {
             System.out.println(e.getMessage());
             throw new HDSSException(ErrorMessage.CannotOpenSocket);
         }
+
+        cripto = new CriptoUtils();
         
         if (!activateLogs) {
             LogManager.getLogManager().reset();
         }
-
-        cripto = new CriptoUtils();
-
     }
 
     public void ackAll(List<Integer> messageIds) {
@@ -253,11 +252,6 @@ public class Link {
         int messageId = message.getMessageId();
 
         if (local == false) {
-            if (originalMessage == null)
-                throw new HDSSException(ErrorMessage.ProgrammingError);
-            if (signature == null)
-                throw new HDSSException(ErrorMessage.ProgrammingError);
-
             try {
                 boolean verifies = cripto.verifySignature(senderId, originalMessage, signature);
                 if (!verifies) {
@@ -290,8 +284,8 @@ public class Link {
             LOGGER.log(Level.WARNING,
                             MessageFormat.format("{0} - Cant receive message from invalid sender {1}",
                                     config.getId(), senderId));
-            //throw new HDSSException(ErrorMessage.NoSuchNode);
-            message.setType(Message.Type.IGNORE);
+            throw new HDSSException(ErrorMessage.NoSuchNode);
+            //message.setType(Message.Type.IGNORE);
         }
 
         // Handle ACKS, since it's possible to receive multiple acks from the same
@@ -311,6 +305,8 @@ public class Link {
         Type originalType = message.getType();
         // Message already received (add returns false if already exists) => Discard
         if (isRepeated) {
+            LOGGER.log(Level.WARNING, MessageFormat.format("{0} - Message {1} is repeated",
+                        config.getId(), message.getMessageId()));
             message.setType(Message.Type.IGNORE);
         }
 

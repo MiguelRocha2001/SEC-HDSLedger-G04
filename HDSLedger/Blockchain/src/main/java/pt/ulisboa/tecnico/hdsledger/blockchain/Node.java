@@ -42,10 +42,6 @@ public class Node {
             ServerConfig nodeConfigAux = Arrays.stream(nodesConfigAUx).filter(c -> c.getId().equals(id)).findAny().get();
             ProcessConfig nodeConfig = new ProcessConfig(nodeConfigAux.getId(), nodeConfigAux.getHostname(), nodeConfigAux.getPort());
 
-            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Running at {1}:{2}; is leader: {3}",
-                    nodeConfig.getId(), nodeConfig.getHostname(), nodeConfig.getPort(),
-                    nodeConfigAux.isLeader()));
-
             // Abstraction to send and receive messages
             Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), serversConfig, ConsensusMessage.class);
             Link linkToClients = new Link(nodeConfig, nodeConfigAux.getClientPort(), clientsConfig, BlockchainRequestMessage.class);

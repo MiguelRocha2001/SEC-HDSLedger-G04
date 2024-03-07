@@ -68,4 +68,4 @@ With the IBFT protocol, safety is ensured across rounds. This is duo to the just
 
 Confidentiality is not implemented for this stage, for simplicity, since it is not required for the well funtioning of the blockchain.
 
-Itegrity is ensured with the use of digital signatures, not allwoing byzanthine processes to change any message content. The main threat is if the byzantine process relays an authenticated message that was sent by a correct process in a previous instance/round. Yet, this wont make much harm since that message refers only to a previous instance.
+Integrity is ensured with the use of digital signatures, not allwoing byzanthine processes to change any message content. The main threat is if the byzantine process relays an authenticated message that was sent by a correct process in a previous instance/round. Yet, this wont make much harm since that message refers only to a previous instance.

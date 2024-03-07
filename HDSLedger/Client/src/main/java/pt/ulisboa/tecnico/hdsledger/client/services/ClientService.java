@@ -45,8 +45,6 @@ public class ClientService implements UDPService {
     }
 
     public void appendRequest(String value) {
-        //link.broadcast(new AppendRequestMessage(config.getId(), value));
-
         AppendRequestMessage request = new AppendRequestMessage(config.getId(), value);
         String requestStr = new Gson().toJson(request);
 
