@@ -12,7 +12,9 @@ terminal = "kitty"
 # Blockchain node configuration file name
 server_configs = [
     "correctConfig.json",
-    "ignoreRequestsConfig.json"
+    "ignoreRequestsConfig.json",
+    "badLeaderProposeConfig.json",
+    "uponPrepareQuorumWrongValue.json"
 ]
 
 # Client configuration file name

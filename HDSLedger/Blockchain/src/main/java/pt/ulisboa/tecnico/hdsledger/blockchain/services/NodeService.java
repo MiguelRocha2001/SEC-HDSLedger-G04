@@ -153,12 +153,15 @@ public class NodeService implements UDPService {
                         .setRound(newRound)
                         .setMessage(message.toJson())
                         .build();
+
+                schedualeTask();
     
                 linkToNodes.broadcast(consensusMessage); // broadcasts ROUND_CHANGE message
             }
         };
     }
 
+    // TODO: this should be parameterized by the round. See this later...
     private void schedualeTask() {
         if (timer != null) {
             timer.cancel();
@@ -183,7 +186,7 @@ public class NodeService implements UDPService {
      *
      * @param inputValue Value to value agreed upon
      */
-    public StartConsensusResult startConsensus(String value) {
+    public void startConsensus(String value) {
 
         // Set initial consensus values
         int localConsensusInstance = this.consensusInstance.incrementAndGet();
@@ -197,7 +200,6 @@ public class NodeService implements UDPService {
         if (existingConsensus != null) {
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Node already started consensus for instance {1}",
                     config.getId(), localConsensusInstance));
-            return StartConsensusResult.EXISTING_CONSENSUS;
         }
 
         // Only start a consensus instance if the last one was decided
@@ -217,8 +219,6 @@ public class NodeService implements UDPService {
             instance.setLeaderId(oldLeader); // leader stays the same
         }
 
-        StartConsensusResult toReturn;
-
         // Leader broadcasts PRE-PREPARE message
         if (
             config.getId().equals(instance.getLeaderId()) ||
@@ -237,25 +237,25 @@ public class NodeService implements UDPService {
 
             // sends a different value to each process
             else {
-                for (ServerConfig node : nodesConfig) {
-                    int valueLength = RandomIntGenerator.generateRandomInt(1, 5);
-                    String randomValue = RandomStringGenerator.generateRandomString(valueLength);
-                    this.linkToNodes.send(node.getId(), this.createConsensusMessage(randomValue, localConsensusInstance, instance.getCurrentRound()));
+                if (config.getByzantineBehavior() == ByzantineBehavior.BAD_LEADER_PROPOSE) {
+                    LOGGER.log(Level.INFO,
+                        MessageFormat.format("{0} - Node is byzanine leader (BAD_LEADER_PROPOSE), sending PRE-PREPARE message with a random value", config.getId()));
+
+                    for (ServerConfig node : nodesConfig) {
+                        int valueLength = RandomIntGenerator.generateRandomInt(1, 5);
+                        String randomValue = RandomStringGenerator.generateRandomString(valueLength);
+                        this.linkToNodes.send(node.getId(), this.createConsensusMessage(randomValue, localConsensusInstance, instance.getCurrentRound()));
+                    }
                 }
             }
 
-            toReturn = StartConsensusResult.STARTED;
         } else {
             LOGGER.log(Level.INFO,
                     MessageFormat.format("{0} - Node is not leader, waiting for PRE-PREPARE message", config.getId()));
-            
-            toReturn = StartConsensusResult.IAM_NOT_THE_LEADER;
         }
 
         // set timer
         schedualeTask();
-
-        return toReturn;
     }
 
     private boolean justifyPrePrepareMessage(int instance, int round) {
@@ -401,7 +401,7 @@ public class NodeService implements UDPService {
             if (config.getByzantineBehavior() == ByzantineBehavior.BYZANTINE_UPON_PREPARE_QUORUM) {
                 
                 LOGGER.log(Level.INFO,
-                    MessageFormat.format("{0} - Node is byzantine, setting a fake/random PREPARE VALUE after receiving a prepare message", config.getId()));
+                    MessageFormat.format("{0} - Node is byzantine, setting a fake/random PREPARE VALUE after receiving quorum of PREPARE-MESSAGE's", config.getId()));
 
                 int valueLength = RandomIntGenerator.generateRandomInt(1, 5);
                 String randomValue = RandomStringGenerator.generateRandomString(valueLength);
@@ -413,7 +413,7 @@ public class NodeService implements UDPService {
             Collection<ConsensusMessage> sendersMessage = prepareMessages.getMessages(consensusInstance, round)
                     .values();
 
-            CommitMessage c = new CommitMessage(preparedValue.get());
+            CommitMessage c = new CommitMessage(instance.getPreparedValue());
             instance.setCommitMessage(c);
 
             sendersMessage.forEach(senderMessage -> {
@@ -508,7 +508,7 @@ public class NodeService implements UDPService {
 
             lastDecidedConsensusInstance.getAndIncrement();
 
-            LOGGER.log(Level.INFO,
+            LOGGER.log(Level.WARNING,
                     MessageFormat.format(
                             "{0} - Decided on Consensus Instance {1}, Round {2}, Successful? {3}",
                             config.getId(), consensusInstance, round, true));

@@ -62,6 +62,8 @@ Some abstractions/layers were already implemented, such as the use of ACKs to en
 
 In practice, the original message is signed and the signature is appended to the end of the message, to be sent with it. In the receiver, the signature is extracted and verified against the original message. The signature size is always the same, and thus, it is easy to make the separation on the receiver side.
 
+### Leader Selection
+The IBFT protocol doesn't specify a way to choose the current leader. It only says that the algorithm must give a chance for every node to become a leader. Therefore, we choose to select the leader based on the node configuration file, which is read the same way by every node. The first node will start as the leader, and, for every round, the leader avances for the next node, based on the configuration file order.
 
 # Dependability
 With the IBFT protocol, safety is ensured across rounds. This is duo to the justification mechanisms that ensures that if a new leader (duo to a round change) proposes a value, and a value was already decided in a previous round by another previous leader, then, this value will be decided by any new leader.
@@ -73,10 +75,14 @@ Integrity is ensured with the use of digital signatures, not allowing byzantine 
 # Bizantine Behavior
 To prove that this system is resilient to several byzantine atacks, the system was tested with multiple configurations, each one corresponding to a different set of processes and respective behaviors:
 
-- correctConfig: all nodes are correct, and the system don't face any atacks;
+- correctConfig.json: all nodes are correct, and the system don't face any atacks;
 
-- ignoreRequestsConfig: a single node will ignore the requests coming towards him. In particular, this one will start as leader (id = 1). The tests will show that, after all nodes start consensus, the other nodes will get their timers expired, and they will change their view, so the node with id = 2 will become the new leader, and, since it is correct, it will lead the consensus to a decision/conclusion.
+- ignoreRequestsConfig.json: a single node will ignore the requests coming towards him. In particular, this one will start as leader (id = 1). The tests will show that, after all nodes start consensus, the other nodes will get their timers expired, and they will change their view, so the node with id = 2 will become the new leader, and, since it is correct, it will lead the consensus to a decision/conclusion.
 
--
+- badLeaderPropose.json: the leader (byzantine) will propose a random value for each one of the nodes. The output will show that no node will ever receive a quorum of identical PREPARE-MESSAGE's, leading to a view change, where the original client value will finally be decided.
+
+- uponPrepareQuorumWrongValue.json: shows that if a byzantine process, after receiving a quorum of PREPARE requests, and decides to broadcast a COMMIT message, with a incoerent value, the consensus will still decide the right value.
+
+There is a byzantine behavior that we still dont know how to protect against. If the leader is byzantine, and the client wants to append the value X, the byzantine leader could receive the request but never propose that value, and instead propose another one, and the other nodes would never suspect about it, and, so, no view change would be triggered.
 
 Note: the system is only capable of garantee resilience if the maximum number of byzantine nodes is f and N = 3f, at least, N being the total number of nodes.
