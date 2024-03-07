@@ -76,7 +76,7 @@ public class NodeService implements UDPService {
     // Ledger (for now, just a list of strings)
     private ArrayList<String> ledger = new ArrayList<String>();
 
-    private long TIMEOUT = 999999;
+    private long TIMEOUT = 3000;
     Timer timer;
 
     public NodeService(Link linkToNodes, ServerConfig config, ServerConfig[] nodesConfig, Link linkToClients, ArrayList<Pair<String, String>> requests) {
@@ -460,6 +460,13 @@ public class NodeService implements UDPService {
 
         Optional<String> commitValue = commitMessages.hasValidCommitQuorum(config.getId(),
                 consensusInstance, round);
+                
+        if (commitValue.isPresent()) {
+            LOGGER.log(Level.INFO,
+                MessageFormat.format("{0} - Received quorum of COMMIT messages.",
+                    config.getId(), message.getSenderId(), consensusInstance, round));
+
+        }
 
         if (commitValue.isPresent() && instance.getCommittedRound() < round) {
 
@@ -538,15 +545,18 @@ public class NodeService implements UDPService {
 
         LOGGER.log(Level.INFO,
                 MessageFormat.format("{0} - Received ROUND_CHANGE message from {1}: Consensus Instance {2}, Round {3}",
-                        config.getId(), message.getSenderId(), consensusInstance, round));
+                    config.getId(), message.getSenderId(), consensusInstance, round));
 
         roundChangeMessages.addMessage(message);
 
         // if CHANGE-ROUND consensus instance was already decided
-        if (lastDecidedConsensusInstance.get() < consensusInstance) {
-            
+        if (lastDecidedConsensusInstance.get() >= consensusInstance) {            
             Collection<ConsensusMessage> receivedCommitMessages = commitMessages.getMessages(consensusInstance, round)
                     .values();
+
+            LOGGER.log(Level.INFO,
+                MessageFormat.format("{0} - Received ROUND_CHANGE message from {1}: Consensus Instance {2}, Round {3}. Consensus instance was already decided. Broadcasting commit messages to sender...",
+                    config.getId(), message.getSenderId(), consensusInstance, round));
 
             // sends the whole quorum
             for (ConsensusMessage msg : receivedCommitMessages)
@@ -558,6 +568,11 @@ public class NodeService implements UDPService {
             isLeader(config.getId(), round) &&
             justifyRoundChange(consensusInstance, round)
         ) {
+
+            LOGGER.log(Level.INFO,
+                MessageFormat.format("{0} - Received quorum of ROUND_CHANGE messages.",
+                    config.getId(), message.getSenderId(), consensusInstance, round));
+
             Optional<String> value = roundChangeMessages.getHeighestPreparedValueIfAny(config.getId(), consensusInstance, round);
 
             InstanceInfo instance = this.instanceInfo.get(consensusInstance);        
@@ -580,7 +595,7 @@ public class NodeService implements UDPService {
 
             // broadcast PRE PREPARE message
             int localConsensusInstance = this.consensusInstance.get();
-            this.linkToNodes.broadcast(this.createConsensusMessage(value.get(), localConsensusInstance, instance.getCurrentRound()));
+            this.linkToNodes.broadcast(this.createConsensusMessage(instance.getInputValue(), localConsensusInstance, instance.getCurrentRound()));
         }
     }
 
@@ -596,8 +611,13 @@ public class NodeService implements UDPService {
                         // Separate thread to handle each message
                         new Thread(() -> {
 
-                            if (config.getByzantineBehavior() == ByzantineBehavior.DONT_RESPOND) { // byzantine node
-                                // Do nothing...
+                            if (config.getByzantineBehavior() == ByzantineBehavior.IGNORE_REQUESTS) { // byzantine node
+                                
+                                LOGGER.log(Level.INFO,
+                                MessageFormat.format("{0} - Byzantine node ignoring requests...",
+                                        config.getId()));
+                                        
+                
                             } else {
                                 switch (message.getType()) {
 

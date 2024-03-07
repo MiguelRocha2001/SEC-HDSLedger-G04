@@ -12,6 +12,7 @@ terminal = "kitty"
 # Blockchain node configuration file name
 server_configs = [
     "correctConfig.json",
+    "ignoreRequestsConfig.json"
 ]
 
 # Client configuration file name
@@ -20,7 +21,7 @@ client_config = [
 ]
 
 
-server_config = server_configs[0]
+server_config = server_configs[1]
 client_config = client_config[0]
 
 def quit_handler(*args):

@@ -9,6 +9,7 @@ import pt.ulisboa.tecnico.hdsledger.communication.LeaderChangeMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.blockchain.services.NodeService.StartConsensusResult;
+import pt.ulisboa.tecnico.hdsledger.utilities.ByzantineBehavior;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.Pair;
@@ -68,26 +69,33 @@ public class BlockchainService implements UDPService {
                         // Separate thread to handle each message
                         new Thread(() -> {
 
-                            switch (message.getType()) {
+                            if (config.getByzantineBehavior() == ByzantineBehavior.IGNORE_REQUESTS) { // byzantine node
+                                
+                                LOGGER.log(Level.INFO,
+                                MessageFormat.format("{0} - Byzantine node ignoring requests...",
+                                        config.getId()));
+                            } else {
+                                switch (message.getType()) {
 
-                                case APPEND_REQUEST ->
-                                    appendString((BlockchainRequestMessage) message);
+                                    case APPEND_REQUEST ->
+                                        appendString((BlockchainRequestMessage) message);
 
-                                case ACK ->
-                                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received ACK message from {1}",
-                                            config.getId(), message.getSenderId()));
+                                    case ACK ->
+                                        LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received ACK message from {1}",
+                                                config.getId(), message.getSenderId()));
 
-                                case IGNORE ->
-                                    LOGGER.log(Level.INFO,
-                                            MessageFormat.format("{0} - Received IGNORE message from {1}",
-                                                    config.getId(), message.getSenderId()));
+                                    case IGNORE ->
+                                        LOGGER.log(Level.INFO,
+                                                MessageFormat.format("{0} - Received IGNORE message from {1}",
+                                                        config.getId(), message.getSenderId()));
 
-                                /*
-                                default ->
-                                    LOGGER.log(Level.INFO,
-                                            MessageFormat.format("{0} - Received unknown message from {1}",
-                                                    config.getId(), message.getSenderId()));
-                                */
+                                    /*
+                                    default ->
+                                        LOGGER.log(Level.INFO,
+                                                MessageFormat.format("{0} - Received unknown message from {1}",
+                                                        config.getId(), message.getSenderId()));
+                                    */
+                                }
                             }
 
                         }).start();
