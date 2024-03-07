@@ -14,7 +14,8 @@ server_configs = [
     "correctConfig.json",
     "ignoreRequestsConfig.json",
     "badLeaderProposeConfig.json",
-    "uponPrepareQuorumWrongValue.json"
+    "uponPrepareQuorumWrongValue.json",
+    "uponRoundChangeQuorumWrongValue.json"
 ]
 
 # Client configuration file name
@@ -23,7 +24,7 @@ client_config = [
 ]
 
 
-server_config = server_configs[1]
+server_config = server_configs[4]
 client_config = client_config[0]
 
 def quit_handler(*args):

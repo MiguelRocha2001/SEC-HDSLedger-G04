@@ -83,6 +83,8 @@ To prove that this system is resilient to several byzantine atacks, the system w
 
 - uponPrepareQuorumWrongValue.json: shows that if a byzantine process, after receiving a quorum of PREPARE requests, and decides to broadcast a COMMIT message, with a incoerent value, the consensus will still decide the right value.
 
+- uponRoundChangeQuorumWrongValue.json: similar to the above test, the byzantine and leader node will set a wrong value after receiving a quorum of ROUND-CHANGE messages.
+
 There is a byzantine behavior that we still dont know how to protect against. If the leader is byzantine, and the client wants to append the value X, the byzantine leader could receive the request but never propose that value, and instead propose another one, and the other nodes would never suspect about it, and, so, no view change would be triggered.
 
 Note: the system is only capable of garantee resilience if the maximum number of byzantine nodes is f and N = 3f, at least, N being the total number of nodes.
