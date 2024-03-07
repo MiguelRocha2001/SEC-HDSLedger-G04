@@ -11,9 +11,10 @@ public class ServerConfig {
     private String id;
 
     private int port;
+    
     private int clientPort;
 
-    private Attack atack; // null means it isn't byzantine
+    private ByzantineBehavior byzantineBehavior;
 
     public boolean isLeader() {
         return isLeader;
@@ -35,11 +36,7 @@ public class ServerConfig {
         return hostname;
     }
 
-    public void setAtack(Attack atack) {
-        this.atack = atack;
-    }
-
-    public Attack getAtack() {
-        return atack;
+    public ByzantineBehavior getByzantineBehavior() {
+        return byzantineBehavior;
     }
 }

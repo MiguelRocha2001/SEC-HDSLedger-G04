@@ -11,7 +11,7 @@ terminal = "kitty"
 
 # Blockchain node configuration file name
 server_configs = [
-    "blockchainConfig.json",
+    "correctConfig.json",
 ]
 
 # Client configuration file name
@@ -39,7 +39,7 @@ with open(f"resources/{server_config}") as f:
         pid = os.fork()
         if pid == 0:
             os.system(
-                f"{terminal} sh -c \"cd Blockchain; mvn exec:java -Dexec.args='{key['id']} {server_config}' ; sleep 500\"")
+                f"{terminal} sh -c \"cd Blockchain; mvn exec:java -Dexec.args='{key['id']} {server_config} {client_config}' ; sleep 500\"")
             sys.exit()
 
 with open(f"resources/{client_config}") as f:
@@ -49,7 +49,7 @@ with open(f"resources/{client_config}") as f:
         pid = os.fork()
         if pid == 0:
             os.system(
-                f"{terminal} sh -c \"cd Client; mvn exec:java -Dexec.args='{key['id']} {client_config}' ; sleep 500\"")
+                f"{terminal} sh -c \"cd Client; mvn exec:java -Dexec.args='{key['id']} {client_config} {server_config}' ; sleep 500\"")
             sys.exit()
 
 signal.signal(signal.SIGINT, quit_handler)

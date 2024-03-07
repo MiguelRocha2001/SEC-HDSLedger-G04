@@ -33,7 +33,7 @@ import pt.ulisboa.tecnico.hdsledger.communication.StartConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.builder.ConsensusMessageBuilder;
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.InstanceInfo;
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.MessageBucket;
-import pt.ulisboa.tecnico.hdsledger.utilities.Attack;
+import pt.ulisboa.tecnico.hdsledger.utilities.ByzantineBehavior;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.ErrorMessage;
 import pt.ulisboa.tecnico.hdsledger.utilities.HDSSException;
@@ -213,7 +213,7 @@ public class NodeService implements UDPService {
         // Leader broadcasts PRE-PREPARE message
         if (
             isLeader(config.getId(), instance.getCurrentRound()) ||
-            config.getAtack() == Attack.FAKE_LEADER
+            config.getByzantineBehavior() == ByzantineBehavior.FAKE_LEADER
         ) {
             if (isLeader(config.getId(), instance.getCurrentRound())) {
                 LOGGER.log(Level.INFO,
@@ -223,7 +223,7 @@ public class NodeService implements UDPService {
                     MessageFormat.format("{0} - Node is byzanine leader, sending PRE-PREPARE message", config.getId()));
             }
 
-            if (config.getAtack() == null) // not byzantine
+            if (config.getByzantineBehavior() == ByzantineBehavior.NONE) // not byzantine
                 this.linkToNodes.broadcast(this.createConsensusMessage(value, localConsensusInstance, instance.getCurrentRound()));
 
             // sends a different value to each process
@@ -389,7 +389,7 @@ public class NodeService implements UDPService {
             instance.setPreparedRound(round);
 
             // generates a random value with random size
-            if (config.getAtack() == Attack.BYZANTINE_UPON_PREPARE_QUORUM) {
+            if (config.getByzantineBehavior() == ByzantineBehavior.BYZANTINE_UPON_PREPARE_QUORUM) {
                 
                 LOGGER.log(Level.INFO,
                     MessageFormat.format("{0} - Node is byzantine, setting a fake/random PREPARE VALUE after receiving a prepare message", config.getId()));
@@ -563,7 +563,7 @@ public class NodeService implements UDPService {
             InstanceInfo instance = this.instanceInfo.get(consensusInstance);        
 
             // generates a random value with random size
-            if (config.getAtack() == Attack.BYZANTINE_UPON_ROUND_CHANGE_QUORUM) {
+            if (config.getByzantineBehavior() == ByzantineBehavior.BYZANTINE_UPON_ROUND_CHANGE_QUORUM) {
 
                 LOGGER.log(Level.INFO,
                     MessageFormat.format("{0} - Node is byzantine, setting a fake/random VALUE in round change", config.getId()));
@@ -596,7 +596,7 @@ public class NodeService implements UDPService {
                         // Separate thread to handle each message
                         new Thread(() -> {
 
-                            if (config.getAtack() == Attack.DONT_RESPOND) { // byzantine node
+                            if (config.getByzantineBehavior() == ByzantineBehavior.DONT_RESPOND) { // byzantine node
                                 // Do nothing...
                             } else {
                                 switch (message.getType()) {

@@ -10,8 +10,10 @@ import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfigBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 
+import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Scanner;
+import java.util.logging.Level;
 
 public class Client {
 
@@ -23,10 +25,12 @@ public class Client {
         try {
             // Command line arguments
             String id = args[0];
+            String clientsConfig = args[1];
+            String nodesConfig = args[2];
 
             // Create configuration instances of the vailable server processes
-            ServerConfig[] serverConfigsAux = new ServerConfigBuilder().fromFile(PROCESSE_CONFIG_PATH + "blockchainConfig.json");
-            ClientConfig[] clientConfigsAux = new ClientConfigBuilder().fromFile(PROCESSE_CONFIG_PATH + "clientConfig.json");
+            ServerConfig[] serverConfigsAux = new ServerConfigBuilder().fromFile(PROCESSE_CONFIG_PATH + nodesConfig);
+            ClientConfig[] clientConfigsAux = new ClientConfigBuilder().fromFile(PROCESSE_CONFIG_PATH + clientsConfig);
 
             ProcessConfig[] serverConfigs = ServerConfigBuilder.fromServerConfigToProcessConfig(serverConfigsAux, true);
 
@@ -41,6 +45,8 @@ public class Client {
                     serverConfigsAux);
 
             clientService.listen();
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Process is listenning on port host and port {1}:{2}",
+                    nodeConfig.getId(), nodeConfig.getHostname(), nodeConfig.getPort()));
 
             Scanner in = new Scanner(System.in);
             while (true) {
