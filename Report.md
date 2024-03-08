@@ -33,7 +33,7 @@ This application is the second one that composes the system, and is the one that
 #### Node
 
 ##### Initialization
-Again, similarly to the client, the application starts of by loading the necessary configuration files. In particular, besides reading all the nodes, the application also reads all the clients. This was not made just for simplicity. It makes sense, since, in a real system, a user would have to be registered as a Client, so the nodes could have all the information to contact the client. However, currently, and for simplicity, the client hostname and port are also specified in the configuration file, which doesn't make much sense, since the clients should have the ability to interact with the system throughout any place. Therefore, it is planned to send the hostname and port in each message to the nodes, so the latter can have a way to deliver a response.
+Again, similarly to the client, the application starts of by loading the necessary configuration files. In particular, besides reading all the nodes, the application also reads all the clients. This was not made just for simplicity. It makes sense, since, in a real system, a user would have to be registered as a Client, so the nodes could have all the information to contact the client. However, currently, and for simplicity, the client hostname and port are also specified in the configuration file.
 
 After initialization, the Node spawns two services:
 - Blockchain Service;
@@ -58,7 +58,7 @@ Besides the normal case implementation, the View-Change was also implemented, al
 ### Communication
 To support communication between processes, (Client <-> Node) and (Node <-> Node), the Link (Link.java) layer was used, since it was already provided and mostly implemented. This service uses UDP, to closely simulate a Fair Loss link. 
 
-Some abstractions/layers were already implemented, such as the use of ACKs to enforce reliable delivery, and the detection of duplicated messaged, using message IDs. Therefore, to implement a perfect authenticated Link, the authentication using digital signatures was implemented <WHY IS THIS NEEDED>? MACs could also be used to ensure integrity, but they don't provide non repudiation. Yet, as a future task, we need to access if we really need non repudiation and just guarantee of integrity.
+Some abstractions/layers were already implemented, such as the use of ACKs to enforce validity, and the detection of duplicated messaged, using message IDs. Therefore, to implement a perfect authenticated Link, the authentication using digital signatures was implemented <WHY IS THIS NEEDED>? MACs could also be used to ensure integrity, but they don't provide non repudiation. Yet, as a future task, we need to access if we really need non repudiation and just guarantee of integrity.
 
 In practice, the original message is signed and the signature is appended to the end of the message, to be sent with it. In the receiver, the signature is extracted and verified against the original message. The signature size is always the same, and thus, it is easy to make the separation on the receiver side.
 

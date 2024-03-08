@@ -19,18 +19,23 @@ have the same state.
 
 # Configuration Files
 
-### Node configuration
+### Node and Client configuration
 
-Can be found inside the `resources/` folder of the `Service` module.
+Can be found inside the `resources/` folder.
 
 ```json
 {
     "id": <NODE_ID>,
-    "isLeader": <IS_LEADER>,
     "hostname": "localhost",
     "port": <NODE_PORT>,
+    "clientPort": <CLIENT_NODE_PORT>,
+    "byzantineBehavior": <BYZANTINE_BEHAVIOR>
 }
 ```
+
+At this stage, there is a set of possible node configurations, but only one for the client: **correctConfig.json**.
+
+Note: the configuration can be changed in the **puppet-master.py** file.
 
 ## Dependencies
 
@@ -92,4 +97,3 @@ mvn compile exec:java -Dexec.args="..."
 ```
 ---
 This codebase was adapted from last year's project solution, which was kindly provided by the following group: [David Belchior](https://github.com/DavidAkaFunky), [Diogo Santos](https://github.com/DiogoSantoss), [Vasco Correia](https://github.com/Vaascoo). We thank all the group members for sharing their code.
-
