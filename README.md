@@ -103,5 +103,18 @@ Run with arguments
 cd <module>/
 mvn compile exec:java -Dexec.args="..."
 ```
+
+# Tests
+
+To run the tests on the [puppet-master.py](HDSLedger/puppet-master.py) you choose a test by setting var `server_configs` line 27 index from 0 to 4.
+
+Index | Test 
+-----|-----
+0 | Correct Configurations
+1 | Ignore Requests Configurations
+2 | Bad Leader Propose Configurations
+3 | Upon Prepare Quorum Wrong Value Configurations
+4 | Upon Round Change Quorum Wrong Value Configurations
+
 ---
 This codebase was adapted from last year's project solution, which was kindly provided by the following group: [David Belchior](https://github.com/DavidAkaFunky), [Diogo Santos](https://github.com/DiogoSantoss), [Vasco Correia](https://github.com/Vaascoo). We thank all the group members for sharing their code.
