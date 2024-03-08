@@ -20,12 +20,11 @@ import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
 public class ClientService implements UDPService {
 
     private static final CustomLogger LOGGER = new CustomLogger(ClientService.class.getName());
-    // Nodes configurations
     private final ServerConfig[] serverConfig;
 
     private final ProcessConfig config;
 
-    private String leaderId = null;
+    //private String leaderId = null;
 
     // Link to communicate with nodes
     private final Link link;
@@ -61,12 +60,6 @@ public class ClientService implements UDPService {
         return;
     }
 
-    public void onLeaderChange(BlockchainResponseMessage message) {
-        LeaderChangeMessage response = message.deserializeLeaderChangeMessage();
-
-        leaderId = response.getLeaderId();
-    }
-
     @Override
     public void listen() {
         try {
@@ -83,9 +76,6 @@ public class ClientService implements UDPService {
 
                                 case APPEND_REQUEST_RESULT ->
                                     resultReceived((BlockchainResponseMessage) message);
-
-                                case LIDER_CHANGE ->
-                                    onLeaderChange((BlockchainResponseMessage) message);
 
                                 //default ->
                                 //LOGGER.log(Level.INFO,

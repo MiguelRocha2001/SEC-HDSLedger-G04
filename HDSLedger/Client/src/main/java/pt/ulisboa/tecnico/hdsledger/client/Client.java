@@ -49,6 +49,7 @@ public class Client {
                     nodeConfig.getId(), nodeConfig.getHostname(), nodeConfig.getPort()));
 
             Scanner in = new Scanner(System.in);
+            System.out.print("Enter something: ");
             while (true) {
                 
                 // Prompt the user to enter some input

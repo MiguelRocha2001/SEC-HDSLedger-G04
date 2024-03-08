@@ -133,7 +133,7 @@ public class NodeService implements UDPService {
 
 
     // triggers round change
-    private TimerTask createRoundChangeTimerTaks() {
+    private TimerTask createRoundChangeTimerTask() {
         return new TimerTask() {
             @Override
             public void run() {
@@ -169,7 +169,7 @@ public class NodeService implements UDPService {
         } else {
             timer = new Timer();
         }
-        timer.schedule(createRoundChangeTimerTaks(), TIMEOUT); // set timer
+        timer.schedule(createRoundChangeTimerTask(), TIMEOUT); // set timer
     }
     
     /*

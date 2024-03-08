@@ -44,7 +44,7 @@ public class Link {
     private CriptoUtils cripto;
 
     public Link(ProcessConfig self, int port, ProcessConfig[] nodes, Class<? extends Message> messageClass) {
-        this(self, port, nodes, true, 200, messageClass);
+        this(self, port, nodes, false, 200, messageClass);
     }
 
     public Link(ProcessConfig self, int port, ProcessConfig[] nodes,
