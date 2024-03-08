@@ -15,3 +15,5 @@
 - Does the leader persist across rounds?
 - I think we only added authentication as a dependability. What other dependabilities should we implement?
 - Should we explain the flow of the IBFT protocol in the report? Should we explainn the normal case? Or just the view change Or none?
+
+- If a node receives a PRE-PREPARE message from the leader, before calling startConsensus, what happens?

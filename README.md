@@ -39,6 +39,8 @@ Note: the configuration can be changed in the **puppet-master.py** file.
 
 ## Dependencies
 
+### Script
+
 To install the necessary dependencies run the following command:
 
 ```bash
@@ -48,6 +50,12 @@ To install the necessary dependencies run the following command:
 This should install the following dependencies:
 
 - [Google's Gson](https://github.com/google/gson) - A Java library that can be used to convert Java Objects into their JSON representation.
+
+### Authentication Keys (Public/Private keys)
+
+For each process that is specified in the json configuration files, there should exist a pair of public - private keys, in the form of public<ID>.key and private<ID>.key, <ID> being the id of the respective process. This keys should stay in [keys](HDSLedger/resources/keys) folder.
+
+The keys could be generated with the ***RSAKeyGenerator.java*** class, available in the [RSAKeyGenerator](HDSLedger/Communication/src/main/java/pt/ulisboa/tecnico/hdsledger/communication/cripto/RSAKeyGenerator.java)
 
 ## Puppet Master
 

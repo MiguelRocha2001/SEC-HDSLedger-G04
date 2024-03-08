@@ -64,6 +64,7 @@ In practice, the original message is signed and the signature is appended to the
 
 ### Leader Selection
 The IBFT protocol doesn't specify a way to choose the current leader. It only says that the algorithm must give a chance for every node to become a leader. Therefore, we choose to select the leader based on the node configuration file, which is read the same way by every node. The first node will start as the leader, and, for every round, the leader avances for the next node, based on the configuration file order.
+The leader changes every new instance because a byzantine leader could just be always proposing fake values, and no other node would suspect about it. Therefore, the client requests would never be executed. This way, there is going to be an instance where thye leader is correct.
 
 # Dependability
 With the IBFT protocol, safety is ensured across rounds. This is duo to the justification mechanisms that ensures that if a new leader (duo to a round change) proposes a value, and a value was already decided in a previous round by another previous leader, then, this value will be decided by any new leader.
@@ -81,10 +82,10 @@ To prove that this system is resilient to several byzantine atacks, the system w
 
 - badLeaderPropose.json: the leader (byzantine) will propose a random value for each one of the nodes. The output will show that no node will ever receive a quorum of identical PREPARE-MESSAGE's, leading to a view change, where the original client value will finally be decided.
 
-- uponPrepareQuorumWrongValue.json: shows that if a byzantine process, after receiving a quorum of PREPARE requests, and decides to broadcast a COMMIT message, with a incoerent value, the consensus will still decide the right value.
+- uponPrepareQuorumWrongValue.json: shows that if a byzantine process, after receiving a quorum of PREPARE requests, and decides to broadcast a COMMIT message, with a incoerent value, the consensus will still decide the right value, without the need for a round/view change phase, since the other correct nodes will still receive a quorum of correct PREPARE messages.
 
-- uponRoundChangeQuorumWrongValue.json: similar to the above test, the byzantine and leader node will set a wrong value after receiving a quorum of ROUND-CHANGE messages.
+- uponRoundChangeQuorumWrongValue.json: similar to the above test, the byzantine and leader node will set a wrong value after receiving a quorum of ROUND-CHANGE messages. 
 
-There is a byzantine behavior that we still dont know how to protect against. If the leader is byzantine, and the client wants to append the value X, the byzantine leader could receive the request but never propose that value, and instead propose another one, and the other nodes would never suspect about it, and, so, no view change would be triggered.
+If the leader is byzantine, and the client wants to append the value X, the byzantine leader could receive the request but never propose that value, and instead propose another one, and the other nodes would never suspect about it, and, so, no view change would be triggered. Yet, the leader changes every instance.  Wrong values would still be appended, but the consensus would still be valid.
 
 Note: the system is only capable of garantee resilience if the maximum number of byzantine nodes is f and N = 3f, at least, N being the total number of nodes.

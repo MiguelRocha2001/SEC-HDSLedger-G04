@@ -1,31 +1,27 @@
 [
     {   
         "id": "1",
-        "isLeader": true,
         "hostname": "localhost",
         "port": 3001,
         "clientPort": 4001,
-        "byzantineBehavior": "NONE"
-    },
-    {
-        "id": "2",
-        "isLeader": false,
-        "hostname": "localhost",
-        "port": 3002,
-        "clientPort": 4002,
         "byzantineBehavior": "BYZANTINE_UPON_PREPARE_QUORUM"
     },
     {
+        "id": "2",
+        "hostname": "localhost",
+        "port": 3002,
+        "clientPort": 4002,
+        "byzantineBehavior": "NONE"
+    },
+    {
         "id": "3",
-        "isLeader": false,
         "hostname": "localhost",
         "port": 3003,
         "clientPort": 4003,
-        "byzantineBehavior": "NODE"
+        "byzantineBehavior": "NONE"
     },
     {
         "id": "4",
-        "isLeader": false,
         "hostname": "localhost",
         "port": 3004,
         "clientPort": 4004,

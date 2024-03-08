@@ -4,3 +4,4 @@
 - Split ServerConfig into two classes: byzanthine and not byzantine processes;
 - Maybe, we should have a class AuthenticatedLink that uses the Link class.
 - Do test in which a not authenticated process tries to mess with the system (consensus or blockchain API).
+- Implement the upon rule in line 5, of the round change phase.
