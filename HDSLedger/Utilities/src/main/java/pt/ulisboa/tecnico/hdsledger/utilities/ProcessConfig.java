@@ -8,10 +8,13 @@ public class ProcessConfig {
 
     private int port;
 
-    public ProcessConfig(String id, String hostname, int port) {
+    private ByzantineBehavior byzantineBehavior;
+
+    public ProcessConfig(String id, String hostname, int port, ByzantineBehavior byzantineBehavior) {
         this.id = id;
         this.hostname = hostname;
         this.port = port;
+        this.byzantineBehavior = byzantineBehavior;
     }
 
     public int getPort() {
@@ -34,5 +37,9 @@ public class ProcessConfig {
         System.arraycopy(array2, 0, result, array1.length, array2.length);
 
         return result;
+    }
+
+    public ByzantineBehavior getByzantineBehavior() {
+        return byzantineBehavior;
     }
 }

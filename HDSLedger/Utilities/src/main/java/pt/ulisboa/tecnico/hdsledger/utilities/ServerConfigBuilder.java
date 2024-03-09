@@ -38,7 +38,7 @@ public class ServerConfigBuilder {
             else
                 port = serverConfig.getPort();
 
-            configs[i] = new ProcessConfig(serverConfig.getId(), serverConfig.getHostname(), port);
+            configs[i] = new ProcessConfig(serverConfig.getId(), serverConfig.getHostname(), port, serverConfig.getByzantineBehavior());
         }
 
         return configs;

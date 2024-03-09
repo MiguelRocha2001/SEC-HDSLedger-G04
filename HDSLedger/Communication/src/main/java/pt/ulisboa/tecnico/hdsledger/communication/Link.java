@@ -251,7 +251,10 @@ public class Link {
         String senderId = message.getSenderId();
         int messageId = message.getMessageId();
 
-        if (local == false) {
+        if (config.getByzantineBehavior() == ByzantineBehavior.DONT_VERIFY_SIGNATURES) {
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Node is byzantine (DONT_VERIFY_SIGNATURES). Message {1} wont be verified",
+                        config.getId(), message.getMessageId()));
+        } else if (local == false) {
             try {
                 boolean verifies = cripto.verifySignature(senderId, originalMessage, signature);
                 if (!verifies) {

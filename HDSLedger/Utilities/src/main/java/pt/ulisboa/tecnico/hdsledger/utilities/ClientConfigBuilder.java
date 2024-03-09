@@ -31,7 +31,7 @@ public class ClientConfigBuilder {
 
         for (int i = 0; i < configs.length; i++) {
             ClientConfig clientConfig = clients[i];
-            configs[i] = new ProcessConfig(clientConfig.getId(), clientConfig.getHostname(), clientConfig.getPort());
+            configs[i] = new ProcessConfig(clientConfig.getId(), clientConfig.getHostname(), clientConfig.getPort(), clientConfig.getByzantineBehavior());
         }
 
         return configs;

@@ -9,6 +9,8 @@ public class ClientConfig {
 
     private int port;
 
+    private ByzantineBehavior byzantineBehavior;
+
     public int getPort() {
         return port;
     }
@@ -20,6 +22,8 @@ public class ClientConfig {
     public String getHostname() {
         return hostname;
     }
-
-
+    
+    public ByzantineBehavior getByzantineBehavior() {
+        return byzantineBehavior;
+    }
 }

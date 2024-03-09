@@ -86,6 +86,8 @@ To prove that this system is resilient to several byzantine atacks, the system w
 
 - uponRoundChangeQuorumWrongValue.json: the first node is silent and it wont answer requests. The second node takes the lead, after a round change and will set a wrong value after receiving a quorum of ROUND-CHANGE messages.
 
+- fakeLeaderWithForgedPrePrepareConfig.json: the first node is a correct leader, and the second is a byzantine node who will try  to propose a random value with the sendor ID of the leader.
+
 If the leader is byzantine, and the client wants to append the value X, the byzantine leader could receive the request but never propose that value, and instead propose another one, and the other nodes would never suspect about it, and, so, no view change would be triggered. Yet, the leader changes every instance.  Wrong values would still be appended, but the consensus would still be valid.
 
 Note: the system is only capable of garantee resilience if the maximum number of byzantine nodes is f and N = 3f, at least, N being the total number of nodes.

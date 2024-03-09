@@ -2,6 +2,7 @@
     {   
         "id": "17",
         "hostname": "localhost",
-        "port": 3017
+        "port": 3017,
+        "byzantineBehavior": "NONE"
     }
 ]

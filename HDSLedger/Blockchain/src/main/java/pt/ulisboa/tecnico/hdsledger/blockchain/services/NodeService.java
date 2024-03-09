@@ -77,8 +77,6 @@ public class NodeService implements UDPService {
     // Ledger (for now, just a list of strings)
     private ArrayList<String> ledger = new ArrayList<String>();
 
-    //private String leaderId;
-
     private long TIMEOUT = 3000;
     Timer timer;
 
@@ -118,17 +116,24 @@ public class NodeService implements UDPService {
         }
         throw new HDSSException(ErrorMessage.ProgrammingError);
     }
- 
-    public ConsensusMessage createConsensusMessage(String value, int instance, int round) {
-        PrePrepareMessage prePrepareMessage = new PrePrepareMessage(value);
 
-        ConsensusMessage consensusMessage = new ConsensusMessageBuilder(config.getId(), Message.Type.PRE_PREPARE)
+    private ConsensusMessage createConsensusMessageCommon(String senderId, String value, int instance, int round) {
+        PrePrepareMessage prePrepareMessage = new PrePrepareMessage(value);
+        ConsensusMessage consensusMessage = new ConsensusMessageBuilder(senderId, Message.Type.PRE_PREPARE)
                 .setConsensusInstance(instance)
                 .setRound(round)
                 .setMessage(prePrepareMessage.toJson())
                 .build();
 
         return consensusMessage;
+    }
+ 
+    public ConsensusMessage createConsensusMessage(String value, int instance, int round) {
+        return createConsensusMessageCommon(config.getId(), value, instance, round);
+    }
+
+    public ConsensusMessage createConsensusMessage(String senderId, String value, int instance, int round) {        
+        return createConsensusMessageCommon(senderId, value, instance, round);
     }
 
 
@@ -220,32 +225,41 @@ public class NodeService implements UDPService {
         // Leader broadcasts PRE-PREPARE message
         if (
             config.getId().equals(instance.getLeaderId()) ||
-            config.getByzantineBehavior() == ByzantineBehavior.FAKE_LEADER
+            config.getByzantineBehavior() == ByzantineBehavior.FAKE_LEADER ||
+            config.getByzantineBehavior() == ByzantineBehavior.FAKE_LEADER_WITH_FORGED_PRE_PREPARE_MESSAGE
         ) {
 
-            if (config.getByzantineBehavior() == ByzantineBehavior.BAD_LEADER_PROPOSE) {
-                
+            if (config.getByzantineBehavior() == ByzantineBehavior.NONE)
+            LOGGER.log(Level.INFO,
+                MessageFormat.format("{0} - Node is leader, sending PRE-PREPARE message", config.getId()));
+        
+            if (config.getByzantineBehavior() == ByzantineBehavior.NONE)
                 LOGGER.log(Level.INFO,
-                    MessageFormat.format("{0} - Node is byzanine leader (BAD_LEADER_PROPOSE), sending PRE-PREPARE message with a random value", config.getId()));
+                    MessageFormat.format("{0} - Node is byzanine leader (FAKE-LEADER). Sending PRE-PREPARE message", config.getId()));
+            
+            if (config.getByzantineBehavior() == ByzantineBehavior.FAKE_LEADER_WITH_FORGED_PRE_PREPARE_MESSAGE)
+                LOGGER.log(Level.INFO,
+                    MessageFormat.format("{0} - Node is byzanine leader (FORGED_PRE_PREPARE_MESSAGE). Sending PRE-PREPARE message with leaderId", config.getId()));
 
+            
+
+            if (config.getByzantineBehavior() == ByzantineBehavior.BAD_LEADER_PROPOSE) {
                 for (ServerConfig node : nodesConfig) {
                     int valueLength = RandomIntGenerator.generateRandomInt(1, 5);
                     String randomValue = RandomStringGenerator.generateRandomString(valueLength);
                     this.linkToNodes.send(node.getId(), this.createConsensusMessage(randomValue, localConsensusInstance, instance.getCurrentRound()));
                 }
-
                 return;
             } 
-            
-            if (config.getByzantineBehavior() == ByzantineBehavior.NONE) {
-                LOGGER.log(Level.INFO,
-                    MessageFormat.format("{0} - Node is leader, sending PRE-PREPARE message", config.getId()));
-            } else {
-                LOGGER.log(Level.INFO,
-                    MessageFormat.format("{0} - Node is byzanine leader (FAKE-LEADER). Sending PRE-PREPARE message", config.getId()));
-            }
 
-            this.linkToNodes.broadcast(this.createConsensusMessage(value, localConsensusInstance, instance.getCurrentRound()));    
+            // TODO: this only makes sense if the sent value is fake
+            if (config.getByzantineBehavior() == ByzantineBehavior.FAKE_LEADER_WITH_FORGED_PRE_PREPARE_MESSAGE) {
+                this.linkToNodes.broadcast(this.createConsensusMessage(instance.getLeaderId(), value, localConsensusInstance, instance.getCurrentRound()));    
+            }
+            
+
+            if (config.getByzantineBehavior() == ByzantineBehavior.NONE)
+                this.linkToNodes.broadcast(this.createConsensusMessage(value, localConsensusInstance, instance.getCurrentRound()));    
 
         } else {
             LOGGER.log(Level.INFO,
