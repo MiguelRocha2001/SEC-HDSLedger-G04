@@ -12,14 +12,17 @@ public class InstanceInfo {
     private String inputValue;
     private int committedRound = -1;
     private String leaderId;
+    private String valueSignature;
 
-    public InstanceInfo(String inputValue) {
+    public InstanceInfo(String inputValue, String valueSignature) {
         this.inputValue = inputValue;
+        this.valueSignature = valueSignature;
     }
 
-    public InstanceInfo(String inputValue, String leaderId) {
+    public InstanceInfo(String inputValue, String valueSignature, String leaderId) {
         this.inputValue = inputValue;
         this.leaderId = leaderId;
+        this.valueSignature = valueSignature;
     }
 
     public int getCurrentRound() {
@@ -76,5 +79,9 @@ public class InstanceInfo {
 
     public void setLeaderId(String leaderId) {
         this.leaderId = leaderId;
+    }
+
+    public String getValueSignature() {
+        return valueSignature;
     }
 }

@@ -13,6 +13,7 @@ import pt.ulisboa.tecnico.hdsledger.communication.BlockchainRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.BlockchainResponseMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
+import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
@@ -20,7 +21,6 @@ import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
 public class ClientService implements UDPService {
 
     private static final CustomLogger LOGGER = new CustomLogger(ClientService.class.getName());
-    private final ServerConfig[] serverConfig;
 
     private final ProcessConfig config;
 
@@ -31,12 +31,10 @@ public class ClientService implements UDPService {
 
     public ClientService(
         Link link, 
-        ProcessConfig config, 
-        ServerConfig[] serverConfig
+        ProcessConfig config
     ){
         this.link = link;
         this.config = config;
-        this.serverConfig = serverConfig;
     }
 
     public ProcessConfig getConfig() {
@@ -44,10 +42,19 @@ public class ClientService implements UDPService {
     }
 
     public void appendRequest(String value) {
-        AppendRequestMessage request = new AppendRequestMessage(config.getId(), value);
-        String requestStr = new Gson().toJson(request);
+        CriptoUtils utils = new CriptoUtils();
+        try {
+            byte[] signature = utils.getMessageSignature(value.getBytes(), config.getId());
+            AppendRequestMessage request = new AppendRequestMessage(config.getId(), value, new String(signature));
+            String requestStr = new Gson().toJson(request);
 
-        link.broadcast(new BlockchainRequestMessage(config.getId(), Message.Type.APPEND_REQUEST, requestStr));
+            link.broadcast(new BlockchainRequestMessage(config.getId(), Message.Type.APPEND_REQUEST, requestStr));
+        } catch (Exception e) {
+            LOGGER.log(Level.INFO,
+                MessageFormat.format(
+                    "Can't sign value {0}",
+                    value));
+        }
     }
 
     private void resultReceived(BlockchainResponseMessage message) {

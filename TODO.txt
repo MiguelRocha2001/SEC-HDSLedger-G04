@@ -6,3 +6,4 @@
 - Do test in which a not authenticated process tries to mess with the system (consensus or blockchain API).
 - Implement the upon rule in line 5, of the round change phase.
 - One possible way to fight a byzantine leader that tries to propose it's own value is to make each value that is to be decided, be verified (authenticated) by each correct node, before being decided.
+- Make test where leader will only propose value to some of the correct nodes. 

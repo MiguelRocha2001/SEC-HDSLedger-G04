@@ -48,7 +48,7 @@ public class Node {
             Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), serversConfig, ConsensusMessage.class);
             Link linkToClients = new Link(nodeConfig, nodeConfigAux.getClientPort(), clientsConfig, BlockchainRequestMessage.class);
 
-            ArrayList<Pair<String, String>> requests = new ArrayList<Pair<String, String>>(); // holds client requests
+            ArrayList<Pair<String, Pair<String, String>>> requests = new ArrayList<Pair<String, Pair<String, String>>>(); // holds client requests
             
             // Services that implement listen from UDPService
             NodeService nodeService = new NodeService(linkToNodes, nodeConfigAux, nodesConfigAUx, linkToClients, requests);

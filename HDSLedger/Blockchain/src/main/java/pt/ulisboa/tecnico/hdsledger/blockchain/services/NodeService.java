@@ -31,6 +31,7 @@ import pt.ulisboa.tecnico.hdsledger.communication.PrepareMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.RoundChangeMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.StartConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.builder.ConsensusMessageBuilder;
+import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.InstanceInfo;
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.MessageBucket;
 import pt.ulisboa.tecnico.hdsledger.utilities.ByzantineBehavior;
@@ -72,7 +73,7 @@ public class NodeService implements UDPService {
     // Last decided consensus instance
     private final AtomicInteger lastDecidedConsensusInstance = new AtomicInteger(0);
 
-    private final ArrayList<Pair<String, String>> requests;
+    private final ArrayList<Pair<String, Pair<String, String>>> requests;
 
     // Ledger (for now, just a list of strings)
     private ArrayList<String> ledger = new ArrayList<String>();
@@ -80,7 +81,7 @@ public class NodeService implements UDPService {
     private long TIMEOUT = 3000;
     Timer timer;
 
-    public NodeService(Link linkToNodes, ServerConfig config, ServerConfig[] nodesConfig, Link linkToClients, ArrayList<Pair<String, String>> requests) {
+    public NodeService(Link linkToNodes, ServerConfig config, ServerConfig[] nodesConfig, Link linkToClients, ArrayList<Pair<String, Pair<String, String>>> requests) {
 
         this.linkToNodes = linkToNodes;
         this.linkToClients = linkToClients;
@@ -117,8 +118,8 @@ public class NodeService implements UDPService {
         throw new HDSSException(ErrorMessage.ProgrammingError);
     }
 
-    private ConsensusMessage createConsensusMessageCommon(String senderId, String value, int instance, int round) {
-        PrePrepareMessage prePrepareMessage = new PrePrepareMessage(value);
+    private ConsensusMessage createConsensusMessageCommon(String senderId, String value, int instance, int round, String valueSignature) {
+        PrePrepareMessage prePrepareMessage = new PrePrepareMessage(value, valueSignature);
         ConsensusMessage consensusMessage = new ConsensusMessageBuilder(senderId, Message.Type.PRE_PREPARE)
                 .setConsensusInstance(instance)
                 .setRound(round)
@@ -128,12 +129,12 @@ public class NodeService implements UDPService {
         return consensusMessage;
     }
  
-    public ConsensusMessage createConsensusMessage(String value, int instance, int round) {
-        return createConsensusMessageCommon(config.getId(), value, instance, round);
+    public ConsensusMessage createConsensusMessage(String value, int instance, int round, String valueSignature) {
+        return createConsensusMessageCommon(config.getId(), value, instance, round, valueSignature);
     }
 
-    public ConsensusMessage createConsensusMessage(String senderId, String value, int instance, int round) {        
-        return createConsensusMessageCommon(senderId, value, instance, round);
+    public ConsensusMessage createConsensusMessage(String senderId, String value, int instance, int round, String valueSignature) {   
+        return createConsensusMessageCommon(senderId, value, instance, round, valueSignature);
     }
 
 
@@ -184,11 +185,11 @@ public class NodeService implements UDPService {
      *
      * @param inputValue Value to value agreed upon
      */
-    public void startConsensus(String value) {
+    public void startConsensus(String value, String valueSignature) {
 
         // Set initial consensus values
         int localConsensusInstance = this.consensusInstance.incrementAndGet();
-        InstanceInfo existingConsensus = this.instanceInfo.put(localConsensusInstance, new InstanceInfo(value)); // should be putIfAbsent!!! WHat if he receives a PREPARE message first, and already creates a new InstanceInfo???
+        InstanceInfo existingConsensus = this.instanceInfo.put(localConsensusInstance, new InstanceInfo(value, valueSignature)); // should be putIfAbsent!!! WHat if he receives a PREPARE message first, and already creates a new InstanceInfo???
 
         // If it's the first consensus instance, the first node is assigned as the leader
         if (localConsensusInstance == 1) 
@@ -247,19 +248,19 @@ public class NodeService implements UDPService {
                 for (ServerConfig node : nodesConfig) {
                     int valueLength = RandomIntGenerator.generateRandomInt(1, 5);
                     String randomValue = RandomStringGenerator.generateRandomString(valueLength);
-                    this.linkToNodes.send(node.getId(), this.createConsensusMessage(randomValue, localConsensusInstance, instance.getCurrentRound()));
+                    this.linkToNodes.send(node.getId(), this.createConsensusMessage(randomValue, localConsensusInstance, instance.getCurrentRound(), valueSignature));
                 }
                 return;
             } 
 
             // TODO: this only makes sense if the sent value is fake
             if (config.getByzantineBehavior() == ByzantineBehavior.FAKE_LEADER_WITH_FORGED_PRE_PREPARE_MESSAGE) {
-                this.linkToNodes.broadcast(this.createConsensusMessage(instance.getLeaderId(), value, localConsensusInstance, instance.getCurrentRound()));    
+                this.linkToNodes.broadcast(this.createConsensusMessage(instance.getLeaderId(), value, localConsensusInstance, instance.getCurrentRound(), valueSignature));    
             }
             
 
             if (config.getByzantineBehavior() == ByzantineBehavior.NONE)
-                this.linkToNodes.broadcast(this.createConsensusMessage(value, localConsensusInstance, instance.getCurrentRound()));    
+                this.linkToNodes.broadcast(this.createConsensusMessage(value, localConsensusInstance, instance.getCurrentRound(), valueSignature));    
 
         } else {
             LOGGER.log(Level.INFO,
@@ -291,6 +292,15 @@ public class NodeService implements UDPService {
 
         return instanceInfo;
     }
+
+    private boolean verifySignature(String value, String signature) {
+        CriptoUtils cripto = new CriptoUtils();
+        try {
+            return cripto.verifySignature(value.getBytes(), signature.getBytes());
+        } catch (Exception e) {
+            return false; // TODO: check this
+        }
+    }
     
     /*
      * Handle pre prepare messages and if the message
@@ -308,6 +318,15 @@ public class NodeService implements UDPService {
         PrePrepareMessage prePrepareMessage = message.deserializePrePrepareMessage();
 
         String value = prePrepareMessage.getValue();
+        String valueSignature = prePrepareMessage.getValueSignature();
+
+        if (!verifySignature(value, valueSignature)) {
+            LOGGER.log(Level.INFO,
+                MessageFormat.format(
+                        "{0} - Received PRE-PREPARE message from {1} Consensus Instance {2}, Round {3}, but the value could not be verified",
+                        config.getId(), senderId, consensusInstance, round));    
+            return;
+        }
 
         LOGGER.log(Level.INFO,
                 MessageFormat.format(
@@ -352,7 +371,7 @@ public class NodeService implements UDPService {
         // set timer
         schedualeTask();
 
-        PrepareMessage prepareMessage = new PrepareMessage(prePrepareMessage.getValue());
+        PrepareMessage prepareMessage = new PrepareMessage(prePrepareMessage.getValue(), valueSignature);
 
         ConsensusMessage consensusMessage = new ConsensusMessageBuilder(config.getId(), Message.Type.PREPARE)
                 .setConsensusInstance(consensusInstance)
@@ -379,6 +398,15 @@ public class NodeService implements UDPService {
         PrepareMessage prepareMessage = message.deserializePrepareMessage();
 
         String value = prepareMessage.getValue();
+        String valueSignature = prepareMessage.getValueSignature();
+
+        if (!verifySignature(value, valueSignature)) {
+            LOGGER.log(Level.INFO,
+                MessageFormat.format(
+                        "{0} - Received PRE-PREPARE message from {1} Consensus Instance {2}, Round {3}, but the value could not be verified",
+                        config.getId(), senderId, consensusInstance, round));    
+            return;
+        }
 
         LOGGER.log(Level.INFO,
                 MessageFormat.format(
@@ -541,7 +569,7 @@ public class NodeService implements UDPService {
             // Warns clients
             for (int u = 0; u < requests.size(); u++) {
                 String clientId = requests.get(u).getKey();
-                String valueToAppend = requests.get(u).getValue();
+                String valueToAppend = requests.get(u).getValue().getKey();
                 if (valueToAppend.equals(value)) {
                     requests.remove(u);
 
@@ -559,8 +587,9 @@ public class NodeService implements UDPService {
 
             // start new consensus instance, if theres more pending requests
             if (!requests.isEmpty()) {
-                String nextRequestValueToAppend = requests.get(0).getValue();
-                startConsensus(nextRequestValueToAppend);
+                String nextRequestValueToAppend = requests.get(0).getValue().getKey();
+                String valueSignature = requests.get(0).getValue().getValue();
+                startConsensus(nextRequestValueToAppend, valueSignature);
             }
         }
     }
@@ -573,6 +602,7 @@ public class NodeService implements UDPService {
 
     }
 
+    // TODO: log next leader for debug porposes
     public void uponRoundChange(ConsensusMessage message) {
         int consensusInstance = message.getConsensusInstance();
         int round = message.getRound();
@@ -600,8 +630,6 @@ public class NodeService implements UDPService {
         }
 
         InstanceInfo instance = this.instanceInfo.get(consensusInstance);        
-
-        System.out.println("LeaderId: " + instance.getLeaderId());
 
         if (
             roundChangeMessages.hasValidRoundChangeQuorum(config.getId(), consensusInstance, round) &&
@@ -633,7 +661,7 @@ public class NodeService implements UDPService {
 
             // broadcast PRE PREPARE message
             int localConsensusInstance = this.consensusInstance.get();
-            this.linkToNodes.broadcast(this.createConsensusMessage(instance.getInputValue(), localConsensusInstance, instance.getCurrentRound()));
+            this.linkToNodes.broadcast(this.createConsensusMessage(instance.getInputValue(), localConsensusInstance, instance.getCurrentRound(), instance.getValueSignature()));
         }
     }
 

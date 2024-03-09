@@ -119,6 +119,19 @@ public class CriptoUtils {
         return appendArrays(buf, signature);
     }
 
+    public byte[] getMessageSignature(byte[] message, String senderId) 
+        throws 
+            IOException, 
+            NoSuchAlgorithmException, 
+            InvalidKeyException, 
+            SignatureException,
+            InvalidKeySpecException
+    {
+        byte[] msgWithSign = addSignatureToData(message, senderId);
+        byte[] signature = removeSignature(msgWithSign);
+        return signature;
+    }
+
     public static byte[] removeSignature(byte[] buf) {
         byte[] signature = new byte[512];
 
@@ -135,6 +148,22 @@ public class CriptoUtils {
             message[i] = buf[i];
         }
         return message;
+    }
+
+    public boolean verifySignature(byte[] originalMessage, byte[] signature) 
+        throws 
+            IOException, 
+            NoSuchAlgorithmException, 
+            InvalidKeySpecException, 
+            InvalidKeyException,
+            SignatureException
+    {
+        for (Map.Entry<String, Pair<PublicKey, PrivateKey>> entry : keys.entrySet()) {
+            String nodeId = entry.getKey();
+            if (verifySignature(nodeId, originalMessage, signature))
+                return true;
+        }
+        return false;
     }
 
     public boolean verifySignature(String senderNodeId, byte[] originalMessage, byte[] signature)

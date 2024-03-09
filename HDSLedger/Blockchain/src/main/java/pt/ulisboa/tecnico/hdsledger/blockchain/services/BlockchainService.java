@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.logging.Level;
+
+import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.BlockchainRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.LeaderChangeMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
@@ -26,11 +28,11 @@ public class BlockchainService implements UDPService {
     // Link to communicate with nodes
     private final Link link;
   
-    private final ArrayList<Pair<String, String>> requests;
+    private final ArrayList<Pair<String, Pair<String, String>>> requests;
     private final NodeService nodeService;
     
 
-    public BlockchainService(Link link, ServerConfig config, ClientConfig[] clientsConfig, NodeService nodeService, ArrayList<Pair<String, String>> requests) {
+    public BlockchainService(Link link, ServerConfig config, ClientConfig[] clientsConfig, NodeService nodeService, ArrayList<Pair<String, Pair<String, String>>> requests) {
         this.link = link;
         this.config = config;
         this.clientConfigs = clientsConfig;
@@ -46,11 +48,13 @@ public class BlockchainService implements UDPService {
                 "{0} - Received APPEND-REQUEST message from {1}",
                 config.getId(), senderId));
 
-        String valueToAppend = message.deserializeAppendRequest().getMessage();
+        AppendRequestMessage request = message.deserializeAppendRequest();
+        String valueToAppend = request.getMessage();
+        String valueSignature = request.getValueSignature();
     
-        requests.add(new Pair<String,String>(senderId, valueToAppend));
+        requests.add(new Pair<String, Pair<String, String>>(senderId, new Pair<String,String>(valueToAppend, valueSignature)));
 
-        nodeService.startConsensus(valueToAppend);
+        nodeService.startConsensus(valueToAppend, valueSignature);
     }
 
     @Override

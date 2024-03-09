@@ -10,5 +10,3 @@ public enum ByzantineBehavior {
     DONT_VERIFY_SIGNATURES,
     FAKE_LEADER_WITH_FORGED_PRE_PREPARE_MESSAGE // broadcast PRE-PREPARE message with senderId of real leader
 }
-
-// Implement behavior where the leader is byzantine and will not propose the value of the client, but will propose another one
