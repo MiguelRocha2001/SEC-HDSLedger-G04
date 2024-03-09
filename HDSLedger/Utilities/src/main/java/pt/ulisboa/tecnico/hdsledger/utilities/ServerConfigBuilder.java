@@ -26,12 +26,19 @@ public class ServerConfigBuilder {
         }
     }
 
-    public static ProcessConfig[] fromServerConfigToProcessConfig(ServerConfig[] servers) {
+    public static ProcessConfig[] fromServerConfigToProcessConfig(ServerConfig[] servers, boolean getClientPort) {
         ProcessConfig[] configs = new ProcessConfig[servers.length];
 
         for (int i = 0; i < configs.length; i++) {
             ServerConfig serverConfig = servers[i];
-            configs[i] = new ProcessConfig(serverConfig.getId(), serverConfig.getHostname(), serverConfig.getPort());
+            
+            int port;
+            if (getClientPort)
+                port = serverConfig.getClientPort();
+            else
+                port = serverConfig.getPort();
+
+            configs[i] = new ProcessConfig(serverConfig.getId(), serverConfig.getHostname(), port);
         }
 
         return configs;

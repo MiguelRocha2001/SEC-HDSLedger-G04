@@ -35,21 +35,24 @@ public class Link {
     private final Map<String, CollapsingSet> receivedMessages = new ConcurrentHashMap<>();
     // Set of received ACKs from specific node
     private final CollapsingSet receivedAcks = new CollapsingSet();
+    // Class to deserialize messages to
+    private final Class<? extends Message> messageClass;
     // Message counter
     private final AtomicInteger messageCounter = new AtomicInteger(0);
     // Send messages to self by pushing to queue instead of through the network
     private final Queue<Message> localhostQueue = new ConcurrentLinkedQueue<>();
     private CriptoUtils cripto;
 
-    public Link(ProcessConfig self, int port, ProcessConfig[] nodes) {
-        this(self, port, nodes, false, 200);
+    public Link(ProcessConfig self, int port, ProcessConfig[] nodes, Class<? extends Message> messageClass) {
+        this(self, port, nodes, false, 200, messageClass);
     }
 
     public Link(ProcessConfig self, int port, ProcessConfig[] nodes,
-            boolean activateLogs, int baseSleepTime) {
+            boolean activateLogs, int baseSleepTime, Class<? extends Message> messageClass) {
 
         this.config = self;
         this.BASE_SLEEP_TIME = baseSleepTime;
+        this.messageClass = messageClass;
 
         Arrays.stream(nodes).forEach(node -> {
             String id = node.getId();
@@ -60,14 +63,15 @@ public class Link {
         try {
             this.socket = new DatagramSocket(port, InetAddress.getByName(config.getHostname()));
         } catch (UnknownHostException | SocketException e) {
+            System.out.println(e.getMessage());
             throw new HDSSException(ErrorMessage.CannotOpenSocket);
-        }
-        if (!activateLogs) {
-            LogManager.getLogManager().reset();
         }
 
         cripto = new CriptoUtils();
-
+        
+        if (!activateLogs) {
+            LogManager.getLogManager().reset();
+        }
     }
 
     public void ackAll(List<Integer> messageIds) {
@@ -102,8 +106,12 @@ public class Link {
         new Thread(() -> {
             try {
                 ProcessConfig node = nodes.get(nodeId);
-                if (node == null)
+                if (node == null) {
+                    LOGGER.log(Level.WARNING,
+                            MessageFormat.format("{0} - Cant send a message to invalid node {1}",
+                                    config.getId(), node));
                     throw new HDSSException(ErrorMessage.NoSuchNode);
+                }
 
                 data.setMessageId(messageCounter.getAndIncrement());
 
@@ -184,6 +192,7 @@ public class Link {
         }).start();
     }
 
+    /*
     private Class<? extends Message> getMessageType(Message message) {
         Type type = message.getType();
         
@@ -201,6 +210,7 @@ public class Link {
         else
             return null; // TODO: maybe, throw an Exception
     }
+    */
 
     /*
      * Receives a message from any node in the network (blocking)
@@ -242,21 +252,18 @@ public class Link {
         int messageId = message.getMessageId();
 
         if (local == false) {
-            if (originalMessage == null)
-                throw new HDSSException(ErrorMessage.ProgrammingError);
-            if (signature == null)
-                throw new HDSSException(ErrorMessage.ProgrammingError);
-
             try {
                 boolean verifies = cripto.verifySignature(senderId, originalMessage, signature);
                 if (!verifies) {
-                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Message {1} could not be verified",
+                    LOGGER.log(Level.WARNING, MessageFormat.format("{0} - Message {1} could not be verified",
                         config.getId(), message.getMessageId()));
                     message.setType(Message.Type.IGNORE);
                     //throw new HDSSException(ErrorMessage.MessageVerificationFail);
                 } else {
-                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Message {1} from sender {2} verified",
-                        config.getId(), message.getMessageId(), message.getSenderId()));
+                    //LOGGER.log(Level.INFO, MessageFormat.format("{0} - Message {1} from sender {2} verified",
+                    //    config.getId(), message.getMessageId(), message.getSenderId()));
+
+                    // Do nothing
                 }
             } catch(
                 IOException |
@@ -273,8 +280,13 @@ public class Link {
                         config.getId(), message.getMessageId()));
         }
 
-        if (!nodes.containsKey(senderId))
+        if (!nodes.containsKey(senderId)) {
+            LOGGER.log(Level.WARNING,
+                            MessageFormat.format("{0} - Cant receive message from invalid sender {1}",
+                                    config.getId(), senderId));
             throw new HDSSException(ErrorMessage.NoSuchNode);
+            //message.setType(Message.Type.IGNORE);
+        }
 
         // Handle ACKS, since it's possible to receive multiple acks from the same
         // message
@@ -285,14 +297,16 @@ public class Link {
 
         // It's not an ACK -> Deserialize for the correct type
         if (!local && message.getType() != Type.IGNORE) {
-            Class<? extends Message> type = getMessageType(message);
-            message = new Gson().fromJson(serialized, type);
+            //Class<? extends Message> type = getMessageType(message);
+            message = new Gson().fromJson(serialized, this.messageClass);
         }
 
         boolean isRepeated = !receivedMessages.get(message.getSenderId()).add(messageId);
         Type originalType = message.getType();
         // Message already received (add returns false if already exists) => Discard
         if (isRepeated) {
+            LOGGER.log(Level.WARNING, MessageFormat.format("{0} - Message {1} is repeated",
+                        config.getId(), message.getMessageId()));
             message.setType(Message.Type.IGNORE);
         }
 

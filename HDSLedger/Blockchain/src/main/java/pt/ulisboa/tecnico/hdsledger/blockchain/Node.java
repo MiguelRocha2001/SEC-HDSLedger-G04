@@ -1,15 +1,22 @@
 package pt.ulisboa.tecnico.hdsledger.blockchain;
 
+import pt.ulisboa.tecnico.hdsledger.communication.BlockchainRequestMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
+import pt.ulisboa.tecnico.hdsledger.blockchain.services.BlockchainService;
 import pt.ulisboa.tecnico.hdsledger.blockchain.services.NodeService;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfigBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
+import pt.ulisboa.tecnico.hdsledger.utilities.Pair;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfigBuilder;
 
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.logging.Level;
 
@@ -24,39 +31,36 @@ public class Node {
         try {
             // Command line arguments
             String id = args[0];
+            String nodesConfigArg = args[1];
+            String clientsConfigArg = args[2];
 
             // Create configuration instances
-            ServerConfig[] serverConfigsAux = new ServerConfigBuilder().fromFile(PROCESSE_CONFIG_PATH + "blockchainConfig.json");
-            ClientConfig[] clientConfigsAux = new ClientConfigBuilder().fromFile(PROCESSE_CONFIG_PATH + "clientConfig.json");
+            ServerConfig[] nodesConfigAUx = new ServerConfigBuilder().fromFile(PROCESSE_CONFIG_PATH + nodesConfigArg);
+            ClientConfig[] clientConfigsAux = new ClientConfigBuilder().fromFile(PROCESSE_CONFIG_PATH + clientsConfigArg);
 
-            ProcessConfig[] serverConfigs = ServerConfigBuilder.fromServerConfigToProcessConfig(serverConfigsAux);
-            ProcessConfig[] clientConfigs = ClientConfigBuilder.fromClientConfigToProcessConfig(clientConfigsAux);
+            ProcessConfig[] serversConfig = ServerConfigBuilder.fromServerConfigToProcessConfig(nodesConfigAUx, false);
+            ProcessConfig[] clientsConfig = ClientConfigBuilder.fromClientConfigToProcessConfig(clientConfigsAux);
 
-            ProcessConfig[] nodesConfig = ProcessConfig.joinArrays(serverConfigs, clientConfigs);
-
-            ServerConfig leaderConfig = Arrays.stream(serverConfigsAux).filter(ServerConfig::isLeader).findAny().get();
-
-            ServerConfig nodeConfigAux = Arrays.stream(serverConfigsAux).filter(c -> c.getId().equals(id)).findAny().get();
+            ServerConfig nodeConfigAux = Arrays.stream(nodesConfigAUx).filter(c -> c.getId().equals(id)).findAny().get();
             ProcessConfig nodeConfig = new ProcessConfig(nodeConfigAux.getId(), nodeConfigAux.getHostname(), nodeConfigAux.getPort());
 
-            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Running at {1}:{2}; is leader: {3}",
-                    nodeConfig.getId(), nodeConfig.getHostname(), nodeConfig.getPort(),
-                    nodeConfigAux.isLeader()));
-
             // Abstraction to send and receive messages
-            Link link = new Link(nodeConfig, nodeConfig.getPort(), nodesConfig);
+            Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), serversConfig, ConsensusMessage.class);
+            Link linkToClients = new Link(nodeConfig, nodeConfigAux.getClientPort(), clientsConfig, BlockchainRequestMessage.class);
+
+            ArrayList<Pair<String, String>> requests = new ArrayList<Pair<String, String>>(); // holds client requests
             
             // Services that implement listen from UDPService
-            NodeService nodeService = new NodeService(link, nodeConfigAux, leaderConfig,
-            serverConfigsAux);
+            NodeService nodeService = new NodeService(linkToNodes, nodeConfigAux, nodesConfigAUx, linkToClients, requests);
+            BlockchainService blockchainService = new BlockchainService(linkToClients, nodeConfigAux, clientConfigsAux, nodeService, requests);
             
             nodeService.listen();
-
-            /*
-            if (nodeConfigAux.isLeader()) {
-                nodeService.startConsensus("SOME RANDOM VALUE");
-            }
-            */
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Process is listenning on port host and port {1}:{2}",
+                    nodeConfig.getId(), nodeConfig.getHostname(), nodeConfig.getPort()));
+                    
+            blockchainService.listen();
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Process is listenning on port host and port {1}:{2}",
+                    nodeConfig.getId(), nodeConfig.getHostname(), nodeConfigAux.getClientPort()));
 
         } catch (Exception e) {
             e.printStackTrace();

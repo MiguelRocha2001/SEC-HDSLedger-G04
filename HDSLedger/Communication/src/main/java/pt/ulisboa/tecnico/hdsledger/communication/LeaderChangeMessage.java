@@ -4,25 +4,14 @@ import com.google.gson.Gson;
 
 public class LeaderChangeMessage extends Message {
 
-    private String leaderProcessId;
-    private String valueToBeAppended;
+    private String leaderId;
 
-    public LeaderChangeMessage(String senderId, String leaderProcessId, String valueToBeAppended) {
+    public LeaderChangeMessage(String senderId, String newLeaderId) {
         super(senderId, Type.CONSENSUS_START);
-        this.leaderProcessId = leaderProcessId;
-        this.valueToBeAppended = valueToBeAppended;
+        leaderId = newLeaderId;
     }
 
-    public AppendRequestMessage deserializeAppendRequestMessage() {
-        return new Gson().fromJson(this.leaderProcessId, AppendRequestMessage.class);
+    public String getLeaderId() {
+        return leaderId;
     }
-
-    public String getLeaderProcessId() {
-        return leaderProcessId;
-    }
-
-    public String getValueToBeAppended() {
-        return valueToBeAppended;
-    }
-    
 }

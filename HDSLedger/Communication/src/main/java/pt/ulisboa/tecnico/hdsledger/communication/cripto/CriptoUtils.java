@@ -16,6 +16,8 @@ import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.ErrorMessage;
@@ -42,6 +44,20 @@ public class CriptoUtils {
         }
     }
 
+     public static String extractId(String input, String patternAux) {
+        // Define the pattern for the ID
+        Pattern pattern = Pattern.compile(patternAux + "(\\d+)\\.key");
+        Matcher matcher = pattern.matcher(input);
+
+        // Check if the pattern matches the input string
+        if (matcher.find()) {
+            // Extract the ID group
+            return matcher.group(1);
+        } else {
+            return null; // Pattern not found
+        }
+    }
+
     // TODO: should only load public keys for other processes
     private Map<String, Pair<PublicKey, PrivateKey>> loadKeys() throws IOException
     {
@@ -53,10 +69,10 @@ public class CriptoUtils {
             .forEach(filePath -> {
 
                 String filename = filePath.getFileName().toString();
-                String nodeId = filename.charAt(filename.length() - 5) + ""; // files are in form of <private[NUM].key>
-
+                String nodeId = extractId(filename, "public"); // files are in form of <public[NUM].key>
+                
                 // avoids loading repeated keys
-                if (!keys.containsKey(nodeId)) {
+                if (nodeId != null && !keys.containsKey(nodeId)) {
                     String pathToPrivKey = KEY_LOCATION + "private" + nodeId + ".key";
                     String pathToPubKey = KEY_LOCATION + "public" + nodeId + ".key";                
     

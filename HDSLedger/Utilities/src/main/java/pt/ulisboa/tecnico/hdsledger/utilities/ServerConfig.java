@@ -1,5 +1,6 @@
 package pt.ulisboa.tecnico.hdsledger.utilities;
 
+
 public class ServerConfig {
     public ServerConfig() {}
 
@@ -10,6 +11,10 @@ public class ServerConfig {
     private String id;
 
     private int port;
+    
+    private int clientPort;
+
+    private ByzantineBehavior byzantineBehavior;
 
     public boolean isLeader() {
         return isLeader;
@@ -17,6 +22,10 @@ public class ServerConfig {
 
     public int getPort() {
         return port;
+    }
+
+    public int getClientPort() {
+        return clientPort;
     }
 
     public String getId() {
@@ -27,16 +36,7 @@ public class ServerConfig {
         return hostname;
     }
 
-    /*
-    public static ProcessConfig[] toProcessConfig(ServerConfig[] configs) {
-        ProcessConfig[] processConfig = new ProcessConfig[configs.length];
-
-        for (int u = 0; u < processConfig.length; u++) {
-            ServerConfig serverConfig = configs[u];
-            processConfig[u] = new ProcessConfig(serverConfig.getId(), serverConfig.getHostname(), serverConfig.getPort());
-        }
-
-        return processConfig;
+    public ByzantineBehavior getByzantineBehavior() {
+        return byzantineBehavior;
     }
-    */
 }

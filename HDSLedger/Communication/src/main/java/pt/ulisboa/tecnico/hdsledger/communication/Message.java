@@ -14,7 +14,7 @@ public class Message implements Serializable {
     public enum Type {
         APPEND_REQUEST, APPEND_REQUEST_RESULT, LIDER_CHANGE, // Client - Server
         VALUE_DECIDED, CONSENSUS_START, // Consensus - Blockchain
-        APPEND, PRE_PREPARE, PREPARE, COMMIT, // Consensus - Consensus
+        APPEND, PRE_PREPARE, PREPARE, COMMIT, ROUND_CHANGE, // Consensus - Consensus
         ACK, IGNORE
     }
 

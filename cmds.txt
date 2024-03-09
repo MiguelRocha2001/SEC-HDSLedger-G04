@@ -1,3 +1,6 @@
+Generate keys:
+    $ java -cp out pt.ulisboa.tecnico.hdsledger.communication.cripto.RSAKeyGenerator w HDSLedger/resources/keys/private1.key
+
 Server:
     Using maven:
         $ mvn clean install
