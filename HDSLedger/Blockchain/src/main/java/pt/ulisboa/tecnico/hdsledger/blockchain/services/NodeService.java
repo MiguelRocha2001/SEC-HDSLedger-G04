@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.sql.Time;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -78,16 +79,26 @@ public class NodeService implements UDPService {
     // Ledger (for now, just a list of strings)
     private ArrayList<String> ledger = new ArrayList<String>();
 
+    private CriptoUtils criptoUtils;
+
     private long TIMEOUT = 3000;
     Timer timer;
 
-    public NodeService(Link linkToNodes, ServerConfig config, ServerConfig[] nodesConfig, Link linkToClients, ArrayList<Pair<String, Pair<String, String>>> requests) {
+    public NodeService(
+        Link linkToNodes, 
+        ServerConfig config, 
+        ServerConfig[] nodesConfig, 
+        Link linkToClients, 
+        ArrayList<Pair<String, Pair<String, String>>> requests, 
+        CriptoUtils criptoUtils
+    ) {
 
         this.linkToNodes = linkToNodes;
         this.linkToClients = linkToClients;
         this.config = config;
         this.nodesConfig = nodesConfig;
         this.requests = requests;
+        this.criptoUtils = criptoUtils;
 
         this.prepareMessages = new MessageBucket(nodesConfig.length);
         this.commitMessages = new MessageBucket(nodesConfig.length);
@@ -293,15 +304,6 @@ public class NodeService implements UDPService {
         return instanceInfo;
     }
 
-    private boolean verifySignature(String value, String signature) {
-        CriptoUtils cripto = new CriptoUtils();
-        try {
-            return cripto.verifySignature(value.getBytes(), signature.getBytes());
-        } catch (Exception e) {
-            return false; // TODO: check this
-        }
-    }
-    
     /*
      * Handle pre prepare messages and if the message
      * came from leader and is justified then broadcast prepare
@@ -318,15 +320,24 @@ public class NodeService implements UDPService {
         PrePrepareMessage prePrepareMessage = message.deserializePrePrepareMessage();
 
         String value = prePrepareMessage.getValue();
-        String valueSignature = prePrepareMessage.getValueSignature();
+        String valueSignatureEncoded = prePrepareMessage.getValueSignature();
+        byte[] valueSignature = Base64.getDecoder().decode(valueSignatureEncoded); // decodes from Base 64
+        
+        System.out.println(valueSignature);
 
-        if (!verifySignature(value, valueSignature)) {
-            LOGGER.log(Level.INFO,
-                MessageFormat.format(
-                        "{0} - Received PRE-PREPARE message from {1} Consensus Instance {2}, Round {3}, but the value could not be verified",
-                        config.getId(), senderId, consensusInstance, round));    
-            return;
+        try {
+            if (!criptoUtils.verifySignature(value.getBytes(), valueSignature)) {
+                LOGGER.log(Level.INFO,
+                    MessageFormat.format(
+                            "{0} - Received PRE-PREPARE message from {1} Consensus Instance {2}, Round {3}, but the value could not be verified",
+                            config.getId(), senderId, consensusInstance, round));    
+                return;
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - {1}", config.getId(), e.getMessage()));
+            throw new HDSSException(ErrorMessage.ProgrammingError);
         }
+        
 
         LOGGER.log(Level.INFO,
                 MessageFormat.format(
@@ -371,7 +382,7 @@ public class NodeService implements UDPService {
         // set timer
         schedualeTask();
 
-        PrepareMessage prepareMessage = new PrepareMessage(prePrepareMessage.getValue(), valueSignature);
+        PrepareMessage prepareMessage = new PrepareMessage(prePrepareMessage.getValue(), valueSignatureEncoded);
 
         ConsensusMessage consensusMessage = new ConsensusMessageBuilder(config.getId(), Message.Type.PREPARE)
                 .setConsensusInstance(consensusInstance)
@@ -398,14 +409,20 @@ public class NodeService implements UDPService {
         PrepareMessage prepareMessage = message.deserializePrepareMessage();
 
         String value = prepareMessage.getValue();
-        String valueSignature = prepareMessage.getValueSignature();
+        String valueSignatureEncoded = prepareMessage.getValueSignature();
+        byte[] valueSignature = Base64.getDecoder().decode(valueSignatureEncoded); // decodes from Base 64
 
-        if (!verifySignature(value, valueSignature)) {
-            LOGGER.log(Level.INFO,
-                MessageFormat.format(
-                        "{0} - Received PRE-PREPARE message from {1} Consensus Instance {2}, Round {3}, but the value could not be verified",
-                        config.getId(), senderId, consensusInstance, round));    
-            return;
+        try {
+            if (!criptoUtils.verifySignature(value.getBytes(), valueSignature)) {
+                LOGGER.log(Level.INFO,
+                    MessageFormat.format(
+                            "{0} - Received PREPARE message from {1} Consensus Instance {2}, Round {3}, but the value could not be verified",
+                            config.getId(), senderId, consensusInstance, round));    
+                return;
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - {1}", config.getId(), e.getMessage()));
+            throw new HDSSException(ErrorMessage.ProgrammingError);
         }
 
         LOGGER.log(Level.INFO,

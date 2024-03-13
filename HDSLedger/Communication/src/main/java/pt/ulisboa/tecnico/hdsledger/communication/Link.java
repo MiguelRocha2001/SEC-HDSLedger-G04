@@ -43,16 +43,17 @@ public class Link {
     private final Queue<Message> localhostQueue = new ConcurrentLinkedQueue<>();
     private CriptoUtils cripto;
 
-    public Link(ProcessConfig self, int port, ProcessConfig[] nodes, Class<? extends Message> messageClass) {
-        this(self, port, nodes, false, 200, messageClass);
+    public Link(ProcessConfig self, int port, ProcessConfig[] nodes, Class<? extends Message> messageClass, CriptoUtils criptoUtils) {
+        this(self, port, nodes, false, 200, messageClass, criptoUtils);
     }
 
     public Link(ProcessConfig self, int port, ProcessConfig[] nodes,
-            boolean activateLogs, int baseSleepTime, Class<? extends Message> messageClass) {
+            boolean activateLogs, int baseSleepTime, Class<? extends Message> messageClass, CriptoUtils criptoUtils) {
 
         this.config = self;
         this.BASE_SLEEP_TIME = baseSleepTime;
         this.messageClass = messageClass;
+        this.cripto = criptoUtils;
 
         Arrays.stream(nodes).forEach(node -> {
             String id = node.getId();
@@ -66,8 +67,6 @@ public class Link {
             System.out.println(e.getMessage());
             throw new HDSSException(ErrorMessage.CannotOpenSocket);
         }
-
-        cripto = new CriptoUtils();
         
         if (!activateLogs) {
             LogManager.getLogManager().reset();
@@ -240,7 +239,7 @@ public class Link {
             
             buffer = Base64.getDecoder().decode(buffer); // decodes from Base 64
 
-            signature = CriptoUtils.removeSignature(buffer);
+            signature = CriptoUtils.extractSignature(buffer);
             originalMessage = CriptoUtils.removeMessage(buffer);
 
             serialized = new String(originalMessage);

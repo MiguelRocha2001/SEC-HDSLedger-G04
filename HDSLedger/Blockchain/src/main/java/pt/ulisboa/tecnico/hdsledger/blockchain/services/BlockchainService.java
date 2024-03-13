@@ -32,7 +32,13 @@ public class BlockchainService implements UDPService {
     private final NodeService nodeService;
     
 
-    public BlockchainService(Link link, ServerConfig config, ClientConfig[] clientsConfig, NodeService nodeService, ArrayList<Pair<String, Pair<String, String>>> requests) {
+    public BlockchainService(
+        Link link, 
+        ServerConfig config, 
+        ClientConfig[] clientsConfig, 
+        NodeService nodeService, 
+        ArrayList<Pair<String, Pair<String, String>>> requests
+    ) {
         this.link = link;
         this.config = config;
         this.clientConfigs = clientsConfig;

@@ -128,15 +128,15 @@ public class CriptoUtils {
             InvalidKeySpecException
     {
         byte[] msgWithSign = addSignatureToData(message, senderId);
-        byte[] signature = removeSignature(msgWithSign);
+        byte[] signature = extractSignature(msgWithSign);
         return signature;
     }
 
-    public static byte[] removeSignature(byte[] buf) {
+    public static byte[] extractSignature(byte[] data) {
         byte[] signature = new byte[512];
 
         for (int i = 0; i < signature.length; i++) {
-            signature[i] = buf[buf.length - 512 + i];
+            signature[i] = data[data.length - 512 + i];
         }
         return signature;
     }
@@ -150,6 +150,9 @@ public class CriptoUtils {
         return message;
     }
 
+    /**
+     * Tries to verify originalMessage with all available public keys until one is valid.
+     */
     public boolean verifySignature(byte[] originalMessage, byte[] signature) 
         throws 
             IOException, 
