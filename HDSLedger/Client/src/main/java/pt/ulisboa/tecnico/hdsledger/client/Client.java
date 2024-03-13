@@ -6,6 +6,7 @@ import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
 import pt.ulisboa.tecnico.hdsledger.client.services.ClientService;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfigBuilder;
+import pt.ulisboa.tecnico.hdsledger.utilities.Utils;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfigBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
@@ -38,7 +39,8 @@ public class Client {
             ClientConfig clientConfigAux = Arrays.stream(clientConfigsAux).filter(c -> c.getId().equals(id)).findAny().get();
             ProcessConfig nodeConfig = new ProcessConfig(id, clientConfigAux.getHostname(), clientConfigAux.getPort(), clientConfigAux.getByzantineBehavior());
 
-            CriptoUtils criptoUtils = new CriptoUtils();
+            String[] nodeIds = Utils.getNodeIds(serverConfigsAux);
+            CriptoUtils criptoUtils = new CriptoUtils(nodeIds);
 
             // Abstraction to send and receive messages
             Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), serverConfigs, BlockchainResponseMessage.class, criptoUtils);

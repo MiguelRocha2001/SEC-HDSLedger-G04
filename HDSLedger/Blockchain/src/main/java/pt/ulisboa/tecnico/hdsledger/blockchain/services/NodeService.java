@@ -326,7 +326,7 @@ public class NodeService implements UDPService {
         System.out.println(valueSignature);
 
         try {
-            if (!criptoUtils.verifySignature(value.getBytes(), valueSignature)) {
+            if (!criptoUtils.verifySignatureWithClientKeys(value.getBytes(), valueSignature)) {
                 LOGGER.log(Level.INFO,
                     MessageFormat.format(
                             "{0} - Received PRE-PREPARE message from {1} Consensus Instance {2}, Round {3}, but the value could not be verified",
@@ -413,7 +413,7 @@ public class NodeService implements UDPService {
         byte[] valueSignature = Base64.getDecoder().decode(valueSignatureEncoded); // decodes from Base 64
 
         try {
-            if (!criptoUtils.verifySignature(value.getBytes(), valueSignature)) {
+            if (!criptoUtils.verifySignatureWithClientKeys(value.getBytes(), valueSignature)) {
                 LOGGER.log(Level.INFO,
                     MessageFormat.format(
                             "{0} - Received PREPARE message from {1} Consensus Instance {2}, Round {3}, but the value could not be verified",

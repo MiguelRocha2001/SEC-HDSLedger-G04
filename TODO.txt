@@ -5,5 +5,5 @@
 - Maybe, we should have a class AuthenticatedLink that uses the Link class.
 - Do test in which a not authenticated process tries to mess with the system (consensus or blockchain API).
 - Implement the upon rule in line 5, of the round change phase.
-- One possible way to fight a byzantine leader that tries to propose it's own value is to make each value that is to be decided, be verified (authenticated) by each correct node, before being decided.
+- One possible way to fight a byzantine leader that tries to propose it's own value is to make each value that is to be decided, be verified (authenticated) by each correct node, before being decided. This doesnt solve everything. The byzantine node could cooperate with a client and use the client private key to sign it's own values and, therefore, this value would be always authenticated by correct nodes. A possibility is to timeout pending requests. If the requests cached in the correct nodes are not decided, this would trigger a round change.
 - Make test where leader will only propose value to some of the correct nodes. 

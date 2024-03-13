@@ -32,11 +32,15 @@ public class CriptoUtils {
     private String KEY_LOCATION = "../resources/keys/";
     private Path directory = Paths.get(KEY_LOCATION);
 
-    private Map<String, Pair<PublicKey, PrivateKey>> keys = new HashMap<>();
+    private Map<String, Pair<PublicKey, PrivateKey>> nodeKeys = new HashMap<>();
+    private Map<String, Pair<PublicKey, PrivateKey>> clientKeys = new HashMap<>();
 
-    public CriptoUtils() {
+    /**
+     * 
+     */
+    public CriptoUtils(String nodeIds[]) {
         try {
-            this.keys = loadKeys(); 
+            loadKeys(nodeIds);
         } catch (IOException e) {
             // TODO: log error using costumn logger
             e.printStackTrace();
@@ -58,31 +62,52 @@ public class CriptoUtils {
         }
     }
 
-    // TODO: should only load public keys for other processes
-    private Map<String, Pair<PublicKey, PrivateKey>> loadKeys() throws IOException
-    {
-        Map<String, Pair<PublicKey, PrivateKey>> keys = new HashMap<>();
+    // checks if is node/server or not
+    private boolean isNode(String processId, String nodeIds[]) {
+        for (int u=0; u < nodeIds.length; u++) {
 
+            // Is a node/server
+            if (processId.equals(nodeIds[u])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // TODO: should only load public keys for other processes
+    private void loadKeys(String nodeIds[]) throws IOException
+    {
         // Iterate over all files in the directory
         Files.walk(directory)
             .filter(Files::isRegularFile)
             .forEach(filePath -> {
 
                 String filename = filePath.getFileName().toString();
-                String nodeId = extractId(filename, "public"); // files are in form of <public[NUM].key>
+                String processId = extractId(filename, "public"); // files are in form of <public[NUM].key>
                 
                 // avoids loading repeated keys
-                if (nodeId != null && !keys.containsKey(nodeId)) {
-                    String pathToPrivKey = KEY_LOCATION + "private" + nodeId + ".key";
-                    String pathToPubKey = KEY_LOCATION + "public" + nodeId + ".key";                
+                if (
+                    processId != null 
+                    && 
+                    (
+                        !clientKeys.containsKey(processId) 
+                        || 
+                        !nodeKeys.containsKey(processId)
+                    )
+                ) {
+                    String pathToPrivKey = KEY_LOCATION + "private" + processId + ".key";
+                    String pathToPubKey = KEY_LOCATION + "public" + processId + ".key";                
     
                     try {
                         PrivateKey privateKey = (PrivateKey) RSAKeyGenerator.read(pathToPrivKey, "priv");
                         PublicKey publicKey = (PublicKey) RSAKeyGenerator.read(pathToPubKey, "pub");
+
+                        if (isNode(processId, nodeIds))
+                            nodeKeys.put(processId, new Pair<>(publicKey, privateKey));
+                        else
+                            clientKeys.put(processId, new Pair<>(publicKey, privateKey));
     
-                        keys.put(nodeId, new Pair<>(publicKey, privateKey));
-    
-                        LOGGER.log(Level.INFO, MessageFormat.format("Process {0} keys loaded", nodeId));
+                        LOGGER.log(Level.INFO, MessageFormat.format("Process {0} keys loaded", processId));
                     } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException e) {
                         // TODO: log error using costumn logger
                         e.printStackTrace();
@@ -90,8 +115,6 @@ public class CriptoUtils {
                     }
                 }
             });
-
-        return keys;
     }
 
     private static byte[] appendArrays(byte[] arr1, byte[] arr2) {
@@ -99,6 +122,20 @@ public class CriptoUtils {
         System.arraycopy(arr1, 0, result, 0, arr1.length);
         System.arraycopy(arr2, 0, result, arr1.length, arr2.length);
         return result;
+    }
+
+
+    private PrivateKey getPrivateKey(String processId) {
+        Pair<PublicKey, PrivateKey> keys = nodeKeys.get(processId);
+
+        if (keys == null)
+            keys = clientKeys.get(processId);
+
+        if (keys == null)
+            throw new HDSSException(ErrorMessage.ProgrammingError); // TODO: improve later
+
+        else
+            return keys.getValue();
     }
 
     public byte[] addSignatureToData(byte[] buf, String nodeId) 
@@ -109,7 +146,7 @@ public class CriptoUtils {
             SignatureException,
             InvalidKeySpecException
     {
-        PrivateKey privateKey = keys.get(nodeId).getValue();
+        PrivateKey privateKey = getPrivateKey(nodeId);
 
         Signature rsaToSign = Signature.getInstance("SHA1withRSA");
         rsaToSign.initSign(privateKey);
@@ -151,9 +188,9 @@ public class CriptoUtils {
     }
 
     /**
-     * Tries to verify originalMessage with all available public keys until one is valid.
+     * Tries to verify originalMessage with all client existing public keys until one is valid.
      */
-    public boolean verifySignature(byte[] originalMessage, byte[] signature) 
+    public boolean verifySignatureWithClientKeys(byte[] originalMessage, byte[] signature) 
         throws 
             IOException, 
             NoSuchAlgorithmException, 
@@ -161,15 +198,15 @@ public class CriptoUtils {
             InvalidKeyException,
             SignatureException
     {
-        for (Map.Entry<String, Pair<PublicKey, PrivateKey>> entry : keys.entrySet()) {
-            String nodeId = entry.getKey();
-            if (verifySignature(nodeId, originalMessage, signature))
+        for (Map.Entry<String, Pair<PublicKey, PrivateKey>> entry : clientKeys.entrySet()) {
+            String clientId = entry.getKey();
+            if (verifySignature(clientId, originalMessage, signature))
                 return true;
         }
         return false;
     }
 
-    public boolean verifySignature(String senderNodeId, byte[] originalMessage, byte[] signature)
+    public boolean verifySignature(String senderId, byte[] originalMessage, byte[] signature)
         throws 
             IOException, 
             NoSuchAlgorithmException, 
@@ -177,18 +214,28 @@ public class CriptoUtils {
             InvalidKeyException,
             SignatureException
     {
-        Pair<PublicKey, PrivateKey> nodeKeys = null;
+        Pair<PublicKey, PrivateKey> keys = null;
 
-        for (Map.Entry<String, Pair<PublicKey, PrivateKey>> entry : keys.entrySet()) {
+        for (Map.Entry<String, Pair<PublicKey, PrivateKey>> entry : nodeKeys.entrySet()) {
             String nodeId = entry.getKey();
-            if (nodeId.equals(senderNodeId)) {
-                nodeKeys = entry.getValue();
+            if (nodeId.equals(senderId)) {
+                keys = entry.getValue();
                 break; // Exit the loop once the keys are found
             }
         }
+
+        if (keys == null) {
+            for (Map.Entry<String, Pair<PublicKey, PrivateKey>> entry : clientKeys.entrySet()) {
+                String nodeId = entry.getKey();
+                if (nodeId.equals(senderId)) {
+                    keys = entry.getValue();
+                    break; // Exit the loop once the keys are found
+                }
+            }
+        }
         
-        if (nodeKeys != null) {
-            PublicKey publicKey = nodeKeys.getKey();
+        if (keys != null) {
+            PublicKey publicKey = keys.getKey();
             
             Signature rsaForVerify = Signature.getInstance("SHA1withRSA");
             rsaForVerify.initVerify(publicKey);
@@ -196,7 +243,6 @@ public class CriptoUtils {
             return rsaForVerify.verify(signature);
         
         } else {
-            
             // Handle the case where keys for the specified node ID are not found
             throw new HDSSException(ErrorMessage.ProgrammingError); // TODO: improve later
 

@@ -13,6 +13,7 @@ import pt.ulisboa.tecnico.hdsledger.utilities.Pair;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfigBuilder;
+import pt.ulisboa.tecnico.hdsledger.utilities.Utils;
 
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -20,6 +21,7 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.logging.Level;
+
 
 public class Node {
 
@@ -45,7 +47,8 @@ public class Node {
             ServerConfig nodeConfigAux = Arrays.stream(nodesConfigAUx).filter(c -> c.getId().equals(id)).findAny().get();
             ProcessConfig nodeConfig = new ProcessConfig(nodeConfigAux.getId(), nodeConfigAux.getHostname(), nodeConfigAux.getPort(), nodeConfigAux.getByzantineBehavior());
 
-            CriptoUtils criptoUtils = new CriptoUtils();
+            String[] nodeIds = Utils.getNodeIds(nodesConfigAUx);
+            CriptoUtils criptoUtils = new CriptoUtils(nodeIds);
 
             // Abstraction to send and receive messages
             Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), serversConfig, ConsensusMessage.class, criptoUtils);
