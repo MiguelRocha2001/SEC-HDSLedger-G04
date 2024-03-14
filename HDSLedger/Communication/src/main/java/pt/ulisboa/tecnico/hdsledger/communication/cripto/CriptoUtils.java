@@ -35,6 +35,9 @@ public class CriptoUtils {
     private Map<String, Pair<PublicKey, PrivateKey>> nodeKeys = new HashMap<>();
     private Map<String, Pair<PublicKey, PrivateKey>> clientKeys = new HashMap<>();
 
+    public class InvalidClientKeyException extends RuntimeException {}
+    public class InvalidClientIdException extends RuntimeException {}
+
     /**
      * 
      */
@@ -247,5 +250,31 @@ public class CriptoUtils {
             throw new HDSSException(ErrorMessage.ProgrammingError); // TODO: improve later
 
         }
+    }
+
+    public boolean isAcossiatedWithClient(PublicKey publicKey) {
+        for (Map.Entry<String, Pair<PublicKey, PrivateKey>> entry : clientKeys.entrySet()) {
+            if (entry.getValue().getKey().equals(publicKey))
+                return true;
+        }
+        return false;
+    }
+
+    public String getClientId(PublicKey publicKey) {
+        for (Map.Entry<String, Pair<PublicKey, PrivateKey>> entry : clientKeys.entrySet()) {
+            if (entry.getValue().getKey().equals(publicKey))
+                return entry.getKey(); // client ID
+        }
+        throw new InvalidClientKeyException();
+    }
+
+    public PublicKey getClientPublicKey(String clientId) {
+        Pair<PublicKey, PrivateKey> keys = clientKeys.get(clientId);
+
+        if (keys == null)
+            throw new InvalidClientIdException();
+
+        else
+            return keys.getKey();
     }
 }

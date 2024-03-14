@@ -16,8 +16,8 @@ public class BlockchainResponseMessage extends Message {
         return new Gson().fromJson(message, AppendRequestResultMessage.class);
     }
 
-    public LeaderChangeMessage deserializeLeaderChangeMessage() {
-        return new Gson().fromJson(message, LeaderChangeMessage.class);
+    public GetBalanceRequestResultMessage deserializeGetBalanceResultMessage() {
+        return new Gson().fromJson(message, GetBalanceRequestResultMessage.class);
     }
 
     public String getMessage() {

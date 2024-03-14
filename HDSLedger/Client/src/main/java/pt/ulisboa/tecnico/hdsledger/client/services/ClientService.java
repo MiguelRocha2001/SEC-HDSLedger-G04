@@ -1,6 +1,7 @@
 package pt.ulisboa.tecnico.hdsledger.client.services;
 
 import java.io.IOException;
+import java.security.PublicKey;
 import java.text.MessageFormat;
 import java.util.Base64;
 import java.util.logging.Level;
@@ -12,9 +13,12 @@ import pt.ulisboa.tecnico.hdsledger.communication.LeaderChangeMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.BlockchainRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.BlockchainResponseMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
+import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidClientIdException;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
@@ -56,14 +60,35 @@ public class ClientService implements UDPService {
         }
     }
 
-    private void resultReceived(BlockchainResponseMessage message) {
+    private void appendValueResultReceived(BlockchainResponseMessage message) {
         AppendRequestResultMessage response = message.deserializeAppendRequestResultMessage();
 
         LOGGER.log(Level.INFO,
             MessageFormat.format(
                 "Value {0} appended in block: {1}",
                 response.getAppendedValue(), response.getBlockIndex()));
-        return;
+    }
+
+    public void getBalance(String clientId) {
+        try {
+            PublicKey clientPublicKey = criptoUtils.getClientPublicKey(clientId);
+            GetBalanceRequestMessage request = new GetBalanceRequestMessage(config.getId(), clientPublicKey);
+            String requestStr = new Gson().toJson(request);
+            
+            link.broadcast(new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE, requestStr));
+        } catch (InvalidClientIdException e) {
+            // TODO
+        }
+    }
+
+    private void getBalanceResultReceived(BlockchainResponseMessage message) {
+        GetBalanceRequestResultMessage response = message.deserializeGetBalanceResultMessage();
+
+        LOGGER.log(Level.INFO, MessageFormat.format("Balance: {0}", response.getBalance()));
+    }
+
+    public void transfer() {
+
     }
 
     @Override
@@ -81,7 +106,10 @@ public class ClientService implements UDPService {
                             switch (message.getType()) {
 
                                 case APPEND_REQUEST_RESULT ->
-                                    resultReceived((BlockchainResponseMessage) message);
+                                    appendValueResultReceived((BlockchainResponseMessage) message);
+
+                                case GET_BALANCE_RESULT ->
+                                    getBalanceResultReceived((BlockchainResponseMessage) message);
 
                                 //default ->
                                 //LOGGER.log(Level.INFO,

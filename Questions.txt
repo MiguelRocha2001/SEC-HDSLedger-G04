@@ -17,3 +17,12 @@
 - Should we explain the flow of the IBFT protocol in the report? Should we explainn the normal case? Or just the view change Or none?
 
 - If a node receives a PRE-PREPARE message from the leader, before calling startConsensus, what happens?
+
+- Ask about this second stage points:
+    - Strengthen the Byzantine fault tolerance guarantees of the system, including the ability to tolerate Byzantine clients.
+    - Experimentally confirm the correctness, performance, and performance under attacks, of your implementation. In particular, a single malicious replica should not be able to slowdown the entire system.
+    - the system should guarantee the non-repudiation of all operations issued on an account.
+    - Finally, all update transactions must pay a fee to the block producer (the leader). Students must reason about the implications of these requirements and explain in the report possible ways how the design could address these implications.
+    - "Students must reason about the potential attacks that a Byzantine server or client can make, including collusion between clients and servers, and discuss and implement the appropriate countermeasures." What is collusion???
+
+- What kind of byzantine cleint atacks can exist?

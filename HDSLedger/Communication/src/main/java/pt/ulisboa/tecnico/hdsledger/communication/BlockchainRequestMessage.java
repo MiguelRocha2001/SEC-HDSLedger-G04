@@ -16,6 +16,10 @@ public class BlockchainRequestMessage extends Message {
         return new Gson().fromJson(message, AppendRequestMessage.class);
     }
 
+    public GetBalanceRequestMessage deserializeGetBalanceRequest() {
+        return new Gson().fromJson(message, GetBalanceRequestMessage.class);
+    }
+
     public String getMessage() {
         return message;
     }

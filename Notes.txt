@@ -27,3 +27,9 @@ If the leader is byzantine, receives the request from the client and changes the
 
 
 - Start timer after consensus start even if its not the leader. This means that client needs to broadcast append request to all processes: or maybe just a byzantine quorum.
+
+- Change leader per instance is still necessary because one byzantine leader could be censoring a specific client iternally, and the other nodes woundt notice as long as there is requests being fullfield (decided instances).
+
+- Client needs to check quorum of nodes response: some opers need f+1 others need other 2f+1.
+
+- So fazer append do value no ledger quando o anterior for appended
