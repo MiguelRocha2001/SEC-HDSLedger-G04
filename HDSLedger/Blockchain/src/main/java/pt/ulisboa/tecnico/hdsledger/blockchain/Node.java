@@ -58,7 +58,7 @@ public class Node {
             
             // Services that implement listen from UDPService
             NodeService nodeService = new NodeService(linkToNodes, nodeConfigAux, nodesConfigAUx, linkToClients, requests, criptoUtils);
-            BlockchainService blockchainService = new BlockchainService(linkToClients, nodeConfigAux, clientConfigsAux, nodeService, requests);
+            BlockchainService blockchainService = new BlockchainService(linkToClients, nodeConfigAux, clientConfigsAux, nodeService, requests, nodeIds, criptoUtils);
             
             nodeService.listen();
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Process is listenning on port host and port {1}:{2}",

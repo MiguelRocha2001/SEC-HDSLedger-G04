@@ -20,6 +20,10 @@ public class BlockchainRequestMessage extends Message {
         return new Gson().fromJson(message, GetBalanceRequestMessage.class);
     }
 
+    public TransferRequestMessage deserializeTransferRequest() {
+        return new Gson().fromJson(message, TransferRequestMessage.class);
+    }
+
     public String getMessage() {
         return message;
     }

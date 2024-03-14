@@ -6,15 +6,21 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.logging.Level;
 
+import com.google.gson.Gson;
+
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.CryptocurrencyStorage;
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.CryptocurrencyStorage.InvalidAccountException;
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.CryptocurrencyStorage.InvalidAmmountException;
 import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.BlockchainRequestMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestErrorResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestSucessResultMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.LeaderChangeMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
+import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestErrorResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidClientKeyException;
 import pt.ulisboa.tecnico.hdsledger.utilities.ByzantineBehavior;
@@ -44,7 +50,7 @@ public class BlockchainService implements UDPService {
     
 
     public BlockchainService(
-        Link link, 
+        Link link,
         ServerConfig config, 
         ClientConfig[] clientsConfig, 
         NodeService nodeService, 
@@ -76,20 +82,10 @@ public class BlockchainService implements UDPService {
     }
 
     private void transfer(PublicKey source, PublicKey destination, int amount) {
-        try {
-            String sourceClientId = criptoUtils.getClientId(source);
-            String destinationClientId = criptoUtils.getClientId(source);
+        String sourceClientId = criptoUtils.getClientId(source);
+        String destinationClientId = criptoUtils.getClientId(source);
 
-            storage.transfer(sourceClientId, destinationClientId, amount);
-
-        } catch(InvalidAccountException e) {
-
-        } catch (InvalidAmmountException e) {
-
-        } catch (InvalidClientKeyException e) {
-
-        }
-        
+        storage.transfer(sourceClientId, destinationClientId, amount);
     }
 
     private void appendString(BlockchainRequestMessage message) {
@@ -120,7 +116,48 @@ public class BlockchainService implements UDPService {
         GetBalanceRequestMessage request = message.deserializeGetBalanceRequest();
         PublicKey clientPublicKey = request.getClientPublicKey();
     
-        
+        Integer balance = checkBalance(clientPublicKey);
+
+        if (balance != null) {
+            GetBalanceRequestSucessResultMessage reply = new GetBalanceRequestSucessResultMessage(config.getId(), balance);
+            String requestStr = new Gson().toJson(reply);
+            link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE_SUCESS_RESULT, requestStr));
+        } else {
+            GetBalanceRequestErrorResultMessage reply = new GetBalanceRequestErrorResultMessage(config.getId());
+            String requestStr = new Gson().toJson(reply);
+            link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE_ERROR_RESULT, requestStr));
+        }
+    }
+
+    private void tranferRequest(BlockchainRequestMessage message) {
+        String senderId = message.getSenderId();
+
+        LOGGER.log(Level.INFO,
+            MessageFormat.format(
+                "{0} - Received TRANFER-REQUEST message from {1}",
+                config.getId(), senderId));
+
+        TransferRequestMessage request = message.deserializeTransferRequest();
+
+        try {
+            transfer(request.getSourcePubKey(), request.getDestinationPubKey(), request.getAmount());
+            link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_SUCESS_RESULT, null));
+
+        } catch(InvalidAccountException e) {
+            TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid account!");
+            String requestStr = new Gson().toJson(reply);
+            link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, requestStr));
+
+        } catch (InvalidAmmountException e) {
+            TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid amount!");
+            String requestStr = new Gson().toJson(reply);
+            link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, requestStr));
+
+        } catch (InvalidClientKeyException e) {
+            TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid client public key!");
+            String requestStr = new Gson().toJson(reply);
+            link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, requestStr));
+        }
     }
 
     @Override
@@ -147,9 +184,10 @@ public class BlockchainService implements UDPService {
                                         appendString((BlockchainRequestMessage) message);
 
                                     case GET_BALANCE ->
+                                        getBalanceRequest((BlockchainRequestMessage) message);
 
                                     case TRANSFER ->
-                                        
+                                        tranferRequest((BlockchainRequestMessage) message);
 
                                     case ACK ->
                                         LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received ACK message from {1}",
