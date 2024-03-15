@@ -4,10 +4,13 @@ import java.io.IOException;
 import java.security.PublicKey;
 import java.text.MessageFormat;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.logging.Level;
 
 import com.google.gson.Gson;
 
+import pt.ulisboa.tecnico.hdsledger.client.models.ClientMessageBucket;
 import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.LeaderChangeMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestResultMessage;
@@ -35,14 +38,18 @@ public class ClientService implements UDPService {
     // Link to communicate with nodes
     private final Link link;
 
+    private final ClientMessageBucket bucket;
+
     public ClientService(
         Link link, 
         ProcessConfig config,
-        CriptoUtils criptoUtils
+        CriptoUtils criptoUtils,
+        int nodeCount
     ){
         this.link = link;
         this.config = config;
         this.criptoUtils = criptoUtils;
+        this.bucket = new ClientMessageBucket(nodeCount);
     }
 
     public ProcessConfig getConfig() {
@@ -83,14 +90,22 @@ public class ClientService implements UDPService {
         }
     }
 
-    private void getBalanceSuccessResultReceived(BlockchainResponseMessage message) {
+    private void getBalanceSuccessResultReceived(BlockchainResponseMessage message) {        
         GetBalanceRequestSucessResultMessage response = message.deserializeGetBalanceSucessResultMessage();
-        
-        LOGGER.log(Level.INFO, MessageFormat.format("Balance: {0}", response.getBalance()));
+
+        bucket.addAccountBalanceSuccessResponseMsg(response);
+
+        if (bucket.hasAccountBalanceSucessQuorum(response))
+            LOGGER.log(Level.INFO, MessageFormat.format("Balance: {0}", response.getBalance()));
     }
 
     private void getBalanceErrorResultReceived(BlockchainResponseMessage message) {        
-        LOGGER.log(Level.INFO, "Invalid public key!");
+        GetBalanceRequestErrorResultMessage response = message.deserializeGetBalanceErrorResultMessage();
+
+        bucket.addAccountBalanceErrorResponseMsg(response);
+
+        if (bucket.hasAccountBalanceErrorQuorum(response))
+            LOGGER.log(Level.INFO, "Invalid public key!");        
     }
 
     public void transfer() {

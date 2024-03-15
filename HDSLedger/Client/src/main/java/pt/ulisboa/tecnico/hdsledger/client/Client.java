@@ -45,8 +45,10 @@ public class Client {
             // Abstraction to send and receive messages
             Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), serverConfigs, BlockchainResponseMessage.class, criptoUtils);
 
+            int nodeCount = nodeIds.length;
+
             // Services that implement listen from UDPService
-            ClientService clientService = new ClientService(linkToNodes, nodeConfig, criptoUtils);
+            ClientService clientService = new ClientService(linkToNodes, nodeConfig, criptoUtils, nodeCount);
 
             clientService.listen();
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Process is listenning on port host and port {1}:{2}",
