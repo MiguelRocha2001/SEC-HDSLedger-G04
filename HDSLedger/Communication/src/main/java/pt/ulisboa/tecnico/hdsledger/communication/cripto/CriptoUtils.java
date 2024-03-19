@@ -13,6 +13,7 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
 import java.text.MessageFormat;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -25,6 +26,9 @@ import pt.ulisboa.tecnico.hdsledger.utilities.HDSSException;
 import pt.ulisboa.tecnico.hdsledger.utilities.Pair;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 
+/**
+ * IMPORTANTE: TODO: only load correspondent Private Key
+ */
 public class CriptoUtils {
 
     private static final CustomLogger LOGGER = new CustomLogger(CriptoUtils.class.getName());
@@ -141,6 +145,18 @@ public class CriptoUtils {
             return keys.getValue();
     }
 
+    public byte[] addSignatureToDataAndEncode(byte[] buf, String nodeId) 
+        throws 
+                IOException,
+                NoSuchAlgorithmException, 
+                InvalidKeyException, 
+                SignatureException,
+                InvalidKeySpecException
+    {
+        byte[] buffSigned = addSignatureToData(buf, nodeId);
+        return Base64.getEncoder().encodeToString(buffSigned).getBytes(); // encodes to Base 64        
+    }
+
     public byte[] addSignatureToData(byte[] buf, String nodeId) 
         throws 
             IOException, 
@@ -209,6 +225,18 @@ public class CriptoUtils {
         return false;
     }
 
+    public boolean verifySignature(PublicKey publicKey, byte[] originalMessage, byte[] signature) 
+        throws 
+                NoSuchAlgorithmException, 
+                InvalidKeyException,
+                SignatureException
+    {
+        Signature rsaForVerify = Signature.getInstance("SHA1withRSA");
+        rsaForVerify.initVerify(publicKey);
+        rsaForVerify.update(originalMessage);
+        return rsaForVerify.verify(signature);
+    }
+
     public boolean verifySignature(String senderId, byte[] originalMessage, byte[] signature)
         throws 
             IOException, 
@@ -239,11 +267,7 @@ public class CriptoUtils {
         
         if (keys != null) {
             PublicKey publicKey = keys.getKey();
-            
-            Signature rsaForVerify = Signature.getInstance("SHA1withRSA");
-            rsaForVerify.initVerify(publicKey);
-            rsaForVerify.update(originalMessage);
-            return rsaForVerify.verify(signature);
+            return verifySignature(publicKey, originalMessage, signature);
         
         } else {
             // Handle the case where keys for the specified node ID are not found

@@ -1,22 +1,11 @@
 package pt.ulisboa.tecnico.hdsledger.client.models;
 
+import java.security.PublicKey;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-
-import pt.ulisboa.tecnico.hdsledger.communication.BlockchainResponseMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.CommitMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestErrorResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestSucessResultMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.PrepareMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.RoundChangeMessage;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
-import pt.ulisboa.tecnico.hdsledger.utilities.Pair;
 
 public class ClientMessageBucket {
 
@@ -25,8 +14,8 @@ public class ClientMessageBucket {
     private final int byzantineQuorumSize;
     private final int shortQuorumSize;
 
-    private final HashMap<String, HashSet<GetBalanceRequestSucessResultMessage>> accounBalanceSuccessResponses = new HashMap<>();
-    private final HashMap<String, HashSet<GetBalanceRequestErrorResultMessage>> accounBalanceErrorResponses = new HashMap<>();
+    private final HashMap<PublicKey, HashSet<GetBalanceRequestSucessResultMessage>> accounBalanceSuccessResponses = new HashMap<>();
+    private final HashMap<PublicKey, HashSet<GetBalanceRequestErrorResultMessage>> accounBalanceErrorResponses = new HashMap<>();
 
     public ClientMessageBucket(int nodeCount) {
         int f = Math.floorDiv(nodeCount - 1, 3);
@@ -35,21 +24,21 @@ public class ClientMessageBucket {
     }
 
     public void addAccountBalanceSuccessResponseMsg(GetBalanceRequestSucessResultMessage message) {
-        String acountOwnerId = message.getAcountOwnerId();
+        PublicKey requestedPublicKey = message.getRequestedPublickey();
 
-        HashSet<GetBalanceRequestSucessResultMessage> msgs = accounBalanceSuccessResponses.putIfAbsent(acountOwnerId, new HashSet<>());
+        HashSet<GetBalanceRequestSucessResultMessage> msgs = accounBalanceSuccessResponses.putIfAbsent(requestedPublicKey, new HashSet<>());
         msgs.add(message);
     }
 
     public void addAccountBalanceErrorResponseMsg(GetBalanceRequestErrorResultMessage message) {
-        String acountOwnerId = message.getAcountOwnerId();
+        PublicKey requestedPublicKey = message.getRequestedPublickey();
 
-        HashSet<GetBalanceRequestErrorResultMessage> msgs = accounBalanceErrorResponses.putIfAbsent(acountOwnerId, new HashSet<>());
+        HashSet<GetBalanceRequestErrorResultMessage> msgs = accounBalanceErrorResponses.putIfAbsent(requestedPublicKey, new HashSet<>());
         msgs.add(message);
     }
 
     public boolean hasAccountBalanceSucessQuorum(GetBalanceRequestSucessResultMessage message) {
-        HashSet<GetBalanceRequestSucessResultMessage> responses = accounBalanceSuccessResponses.get(message.getAcountOwnerId());
+        HashSet<GetBalanceRequestSucessResultMessage> responses = accounBalanceSuccessResponses.get(message.getRequestedPublickey());
         int count = 0;
 
         if (responses == null) {
@@ -57,7 +46,7 @@ public class ClientMessageBucket {
         }
 
         for (GetBalanceRequestSucessResultMessage response : responses) {
-            if (response.getAcountOwnerId().equals(message.getAcountOwnerId()))
+            if (response.getRequestedPublickey().equals(message.getRequestedPublickey()))
                 count++;
         }
 
@@ -65,7 +54,7 @@ public class ClientMessageBucket {
     }
 
     public boolean hasAccountBalanceErrorQuorum(GetBalanceRequestErrorResultMessage message) {
-        HashSet<GetBalanceRequestErrorResultMessage> responses = accounBalanceErrorResponses.get(message.getAcountOwnerId());
+        HashSet<GetBalanceRequestErrorResultMessage> responses = accounBalanceErrorResponses.get(message.getRequestedPublickey());
         int count = 0;
 
         if (responses == null) {
@@ -73,7 +62,7 @@ public class ClientMessageBucket {
         }
 
         for (GetBalanceRequestErrorResultMessage response : responses) {
-            if (response.getAcountOwnerId().equals(message.getAcountOwnerId()))
+            if (response.getRequestedPublickey().equals(message.getRequestedPublickey()))
                 count++;
         }
 

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.security.PublicKey;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.logging.Level;
 
 import com.google.gson.Gson;
@@ -115,18 +116,45 @@ public class BlockchainService implements UDPService {
 
         GetBalanceRequestMessage request = message.deserializeGetBalanceRequest();
         PublicKey clientPublicKey = request.getClientPublicKey();
-    
-        Integer balance = checkBalance(clientPublicKey);
+        String helloSiganture = request.getHelloSignature();
+        byte[] valueSignature = Base64.getDecoder().decode(helloSiganture); // decodes from Base 64
 
-        if (balance != null) {
-            GetBalanceRequestSucessResultMessage reply = new GetBalanceRequestSucessResultMessage(config.getId(), balance);
-            String requestStr = new Gson().toJson(reply);
-            link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE_SUCESS_RESULT, requestStr));
-        } else {
-            GetBalanceRequestErrorResultMessage reply = new GetBalanceRequestErrorResultMessage(config.getId());
-            String requestStr = new Gson().toJson(reply);
-            link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE_ERROR_RESULT, requestStr));
+
+        try {
+            // verifies if correspondent private key was used to sign the "hello" message
+            if (!criptoUtils.verifySignature(clientPublicKey, "hello".getBytes(), valueSignature)) {
+                link.send(senderId, buildGetBalanceRequestErrorResult(GetBalanceErrroResultType.NOT_AUTHORIZED, clientPublicKey));
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error: {1}", config.getId(), e.getMessage()));
+    
         }
+
+        Integer balance = checkBalance(clientPublicKey); // null if [clientPublicKey] is unknown
+        if (balance != null) {
+            link.send(senderId, buildGetBalanceRequestSuccessResult(balance, clientPublicKey));
+        } else {
+            link.send(senderId, buildGetBalanceRequestErrorResult(GetBalanceErrroResultType.INVALID_ACCOUNT, clientPublicKey));
+        }
+    }
+
+
+    private enum GetBalanceErrroResultType { NOT_AUTHORIZED, INVALID_ACCOUNT }
+    private BlockchainRequestMessage buildGetBalanceRequestErrorResult(GetBalanceErrroResultType type, PublicKey requestedPubliCkey) {
+        String message;
+        if (type == GetBalanceErrroResultType.INVALID_ACCOUNT)
+            message = "Invalid Account";
+        else
+            message = "Not authorized";
+        GetBalanceRequestErrorResultMessage reply = new GetBalanceRequestErrorResultMessage(config.getId(), message, requestedPubliCkey);
+        String requestStr = new Gson().toJson(reply);
+        return new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE_ERROR_RESULT, requestStr);
+    }
+
+    private BlockchainRequestMessage buildGetBalanceRequestSuccessResult(int balance, PublicKey requestedPubliCkey) {
+        GetBalanceRequestSucessResultMessage reply = new GetBalanceRequestSucessResultMessage(config.getId(), balance, requestedPubliCkey);
+        String requestStr = new Gson().toJson(reply);
+        return new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE_SUCESS_RESULT, requestStr);
     }
 
     private void tranferRequest(BlockchainRequestMessage message) {

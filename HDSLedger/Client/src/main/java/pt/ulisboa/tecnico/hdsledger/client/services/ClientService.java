@@ -81,12 +81,17 @@ public class ClientService implements UDPService {
     public void getBalance(String clientId) {
         try {
             PublicKey clientPublicKey = criptoUtils.getClientPublicKey(clientId);
-            GetBalanceRequestMessage request = new GetBalanceRequestMessage(config.getId(), clientPublicKey);
+            
+            byte[] helloSignature = criptoUtils.addSignatureToDataAndEncode("hello".getBytes(), config.getId()); // encodes to Base 64
+
+            GetBalanceRequestMessage request = new GetBalanceRequestMessage(config.getId(), clientPublicKey, helloSignature);
             String requestStr = new Gson().toJson(request);
             
             link.broadcast(new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE, requestStr));
-        } catch (InvalidClientIdException e) {
-            // TODO
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, 
+                MessageFormat.format("Error: {0}, while trying to request balance for client id: {1}", e.getMessage(), clientId)
+            );
         }
     }
 
@@ -105,7 +110,9 @@ public class ClientService implements UDPService {
         bucket.addAccountBalanceErrorResponseMsg(response);
 
         if (bucket.hasAccountBalanceErrorQuorum(response))
-            LOGGER.log(Level.INFO, "Invalid public key!");        
+            LOGGER.log(Level.INFO, 
+                MessageFormat.format("Error: {0}, for request with public key: {1}", response.getErrorMessage(), response.getRequestedPublickey())
+            );
     }
 
     public void transfer() {
