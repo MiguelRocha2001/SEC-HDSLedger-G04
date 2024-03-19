@@ -123,8 +123,10 @@ public class MessageBucket {
                 heighestPreparedValue = roundChangeMessage.getPreparedValue();
             }
         }
+        if (heighestPreparedValue == null)
+            return Optional.empty();
 
-        return Optional.ofNullable(new Pair<Integer, String>(heighestPreparedRound, heighestPreparedValue));
+        return Optional.of(new Pair<Integer, String>(heighestPreparedRound, heighestPreparedValue));
     }
 
     /**

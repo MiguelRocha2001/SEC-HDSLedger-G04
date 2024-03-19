@@ -119,7 +119,6 @@ public class BlockchainService implements UDPService {
         String helloSiganture = request.getHelloSignature();
         byte[] valueSignature = Base64.getDecoder().decode(helloSiganture); // decodes from Base 64
 
-
         try {
             // verifies if correspondent private key was used to sign the "hello" message
             if (!criptoUtils.verifySignature(clientPublicKey, "hello".getBytes(), valueSignature)) {
@@ -127,7 +126,6 @@ public class BlockchainService implements UDPService {
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error: {1}", config.getId(), e.getMessage()));
-    
         }
 
         Integer balance = checkBalance(clientPublicKey); // null if [clientPublicKey] is unknown

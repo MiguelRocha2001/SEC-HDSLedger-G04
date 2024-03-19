@@ -329,8 +329,6 @@ public class NodeService implements UDPService {
         String valueSignatureEncoded = prePrepareMessage.getValueSignature();
         byte[] valueSignature = Base64.getDecoder().decode(valueSignatureEncoded); // decodes from Base 64
         
-        System.out.println(valueSignature);
-
         try {
             if (!criptoUtils.verifySignatureWithClientKeys(value.getBytes(), valueSignature)) {
                 LOGGER.log(Level.INFO,
@@ -686,11 +684,6 @@ public class NodeService implements UDPService {
             config.getId().equals(roundChangeMsgInstance.getLeaderId()) && 
             justifyRoundChange(roundChangeMsgInstanceId, roundChangeMsgRound)
         ) {
-
-            LOGGER.log(Level.INFO,
-                MessageFormat.format("{0} - Received quorum of ROUND_CHANGE messages",
-                    config.getId(), message.getSenderId(), roundChangeMsgInstanceId, roundChangeMsgRound));
-
             Optional<Pair<Integer, String>> heighestPreparedRoundAndValue = roundChangeMessages.getHeighestPreparedRoundAndValueIfAny(config.getId(), roundChangeMsgInstanceId, roundChangeMsgRound);
 
             // changes the input value to a random value with random size
@@ -703,8 +696,18 @@ public class NodeService implements UDPService {
                 String randomValue = RandomStringGenerator.generateRandomString(valueLength);
                 roundChangeMsgInstance.setInputValue(randomValue);
             } else {
-                if (heighestPreparedRoundAndValue.isPresent())
-                    roundChangeMsgInstance.setInputValue(heighestPreparedRoundAndValue.get().getValue());
+                
+                if (heighestPreparedRoundAndValue.isPresent()) {
+                    String newValue = heighestPreparedRoundAndValue.get().getValue();
+                    roundChangeMsgInstance.setInputValue(newValue);
+                    LOGGER.log(Level.INFO,
+                        MessageFormat.format("{0} - Received quorum of ROUND_CHANGE messages. Setting input value to {1}",
+                            config.getId(), newValue));
+                } else {
+                    LOGGER.log(Level.INFO,
+                        MessageFormat.format("{0} - Received quorum of ROUND_CHANGE messages. Input value will stay the same",
+                            config.getId()));
+                }
 
                 // othewrise, value stays the same
             }
