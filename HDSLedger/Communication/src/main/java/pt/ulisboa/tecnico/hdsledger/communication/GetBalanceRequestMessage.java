@@ -1,27 +1,35 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.util.Base64;
+
+import com.google.gson.Gson;
+
+import pt.ulisboa.tecnico.hdsledger.communication.cripto.RSAKeyGenerator;
 
 public class GetBalanceRequestMessage extends Message {
 
-    private PublicKey clientPublicKey;
-    private String helloSignature;
+    private byte[] clientPublicKey;
+    private byte[] helloSignature;
 
-    public GetBalanceRequestMessage(String senderId, PublicKey clientPublicKey, String helloSignature) {
+    public GetBalanceRequestMessage(String senderId, PublicKey clientPublicKey, byte[] helloSignature) {
         super(senderId, Type.APPEND_REQUEST);
-        this.clientPublicKey = clientPublicKey;
+        this.clientPublicKey = clientPublicKey.getEncoded();
         this.helloSignature = helloSignature;
     }
 
-    public GetBalanceRequestMessage(String senderId, PublicKey clientPublicKey, byte[] helloSignature) {
-        this(senderId, clientPublicKey, new String(helloSignature));
+    public PublicKey getClientPublicKey() throws NoSuchAlgorithmException, InvalidKeySpecException {
+        return (PublicKey) RSAKeyGenerator.read(this.clientPublicKey, "pub");
     }
 
-    public PublicKey getClientPublicKey() {
-        return clientPublicKey;
-    }
-
-    public String getHelloSignature() {
+    public byte[] getHelloSignature() {
         return helloSignature;
+    }
+
+    public String tojson() {
+        return new Gson().toJson(this);
     }
 }

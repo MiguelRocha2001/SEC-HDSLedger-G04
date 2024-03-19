@@ -1,6 +1,8 @@
 package pt.ulisboa.tecnico.hdsledger.client.models;
 
+import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
 import java.util.HashMap;
 import java.util.HashSet;
 import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestErrorResultMessage;
@@ -23,7 +25,7 @@ public class ClientMessageBucket {
         shortQuorumSize = f + 1;
     }
 
-    public void addAccountBalanceSuccessResponseMsg(GetBalanceRequestSucessResultMessage message) {
+    public void addAccountBalanceSuccessResponseMsg(GetBalanceRequestSucessResultMessage message) throws NoSuchAlgorithmException, InvalidKeySpecException {
         PublicKey requestedPublicKey = message.getRequestedPublickey();
 
         HashSet<GetBalanceRequestSucessResultMessage> msgs = accounBalanceSuccessResponses.putIfAbsent(requestedPublicKey, new HashSet<>());
@@ -37,7 +39,7 @@ public class ClientMessageBucket {
         msgs.add(message);
     }
 
-    public boolean hasAccountBalanceSucessQuorum(GetBalanceRequestSucessResultMessage message) {
+    public boolean hasAccountBalanceSucessQuorum(GetBalanceRequestSucessResultMessage message) throws NoSuchAlgorithmException, InvalidKeySpecException {
         HashSet<GetBalanceRequestSucessResultMessage> responses = accounBalanceSuccessResponses.get(message.getRequestedPublickey());
         int count = 0;
 

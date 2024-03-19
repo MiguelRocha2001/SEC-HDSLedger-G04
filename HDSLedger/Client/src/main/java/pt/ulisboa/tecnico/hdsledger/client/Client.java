@@ -55,22 +55,43 @@ public class Client {
                     nodeConfig.getId(), nodeConfig.getHostname(), nodeConfig.getPort()));
 
             Scanner in = new Scanner(System.in);
-            System.out.print("Enter something: ");
-            while (true) {
-                
-                // Prompt the user to enter some input
-                System.out.print("Enter something: ");
-                String input = in.nextLine();
-
-                if (input == "exit") break;
-
-                clientService.appendRequest(input);
-
-            }
-            in.close();
+            processRequests(clientService, in);
 
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private static void processRequests(ClientService clientService, Scanner in) {
+        while (true) {
+            printMenu();
+            Operation oper = getOperation(in);
+
+            if (oper == Operation.BALANCE)
+                clientService.getBalance();
+            else if (oper == Operation.TRANSFER)
+                clientService.transfer();
+            else if (oper == Operation.INVALID)
+                System.out.println("Invalid operation!");
+        }
+    }
+
+    private static void printMenu() {
+        System.out.println();
+        System.out.println("!!!!!!!!!!!!!!!! Options !!!!!!!!!!!!!!!!");
+        System.out.println("1 to Request User Balance");
+        System.out.println("2 to Request Tranfer");
+        System.out.print("> ");
+    }
+
+    private static enum Operation { BALANCE, TRANSFER, INVALID }
+    private static Operation getOperation(Scanner in) {
+        String input = in.nextLine();
+        switch (input) {
+            case "1": return Operation.BALANCE;
+            case "2": return Operation.TRANSFER;
+            default:
+                return Operation.INVALID;
         }
     }
 

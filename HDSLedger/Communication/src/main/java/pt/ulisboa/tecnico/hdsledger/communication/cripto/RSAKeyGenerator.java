@@ -74,8 +74,13 @@ public class RSAKeyGenerator {
             encoded = new byte[fis.available()];
             fis.read(encoded);
         }
+        return read(encoded, type);
+    }
+
+    public static Key read(byte[] encoded, String type) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        //System.out.println("Reading key from file " + keyPath + " ...");
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        if (type.equals("pub") ){
+        if (type.equals("pub") ) {
             X509EncodedKeySpec keySpec = new X509EncodedKeySpec(encoded);
             return keyFactory.generatePublic(keySpec);
         }

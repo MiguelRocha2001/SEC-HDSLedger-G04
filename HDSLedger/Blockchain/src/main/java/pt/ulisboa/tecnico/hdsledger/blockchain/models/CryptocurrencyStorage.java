@@ -1,13 +1,7 @@
 package pt.ulisboa.tecnico.hdsledger.blockchain.models;
 
-import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.util.HashMap;
 import java.util.Map;
-
-import pt.ulisboa.tecnico.hdsledger.utilities.ErrorMessage;
-import pt.ulisboa.tecnico.hdsledger.utilities.HDSSException;
-import pt.ulisboa.tecnico.hdsledger.utilities.Pair;
 
 public class CryptocurrencyStorage {
     private final Map<String, Integer> accounts = new HashMap<>();
@@ -17,12 +11,21 @@ public class CryptocurrencyStorage {
 
     /**
      * Initiates all account balances with 0 units.
-     * @param nodeIds account ids
+     * @param clientIds account ids
      */
-    public CryptocurrencyStorage(String[] nodeIds) {
-        for (int u = 0; u < nodeIds.length; u++) {
-            accounts.put(nodeIds[u], 0);
+    public CryptocurrencyStorage(String[] clientIds) {
+        for (int u = 0; u < clientIds.length; u++) {
+            accounts.put(clientIds[u], 0);
+            System.out.println(clientIds[u]);
         }
+    }
+
+    public boolean isClientIdValid(String clientId) {
+        for (Map.Entry<String, Integer> entry : accounts.entrySet()) {
+            if (entry.getKey().equals(clientId))
+                return true;
+        }
+        return false;
     }
 
     public int getBalance(String clientId) {

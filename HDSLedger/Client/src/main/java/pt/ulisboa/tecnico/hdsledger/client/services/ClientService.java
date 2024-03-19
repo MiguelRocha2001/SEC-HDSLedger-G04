@@ -78,19 +78,29 @@ public class ClientService implements UDPService {
                 response.getAppendedValue(), response.getBlockIndex()));
     }
 
+    /**
+     * Requests current account balance for self.
+     */
+    public void getBalance() {
+        getBalance(config.getId());
+    }
+
+    /**
+     * Requests current account balance for [clientId].
+     */
     public void getBalance(String clientId) {
         try {
             PublicKey clientPublicKey = criptoUtils.getClientPublicKey(clientId);
-            
-            byte[] helloSignature = criptoUtils.addSignatureToDataAndEncode("hello".getBytes(), config.getId()); // encodes to Base 64
+            byte[] helloSignature = criptoUtils.getMessageSignature("hello".getBytes(), config.getId()); // encodes to Base 64
+            //byte[] helloSignature = criptoUtils.addSignatureToDataAndEncode("hello".getBytes(), config.getId()); // encodes to Base 64
 
             GetBalanceRequestMessage request = new GetBalanceRequestMessage(config.getId(), clientPublicKey, helloSignature);
-            String requestStr = new Gson().toJson(request);
+            String requestStr = request.tojson();
             
             link.broadcast(new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE, requestStr));
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, 
-                MessageFormat.format("Error: {0}, while trying to request balance for client id: {1}", e.getMessage(), clientId)
+                MessageFormat.format("Error while trying to request balance for client id: {0}. \n{1}", clientId, e.getMessage())
             );
         }
     }
@@ -98,10 +108,16 @@ public class ClientService implements UDPService {
     private void getBalanceSuccessResultReceived(BlockchainResponseMessage message) {        
         GetBalanceRequestSucessResultMessage response = message.deserializeGetBalanceSucessResultMessage();
 
-        bucket.addAccountBalanceSuccessResponseMsg(response);
-
-        if (bucket.hasAccountBalanceSucessQuorum(response))
-            LOGGER.log(Level.INFO, MessageFormat.format("Balance: {0}", response.getBalance()));
+        try {
+            bucket.addAccountBalanceSuccessResponseMsg(response);
+            if (bucket.hasAccountBalanceSucessQuorum(response))
+                LOGGER.log(Level.INFO, MessageFormat.format("Balance: {0}", response.getBalance()));
+                
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, 
+                MessageFormat.format("Error after receiving getBalance result. \n{0}", e.getMessage())
+            );
+        }
     }
 
     private void getBalanceErrorResultReceived(BlockchainResponseMessage message) {        

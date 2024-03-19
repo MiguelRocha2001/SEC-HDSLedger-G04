@@ -5,6 +5,7 @@ import java.security.PublicKey;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Map;
 import java.util.logging.Level;
 
 import com.google.gson.Gson;
@@ -53,7 +54,7 @@ public class BlockchainService implements UDPService {
     public BlockchainService(
         Link link,
         ServerConfig config, 
-        ClientConfig[] clientsConfig, 
+        ClientConfig[] clientsConfig,
         NodeService nodeService, 
         ArrayList<Pair<String, Pair<String, String>>> requests,
         String[] nodeIds,
@@ -64,8 +65,17 @@ public class BlockchainService implements UDPService {
         this.clientConfigs = clientsConfig;
         this.nodeService = nodeService;
         this.requests = requests;
-        this.storage = new CryptocurrencyStorage(nodeIds);
+        this.storage = new CryptocurrencyStorage(getClientIds(clientsConfig));
         this.criptoUtils = criptoUtils;
+    }
+
+    private static String[] getClientIds(ClientConfig[] clientsConfig) {
+        String[] clientIds = new String[clientsConfig.length];
+
+        for (int u = 0; u < clientsConfig.length; u++) {
+            clientIds[u] = clientsConfig[u].getId();
+        }
+        return clientIds;
     }
 
     /**
@@ -115,24 +125,24 @@ public class BlockchainService implements UDPService {
                 config.getId(), senderId));
 
         GetBalanceRequestMessage request = message.deserializeGetBalanceRequest();
-        PublicKey clientPublicKey = request.getClientPublicKey();
-        String helloSiganture = request.getHelloSignature();
-        byte[] valueSignature = Base64.getDecoder().decode(helloSiganture); // decodes from Base 64
 
         try {
+            PublicKey clientPublicKey = request.getClientPublicKey();
+            byte[] helloSiganture = request.getHelloSignature();
+
             // verifies if correspondent private key was used to sign the "hello" message
-            if (!criptoUtils.verifySignature(clientPublicKey, "hello".getBytes(), valueSignature)) {
+            if (!criptoUtils.verifySignature(clientPublicKey, "hello".getBytes(), helloSiganture)) {
                 link.send(senderId, buildGetBalanceRequestErrorResult(GetBalanceErrroResultType.NOT_AUTHORIZED, clientPublicKey));
+            }
+
+            Integer balance = checkBalance(clientPublicKey); // null if [clientPublicKey] is unknown
+            if (balance != null) {
+                link.send(senderId, buildGetBalanceRequestSuccessResult(balance, clientPublicKey));
+            } else {
+                link.send(senderId, buildGetBalanceRequestErrorResult(GetBalanceErrroResultType.INVALID_ACCOUNT, clientPublicKey));
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error: {1}", config.getId(), e.getMessage()));
-        }
-
-        Integer balance = checkBalance(clientPublicKey); // null if [clientPublicKey] is unknown
-        if (balance != null) {
-            link.send(senderId, buildGetBalanceRequestSuccessResult(balance, clientPublicKey));
-        } else {
-            link.send(senderId, buildGetBalanceRequestErrorResult(GetBalanceErrroResultType.INVALID_ACCOUNT, clientPublicKey));
         }
     }
 
