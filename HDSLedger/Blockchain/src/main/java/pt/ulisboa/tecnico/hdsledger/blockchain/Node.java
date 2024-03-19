@@ -48,7 +48,7 @@ public class Node {
             ProcessConfig nodeConfig = new ProcessConfig(nodeConfigAux.getId(), nodeConfigAux.getHostname(), nodeConfigAux.getPort(), nodeConfigAux.getByzantineBehavior());
 
             String[] nodeIds = Utils.getNodeIds(nodesConfigAUx);
-            CriptoUtils criptoUtils = new CriptoUtils(nodeIds);
+            CriptoUtils criptoUtils = new CriptoUtils(id, nodeIds);
 
             // Abstraction to send and receive messages
             Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), serversConfig, ConsensusMessage.class, criptoUtils);

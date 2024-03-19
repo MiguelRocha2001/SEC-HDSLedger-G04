@@ -40,7 +40,7 @@ public class Client {
             ProcessConfig nodeConfig = new ProcessConfig(id, clientConfigAux.getHostname(), clientConfigAux.getPort(), clientConfigAux.getByzantineBehavior());
 
             String[] nodeIds = Utils.getNodeIds(serverConfigsAux);
-            CriptoUtils criptoUtils = new CriptoUtils(nodeIds);
+            CriptoUtils criptoUtils = new CriptoUtils(id, nodeIds);
 
             // Abstraction to send and receive messages
             Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), serverConfigs, BlockchainResponseMessage.class, criptoUtils);

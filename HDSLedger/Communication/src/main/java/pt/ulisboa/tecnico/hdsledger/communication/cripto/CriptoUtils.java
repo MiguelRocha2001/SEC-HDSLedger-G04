@@ -26,9 +26,6 @@ import pt.ulisboa.tecnico.hdsledger.utilities.HDSSException;
 import pt.ulisboa.tecnico.hdsledger.utilities.Pair;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 
-/**
- * IMPORTANTE: TODO: only load correspondent Private Key
- */
 public class CriptoUtils {
 
     private static final CustomLogger LOGGER = new CustomLogger(CriptoUtils.class.getName());
@@ -36,8 +33,11 @@ public class CriptoUtils {
     private String KEY_LOCATION = "../resources/keys/";
     private Path directory = Paths.get(KEY_LOCATION);
 
-    private Map<String, Pair<PublicKey, PrivateKey>> nodeKeys = new HashMap<>();
-    private Map<String, Pair<PublicKey, PrivateKey>> clientKeys = new HashMap<>();
+    private PrivateKey privateKey;
+    private Map<String, PublicKey> clientPublicKeys = new HashMap<>();
+    private Map<String, PublicKey> nodePublicKeys = new HashMap<>();
+
+    private final String nodeIds[];
 
     public class InvalidClientKeyException extends RuntimeException {}
     public class InvalidClientIdException extends RuntimeException {}
@@ -45,10 +45,12 @@ public class CriptoUtils {
     /**
      * 
      */
-    public CriptoUtils(String nodeIds[]) {
+    public CriptoUtils(String nodeId, String nodeIds[]) {
         try {
-            loadKeys(nodeIds);
-        } catch (IOException e) {
+            this.nodeIds = nodeIds;
+            loadPrivateKey(nodeId);
+            loadPublicKeys();
+        } catch (Exception e) {
             // TODO: log error using costumn logger
             e.printStackTrace();
             throw new HDSSException(ErrorMessage.CannotLoadKeys);
@@ -70,7 +72,7 @@ public class CriptoUtils {
     }
 
     // checks if is node/server or not
-    private boolean isNode(String processId, String nodeIds[]) {
+    private boolean isNode(String processId) {
         for (int u=0; u < nodeIds.length; u++) {
 
             // Is a node/server
@@ -81,8 +83,19 @@ public class CriptoUtils {
         return false;
     }
 
-    // TODO: should only load public keys for other processes
-    private void loadKeys(String nodeIds[]) throws IOException
+    /**
+     * Loads private key from path "HDSLedger/resources/keys".
+     * @param nodeId used to locate public key inside path
+     */
+    private void loadPrivateKey(String nodeId) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+        String pathToPrivKey = KEY_LOCATION + "private" + nodeId + ".key";
+        this.privateKey = (PrivateKey) RSAKeyGenerator.read(pathToPrivKey, "priv");
+    }
+
+    /**
+     * Loads all public keys inside "HDSLedger/resources/keys" path.
+     */
+    private void loadPublicKeys() throws IOException
     {
         // Iterate over all files in the directory
         Files.walk(directory)
@@ -90,35 +103,38 @@ public class CriptoUtils {
             .forEach(filePath -> {
 
                 String filename = filePath.getFileName().toString();
-                String processId = extractId(filename, "public"); // files are in form of <public[NUM].key>
-                
-                // avoids loading repeated keys
-                if (
-                    processId != null 
-                    && 
-                    (
-                        !clientKeys.containsKey(processId) 
-                        || 
-                        !nodeKeys.containsKey(processId)
-                    )
-                ) {
-                    String pathToPrivKey = KEY_LOCATION + "private" + processId + ".key";
-                    String pathToPubKey = KEY_LOCATION + "public" + processId + ".key";                
-    
-                    try {
-                        PrivateKey privateKey = (PrivateKey) RSAKeyGenerator.read(pathToPrivKey, "priv");
-                        PublicKey publicKey = (PublicKey) RSAKeyGenerator.read(pathToPubKey, "pub");
 
-                        if (isNode(processId, nodeIds))
-                            nodeKeys.put(processId, new Pair<>(publicKey, privateKey));
-                        else
-                            clientKeys.put(processId, new Pair<>(publicKey, privateKey));
-    
-                        LOGGER.log(Level.INFO, MessageFormat.format("Process {0} keys loaded", processId));
-                    } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException e) {
-                        // TODO: log error using costumn logger
-                        e.printStackTrace();
-                        throw new HDSSException(ErrorMessage.CannotLoadKeys);
+                if (filename.startsWith("public"))
+                {
+                    String processId = extractId(filename, "public"); // files are in form of <public[NUM].key>
+                
+                    // avoids loading repeated keys
+                    if (
+                        processId != null  
+                        && 
+                        (
+                            !clientPublicKeys.containsKey(processId)
+                            ||
+                            !nodePublicKeys.containsKey(processId)
+                        )
+                    ) {
+                        String pathToPubKey = KEY_LOCATION + "public" + processId + ".key";                
+        
+                        try {
+                            PublicKey publicKey = (PublicKey) RSAKeyGenerator.read(pathToPubKey, "pub");
+
+                            if (isNode(processId))
+                                nodePublicKeys.put(processId, publicKey);
+                            else
+                                clientPublicKeys.put(processId, publicKey);
+
+                            LOGGER.log(Level.INFO, MessageFormat.format("Process {0} keys loaded", processId));
+
+                        } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException e) {
+                            // TODO: log error using costumn logger
+                            e.printStackTrace();
+                            throw new HDSSException(ErrorMessage.CannotLoadKeys);
+                        }
                     }
                 }
             });
@@ -132,17 +148,8 @@ public class CriptoUtils {
     }
 
 
-    private PrivateKey getPrivateKey(String processId) {
-        Pair<PublicKey, PrivateKey> keys = nodeKeys.get(processId);
-
-        if (keys == null)
-            keys = clientKeys.get(processId);
-
-        if (keys == null)
-            throw new HDSSException(ErrorMessage.ProgrammingError); // TODO: improve later
-
-        else
-            return keys.getValue();
+    private PrivateKey getPrivateKey() {
+        return privateKey;
     }
 
     public byte[] addSignatureToDataAndEncode(byte[] buf, String nodeId) 
@@ -165,8 +172,6 @@ public class CriptoUtils {
             SignatureException,
             InvalidKeySpecException
     {
-        PrivateKey privateKey = getPrivateKey(nodeId);
-
         Signature rsaToSign = Signature.getInstance("SHA1withRSA");
         rsaToSign.initSign(privateKey);
         rsaToSign.update(buf);
@@ -217,7 +222,7 @@ public class CriptoUtils {
             InvalidKeyException,
             SignatureException
     {
-        for (Map.Entry<String, Pair<PublicKey, PrivateKey>> entry : clientKeys.entrySet()) {
+        for (Map.Entry<String, PublicKey> entry : clientPublicKeys.entrySet()) {
             String clientId = entry.getKey();
             if (verifySignature(clientId, originalMessage, signature))
                 return true;
@@ -245,60 +250,56 @@ public class CriptoUtils {
             InvalidKeyException,
             SignatureException
     {
-        Pair<PublicKey, PrivateKey> keys = null;
+        PublicKey publicKey = null;
 
-        for (Map.Entry<String, Pair<PublicKey, PrivateKey>> entry : nodeKeys.entrySet()) {
+        for (Map.Entry<String, PublicKey> entry : clientPublicKeys.entrySet()) {
             String nodeId = entry.getKey();
             if (nodeId.equals(senderId)) {
-                keys = entry.getValue();
-                break; // Exit the loop once the keys are found
+                publicKey = entry.getValue();
+                break; // Exit the loop once the key is found
             }
         }
 
-        if (keys == null) {
-            for (Map.Entry<String, Pair<PublicKey, PrivateKey>> entry : clientKeys.entrySet()) {
+        if (publicKey == null) {
+            for (Map.Entry<String, PublicKey> entry : nodePublicKeys.entrySet()) {
                 String nodeId = entry.getKey();
                 if (nodeId.equals(senderId)) {
-                    keys = entry.getValue();
-                    break; // Exit the loop once the keys are found
+                    publicKey = entry.getValue();
+                    break; // Exit the loop once the key is found
                 }
             }
         }
         
-        if (keys != null) {
-            PublicKey publicKey = keys.getKey();
+        if (publicKey != null) {
             return verifySignature(publicKey, originalMessage, signature);
-        
         } else {
             // Handle the case where keys for the specified node ID are not found
             throw new HDSSException(ErrorMessage.ProgrammingError); // TODO: improve later
-
         }
     }
 
     public boolean isAcossiatedWithClient(PublicKey publicKey) {
-        for (Map.Entry<String, Pair<PublicKey, PrivateKey>> entry : clientKeys.entrySet()) {
-            if (entry.getValue().getKey().equals(publicKey))
+        for (Map.Entry<String, PublicKey> entry : clientPublicKeys.entrySet()) {
+            if (entry.getValue().equals(publicKey))
                 return true;
         }
         return false;
     }
 
     public String getClientId(PublicKey publicKey) {
-        for (Map.Entry<String, Pair<PublicKey, PrivateKey>> entry : clientKeys.entrySet()) {
-            if (entry.getValue().getKey().equals(publicKey))
+        for (Map.Entry<String, PublicKey> entry : clientPublicKeys.entrySet()) {
+            if (entry.getValue().equals(publicKey))
                 return entry.getKey(); // client ID
         }
         throw new InvalidClientKeyException();
     }
 
     public PublicKey getClientPublicKey(String clientId) {
-        Pair<PublicKey, PrivateKey> keys = clientKeys.get(clientId);
+        PublicKey key = clientPublicKeys.get(clientId);
 
-        if (keys == null)
+        if (key == null)
             throw new InvalidClientIdException();
-
         else
-            return keys.getKey();
+            return key;
     }
 }

@@ -106,8 +106,8 @@ public class MessageBucket {
     }
 
     /**
-     * Assuming that there is a quorum, returns the heighest prepared value, or null,
-     * if there isn't any.
+     * Assuming that there is a quorum, returns an Optional with the heighest prepared value,
+     * or an empty Optional if there isn't any.
      */
     public Optional<Pair<Integer, String>> getHeighestPreparedRoundAndValueIfAny(String nodeId, int instance, int round) {
         
