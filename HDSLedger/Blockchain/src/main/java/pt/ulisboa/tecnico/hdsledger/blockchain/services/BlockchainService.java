@@ -19,6 +19,7 @@ import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestErrorResultMe
 import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestSucessResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestSucessResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.LeaderChangeMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
@@ -176,22 +177,21 @@ public class BlockchainService implements UDPService {
 
         try {
             transfer(request.getSourcePubKey(), request.getDestinationPubKey(), request.getAmount());
-            link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_SUCESS_RESULT, null));
+
+            TransferRequestSucessResultMessage reply = new TransferRequestSucessResultMessage(config.getId(), request.getDestinationPubKey());
+            link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_SUCESS_RESULT, reply.tojson()));
 
         } catch(InvalidAccountException e) {
             TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid account!");
-            String requestStr = new Gson().toJson(reply);
-            link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, requestStr));
+            link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, reply.tojson()));
 
         } catch (InvalidAmmountException e) {
             TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid amount!");
-            String requestStr = new Gson().toJson(reply);
-            link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, requestStr));
+            link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, reply.tojson()));
 
         } catch (InvalidClientKeyException e) {
             TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid client public key!");
-            String requestStr = new Gson().toJson(reply);
-            link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, requestStr));
+            link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, reply.tojson()));
         }
     }
 

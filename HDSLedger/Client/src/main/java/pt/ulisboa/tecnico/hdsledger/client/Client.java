@@ -44,6 +44,7 @@ public class Client {
             CriptoUtils criptoUtils = new CriptoUtils(id, nodeIds);
 
             // Abstraction to send and receive messages
+            // By only giving info about the nodes, Byzantine clients pretending to be nodes won't have any effect in the system
             Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), serverConfigs, BlockchainResponseMessage.class, criptoUtils);
 
             int nodeCount = nodeIds.length;

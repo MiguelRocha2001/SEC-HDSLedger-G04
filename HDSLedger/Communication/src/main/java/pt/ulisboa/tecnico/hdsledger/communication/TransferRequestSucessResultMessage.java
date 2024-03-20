@@ -8,21 +8,15 @@ import com.google.gson.Gson;
 
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.RSAKeyGenerator;
 
-public class TransferRequestErrorResultMessage extends Message {
+public class TransferRequestSucessResultMessage extends Message {
 
-    private String error;
     private byte[] clientDestinationPubKey;
 
-    public TransferRequestErrorResultMessage(String senderId, String error, PublicKey clientDestinationPubKey) {
-        super(senderId, Type.TRANSFER_ERROR_RESULT);
-        this.error = error;
+    public TransferRequestSucessResultMessage(String senderId, PublicKey clientDestinationPubKey) {
+        super(senderId, Type.TRANSFER_SUCESS_RESULT);
         this.clientDestinationPubKey = clientDestinationPubKey.getEncoded();
     }
-
-    public String getError() {
-        return error;
-    }
-
+    
     public PublicKey getClientDestinationPubKey() throws NoSuchAlgorithmException, InvalidKeySpecException { 
         return (PublicKey) RSAKeyGenerator.read(clientDestinationPubKey, "pub");
     }

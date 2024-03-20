@@ -19,6 +19,8 @@ import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestSucessResultM
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestErrorResultMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestSucessResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidClientIdException;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
@@ -88,7 +90,6 @@ public class ClientService implements UDPService {
         try {
             PublicKey clientPublicKey = criptoUtils.getClientPublicKey(clientId);
             byte[] helloSignature = criptoUtils.getMessageSignature("hello".getBytes(), config.getId()); // encodes to Base 64
-            //byte[] helloSignature = criptoUtils.addSignatureToDataAndEncode("hello".getBytes(), config.getId()); // encodes to Base 64
 
             GetBalanceRequestMessage request = new GetBalanceRequestMessage(config.getId(), clientPublicKey, helloSignature);
             String requestStr = request.tojson();
@@ -105,7 +106,7 @@ public class ClientService implements UDPService {
 
     // TODO: what if a byzantine client sends a get balance result to another node?
     private void getBalanceSuccessResultReceived(BlockchainResponseMessage message) {
-        LOGGER.log(Level.INFO, MessageFormat.format("Received Get Balance Result message from process {0}", message.getSenderId()));
+        LOGGER.log(Level.INFO, MessageFormat.format("Received get-balance sucess Result message from process {0}", message.getSenderId()));
 
         GetBalanceRequestSucessResultMessage response = message.deserializeGetBalanceSucessResultMessage();
 
@@ -123,8 +124,9 @@ public class ClientService implements UDPService {
     }
 
     private void getBalanceErrorResultReceived(BlockchainResponseMessage message) {        
+        LOGGER.log(Level.INFO, MessageFormat.format("Received get-balance error result message from process {0}", message.getSenderId()));
+        
         GetBalanceRequestErrorResultMessage response = message.deserializeGetBalanceErrorResultMessage();
-
         try {
             bucket.addAccountBalanceErrorResponseMsg(response);
 
@@ -140,18 +142,60 @@ public class ClientService implements UDPService {
         }
     }
 
-    public void transfer() {
+    public void transfer(String clientDestinationId, int amount) {
+        try {
+            PublicKey selfPublicKey = criptoUtils.getClientPublicKey(config.getId());
+            PublicKey destPublicKey = criptoUtils.getClientPublicKey(clientDestinationId);
 
+            TransferRequestMessage request = new TransferRequestMessage(config.getId(), selfPublicKey, destPublicKey, amount);
+            String requestStr = request.tojson();
+            
+            link.broadcast(new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER, requestStr));
+        } catch (InvalidClientIdException e) { // [clientDestinationId] is unknown
+            LOGGER.log(Level.INFO, "Invalid client ID");
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, 
+                MessageFormat.format("Error while trying to request transfer to client id: {0}. \n{1}", clientDestinationId, e.getMessage())
+            );
+        }
     }
 
-    private void onTransferSuccess() {
-        LOGGER.log(Level.INFO, "Transfer conclided with success!");
+    private void onTransferSuccess(BlockchainResponseMessage message) {
+        LOGGER.log(Level.INFO, MessageFormat.format("Received transfer sucess result message from process {0}", message.getSenderId()));
+
+        TransferRequestSucessResultMessage response = message.deserializeTranferSucessResultMessage();
+        try {
+            bucket.addAccountTransferSuccessResponseMsg(response);
+
+            String destClientId = criptoUtils.getClientId(response.getClientDestinationPubKey());
+
+            if (bucket.hasAccountTransferSucessQuorum(response))
+                LOGGER.log(Level.INFO, MessageFormat.format("Transfer operation to client {0} concluded!", destClientId));
+
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, 
+                MessageFormat.format("Error after receiving getBalance success result. \n{0}", e.getMessage())
+            );
+        }
     }
 
     private void onTransferError(BlockchainResponseMessage message) {
+        LOGGER.log(Level.INFO, MessageFormat.format("Received tranfer error result message from process {0}", message.getSenderId()));
+
         TransferRequestErrorResultMessage response = message.deserializeTransferErrorResultMessage();
-        
-        LOGGER.log(Level.INFO, MessageFormat.format("Error on transder operation: {0}", response.getError()));
+        try {
+            bucket.addAccountTransferErrorResponseMsg(response);
+
+            if (bucket.hasAccountTransferErrorQuorum(response)) {
+                LOGGER.log(Level.INFO, 
+                    MessageFormat.format("Error from the server: {0}", response.getError())
+                );
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, 
+                MessageFormat.format("Error after receiving transfer error result. \n{0}", e.getMessage())
+            );
+        }
     }
 
     @Override
@@ -178,7 +222,7 @@ public class ClientService implements UDPService {
                                     getBalanceErrorResultReceived((BlockchainResponseMessage) message);
 
                                 case TRANSFER_SUCESS_RESULT ->
-                                    onTransferSuccess();
+                                    onTransferSuccess((BlockchainResponseMessage) message);
 
                                 case TRANSFER_ERROR_RESULT ->
                                     onTransferError((BlockchainResponseMessage) message);

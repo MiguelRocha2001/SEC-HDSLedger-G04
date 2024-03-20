@@ -2,6 +2,8 @@ package pt.ulisboa.tecnico.hdsledger.communication;
 
 import java.security.PublicKey;
 
+import com.google.gson.Gson;
+
 public class TransferRequestMessage extends Message {
 
     private PublicKey sourcePubKey;
@@ -25,5 +27,9 @@ public class TransferRequestMessage extends Message {
 
     public int getAmount() {
         return amount;
+    }
+
+    public String tojson() {
+        return new Gson().toJson(this);
     }
 }
