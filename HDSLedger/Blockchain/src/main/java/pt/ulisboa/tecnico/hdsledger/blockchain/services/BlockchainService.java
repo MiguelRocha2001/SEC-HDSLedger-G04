@@ -150,7 +150,7 @@ public class BlockchainService implements UDPService {
         }
     }
 
-
+    
     private enum GetBalanceErrroResultType { NOT_AUTHORIZED, INVALID_ACCOUNT }
 
     private BlockchainRequestMessage buildGetBalanceRequestErrorResult(GetBalanceErrroResultType type, UUID requestUuid) {

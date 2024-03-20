@@ -2,6 +2,8 @@ package pt.ulisboa.tecnico.hdsledger.blockchain.models;
 
 
 import pt.ulisboa.tecnico.hdsledger.communication.CommitMessage;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class InstanceInfo {
 
@@ -13,6 +15,7 @@ public class InstanceInfo {
     private int committedRound = -1;
     private String leaderId;
     private String valueSignature;
+    private Timer timer;
 
     public InstanceInfo(String inputValue, String valueSignature) {
         this.inputValue = inputValue;
@@ -83,5 +86,23 @@ public class InstanceInfo {
 
     public String getValueSignature() {
         return valueSignature;
+    }
+
+    // TODO: this should be parameterized by the round. See this later...
+    public void schedualeTask(TimerTask timerTask) {
+        long TIMEOUT = 3000; // TODO: change to another place
+
+        if (timer != null) {
+            timer.cancel();
+            timer.purge();
+            timer = new Timer();    
+        } else {
+            timer = new Timer();
+        }
+        timer.schedule(timerTask, TIMEOUT); // set timer
+    }
+
+    public void cancelTimer() {
+        timer.cancel();
     }
 }

@@ -70,7 +70,9 @@ public class Client {
             printMenu();
             Operation oper = getOperation(in, isByzantine);
 
-            if (oper instanceof Balance)
+            if (oper instanceof AppendString)
+                clientService.appendRequest(((AppendString)oper).value);
+            else if (oper instanceof Balance)
                 clientService.getBalance();
             else if (oper instanceof ByzantineBalance)
                 clientService.getBalance(((ByzantineBalance)oper).clientId);
@@ -89,12 +91,19 @@ public class Client {
     private static void printMenu() {
         System.out.println();
         System.out.println("!!!!!!!!!!!!!!!! Options !!!!!!!!!!!!!!!!");
-        System.out.println("1 to Request User Balance");
-        System.out.println("2 to Request Tranfer");
+        System.out.println("1 to Append Request");
+        System.out.println("2 to Request User Balance");
+        System.out.println("3 to Request Tranfer");
         System.out.print("> ");
     }
 
     private static abstract class Operation {}
+    private static class AppendString extends Operation {
+        private String value;
+        public AppendString(String value) {
+            this.value = value;
+        }
+    }
     private static class Balance extends Operation {}
     private static class ByzantineBalance extends Operation {
         private String clientId;
@@ -123,6 +132,11 @@ public class Client {
     private static Operation getOperation(Scanner in, boolean isByzantine) {
         switch (in.nextLine()) {
             case "1": {
+                System.out.println("Value: ");
+                String value = in.nextLine();
+                return new AppendString(value);
+            }
+            case "2": {
                 if (isByzantine) {
                     System.out.println("Client ID: ");
                     String clientId = in.nextLine();
@@ -131,7 +145,7 @@ public class Client {
                     return new Balance();
             }
 
-            case "2": {
+            case "3": {
                 System.out.println("Source ID: ");
                 String sourceId = in.nextLine();
                 System.out.println("Amount: ");

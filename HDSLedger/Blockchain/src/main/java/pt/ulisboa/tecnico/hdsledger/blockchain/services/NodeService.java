@@ -81,9 +81,6 @@ public class NodeService implements UDPService {
 
     private CriptoUtils criptoUtils;
 
-    private long TIMEOUT = 3000;
-    Timer timer;
-
     public NodeService(
         Link linkToNodes, 
         ServerConfig config, 
@@ -148,7 +145,9 @@ public class NodeService implements UDPService {
         return createConsensusMessageCommon(senderId, value, instance, round, valueSignature);
     }
 
-    private void broadcastRoundChangeMsg(InstanceInfo instance) {
+    private void broadcastRoundChangeMsg(int instanceNumber) {
+        InstanceInfo instance = this.instanceInfo.get(instanceNumber);
+
         int currentRound = instance.getCurrentRound();
         int newRound = currentRound + 1;
         instance.setCurrentRound(newRound); // increments current round
@@ -156,41 +155,28 @@ public class NodeService implements UDPService {
         RoundChangeMessage message = new RoundChangeMessage(instance.getPreparedValue(), instance.getPreparedRound());
 
         ConsensusMessage consensusMessage = new ConsensusMessageBuilder(config.getId(), Message.Type.ROUND_CHANGE)
-                .setConsensusInstance(consensusInstance.get())
+                .setConsensusInstance(instanceNumber)
                 .setRound(newRound)
                 .setMessage(message.toJson())
                 .build();
 
-        schedualeTask();
+        instance.schedualeTask(createRoundChangeTimerTask(instanceNumber));
 
         linkToNodes.broadcast(consensusMessage); // broadcasts ROUND_CHANGE message
     }
 
 
     // triggers round change
-    private TimerTask createRoundChangeTimerTask() {
+    private TimerTask createRoundChangeTimerTask(int instanceNumber) {
         return new TimerTask() {
             @Override
             public void run() {
-                int localConsensusInstance = consensusInstance.get();
-                InstanceInfo instance = instanceInfo.get(localConsensusInstance);
+                InstanceInfo instance = instanceInfo.get(instanceNumber);
                 instance.setLeaderId(getNextLeader(instance.getLeaderId()));
 
-                broadcastRoundChangeMsg(instance);
+                broadcastRoundChangeMsg(instanceNumber);
             }
         };
-    }
-
-    // TODO: this should be parameterized by the round. See this later...
-    private void schedualeTask() {
-        if (timer != null) {
-            timer.cancel();
-            timer.purge();
-            timer = new Timer();    
-        } else {
-            timer = new Timer();
-        }
-        timer.schedule(createRoundChangeTimerTask(), TIMEOUT); // set timer
     }
     
     /*
@@ -238,7 +224,7 @@ public class NodeService implements UDPService {
         }
 
         // set timer
-        schedualeTask();
+        instance.schedualeTask(createRoundChangeTimerTask(localConsensusInstance));
 
         // Leader broadcasts PRE-PREPARE message
         if (
@@ -384,7 +370,7 @@ public class NodeService implements UDPService {
         }
         
         // set timer
-        schedualeTask();
+        instance.schedualeTask(createRoundChangeTimerTask(consensusInstance));
 
         PrepareMessage prepareMessage = new PrepareMessage(prePrepareMessage.getValue(), valueSignatureEncoded);
 
@@ -554,7 +540,7 @@ public class NodeService implements UDPService {
         if (commitValue.isPresent() && instance.getCommittedRound() < round) {
 
             // stop timer
-            timer.cancel(); // cancells also the tasks
+            instance.cancelTimer();
 
             instance = this.instanceInfo.get(consensusInstance);
             instance.setCommittedRound(round);
@@ -675,8 +661,8 @@ public class NodeService implements UDPService {
         if (msgs != null) { // if there is a set of f+1 msgs
             int smallerRound = getSmallerRound(msgs);
             roundChangeMsgInstance.setCurrentRound(smallerRound);
-            schedualeTask(); // set timer
-            broadcastRoundChangeMsg(roundChangeMsgInstance);
+            roundChangeMsgInstance.schedualeTask(createRoundChangeTimerTask(message.getConsensusInstance())); // set timer
+            broadcastRoundChangeMsg(message.getConsensusInstance());
         }
         
         if (
