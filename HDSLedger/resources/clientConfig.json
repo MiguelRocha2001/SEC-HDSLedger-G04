@@ -4,5 +4,11 @@
         "hostname": "localhost",
         "port": 3017,
         "byzantineBehavior": "NONE"
+    },
+    {   
+        "id": "18",
+        "hostname": "localhost",
+        "port": 3018,
+        "byzantineBehavior": "CLIENT_UNAUTHORIZED_GET_BALANCE"
     }
 ]

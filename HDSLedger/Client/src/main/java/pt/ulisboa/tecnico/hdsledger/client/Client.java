@@ -7,6 +7,7 @@ import pt.ulisboa.tecnico.hdsledger.client.services.ClientService;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfigBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.Utils;
+import pt.ulisboa.tecnico.hdsledger.utilities.ByzantineBehavior;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfigBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
@@ -55,23 +56,25 @@ public class Client {
                     nodeConfig.getId(), nodeConfig.getHostname(), nodeConfig.getPort()));
 
             Scanner in = new Scanner(System.in);
-            processRequests(clientService, in);
+            processRequests(clientService, in, clientConfigAux.getByzantineBehavior() == ByzantineBehavior.CLIENT_UNAUTHORIZED_GET_BALANCE);
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private static void processRequests(ClientService clientService, Scanner in) {
+    private static void processRequests(ClientService clientService, Scanner in, boolean isByzantine) {
         while (true) {
             printMenu();
-            Operation oper = getOperation(in);
+            Operation oper = getOperation(in, isByzantine);
 
-            if (oper == Operation.BALANCE)
+            if (oper instanceof Balance)
                 clientService.getBalance();
-            else if (oper == Operation.TRANSFER)
+            else if (oper instanceof ByzantineBalance)
+                clientService.getBalance(((ByzantineBalance)oper).clientId);
+            else if (oper instanceof Transfer)
                 clientService.transfer();
-            else if (oper == Operation.INVALID)
+            else if (oper == null)
                 System.out.println("Invalid operation!");
         }
     }
@@ -84,14 +87,31 @@ public class Client {
         System.out.print("> ");
     }
 
-    private static enum Operation { BALANCE, TRANSFER, INVALID }
-    private static Operation getOperation(Scanner in) {
-        String input = in.nextLine();
-        switch (input) {
-            case "1": return Operation.BALANCE;
-            case "2": return Operation.TRANSFER;
+    private static abstract class Operation {}
+    private static class Balance extends Operation {}
+    private static class ByzantineBalance extends Operation {
+        private String clientId;
+        public ByzantineBalance(String clientId) {
+            this.clientId = clientId;
+        }
+    }
+    private static class Transfer extends Operation {}
+
+    private static Operation getOperation(Scanner in, boolean isByzantine) {
+        switch (in.nextLine()) {
+            case "1": {
+                if (isByzantine) {
+                    System.out.println("> ");
+                    String clientId = in.nextLine();
+                    return new ByzantineBalance(clientId);
+                } else
+                    return new Balance();
+            }
+
+            case "2": return new Transfer();
+
             default:
-                return Operation.INVALID;
+                return null;
         }
     }
 

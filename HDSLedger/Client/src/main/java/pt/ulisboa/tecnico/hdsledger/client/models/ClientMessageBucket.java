@@ -29,13 +29,19 @@ public class ClientMessageBucket {
         PublicKey requestedPublicKey = message.getRequestedPublickey();
 
         HashSet<GetBalanceRequestSucessResultMessage> msgs = accounBalanceSuccessResponses.putIfAbsent(requestedPublicKey, new HashSet<>());
+        if (msgs == null)
+            msgs = accounBalanceSuccessResponses.get(requestedPublicKey);
+
         msgs.add(message);
     }
 
-    public void addAccountBalanceErrorResponseMsg(GetBalanceRequestErrorResultMessage message) {
+    public void addAccountBalanceErrorResponseMsg(GetBalanceRequestErrorResultMessage message) throws NoSuchAlgorithmException, InvalidKeySpecException {
         PublicKey requestedPublicKey = message.getRequestedPublickey();
 
         HashSet<GetBalanceRequestErrorResultMessage> msgs = accounBalanceErrorResponses.putIfAbsent(requestedPublicKey, new HashSet<>());
+        if (msgs == null)
+            msgs = accounBalanceErrorResponses.get(requestedPublicKey);
+
         msgs.add(message);
     }
 
@@ -48,14 +54,15 @@ public class ClientMessageBucket {
         }
 
         for (GetBalanceRequestSucessResultMessage response : responses) {
-            if (response.getRequestedPublickey().equals(message.getRequestedPublickey()))
+            if (response.getRequestedPublickey().equals(message.getRequestedPublickey())) {
                 count++;
+            }
         }
 
         return count >= byzantineQuorumSize;
     }
 
-    public boolean hasAccountBalanceErrorQuorum(GetBalanceRequestErrorResultMessage message) {
+    public boolean hasAccountBalanceErrorQuorum(GetBalanceRequestErrorResultMessage message) throws NoSuchAlgorithmException, InvalidKeySpecException {
         HashSet<GetBalanceRequestErrorResultMessage> responses = accounBalanceErrorResponses.get(message.getRequestedPublickey());
         int count = 0;
 

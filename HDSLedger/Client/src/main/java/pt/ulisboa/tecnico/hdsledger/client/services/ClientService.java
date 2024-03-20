@@ -4,15 +4,12 @@ import java.io.IOException;
 import java.security.PublicKey;
 import java.text.MessageFormat;
 import java.util.Base64;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.logging.Level;
 
 import com.google.gson.Gson;
 
 import pt.ulisboa.tecnico.hdsledger.client.models.ClientMessageBucket;
 import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.LeaderChangeMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.BlockchainRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.BlockchainResponseMessage;
@@ -26,7 +23,6 @@ import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidClientIdException;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
-import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
 
 public class ClientService implements UDPService {
 
@@ -98,6 +94,8 @@ public class ClientService implements UDPService {
             String requestStr = request.tojson();
             
             link.broadcast(new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE, requestStr));
+        } catch (InvalidClientIdException e) { // [clientId] is unknown
+            LOGGER.log(Level.INFO, "Invalid client ID");
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, 
                 MessageFormat.format("Error while trying to request balance for client id: {0}. \n{1}", clientId, e.getMessage())
@@ -105,17 +103,21 @@ public class ClientService implements UDPService {
         }
     }
 
-    private void getBalanceSuccessResultReceived(BlockchainResponseMessage message) {        
+    // TODO: what if a byzantine client sends a get balance result to another node?
+    private void getBalanceSuccessResultReceived(BlockchainResponseMessage message) {
+        LOGGER.log(Level.INFO, MessageFormat.format("Received Get Balance Result message from process {0}", message.getSenderId()));
+
         GetBalanceRequestSucessResultMessage response = message.deserializeGetBalanceSucessResultMessage();
 
         try {
             bucket.addAccountBalanceSuccessResponseMsg(response);
+
             if (bucket.hasAccountBalanceSucessQuorum(response))
                 LOGGER.log(Level.INFO, MessageFormat.format("Balance: {0}", response.getBalance()));
-                
+
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, 
-                MessageFormat.format("Error after receiving getBalance result. \n{0}", e.getMessage())
+                MessageFormat.format("Error after receiving getBalance success result. \n{0}", e.getMessage())
             );
         }
     }
@@ -123,12 +125,19 @@ public class ClientService implements UDPService {
     private void getBalanceErrorResultReceived(BlockchainResponseMessage message) {        
         GetBalanceRequestErrorResultMessage response = message.deserializeGetBalanceErrorResultMessage();
 
-        bucket.addAccountBalanceErrorResponseMsg(response);
+        try {
+            bucket.addAccountBalanceErrorResponseMsg(response);
 
-        if (bucket.hasAccountBalanceErrorQuorum(response))
-            LOGGER.log(Level.INFO, 
-                MessageFormat.format("Error: {0}, for request with public key: {1}", response.getErrorMessage(), response.getRequestedPublickey())
+            if (bucket.hasAccountBalanceErrorQuorum(response)) {
+                LOGGER.log(Level.INFO, 
+                    MessageFormat.format("Error from the server: {0}", response.getErrorMessage())
+                );
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, 
+                MessageFormat.format("Error after receiving getBalance error result. \n{0}", e.getMessage())
             );
+        }
     }
 
     public void transfer() {

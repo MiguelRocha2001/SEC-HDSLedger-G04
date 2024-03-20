@@ -133,6 +133,7 @@ public class BlockchainService implements UDPService {
             // verifies if correspondent private key was used to sign the "hello" message
             if (!criptoUtils.verifySignature(clientPublicKey, "hello".getBytes(), helloSiganture)) {
                 link.send(senderId, buildGetBalanceRequestErrorResult(GetBalanceErrroResultType.NOT_AUTHORIZED, clientPublicKey));
+                return;
             }
 
             Integer balance = checkBalance(clientPublicKey); // null if [clientPublicKey] is unknown
@@ -155,14 +156,12 @@ public class BlockchainService implements UDPService {
         else
             message = "Not authorized";
         GetBalanceRequestErrorResultMessage reply = new GetBalanceRequestErrorResultMessage(config.getId(), message, requestedPubliCkey);
-        String requestStr = new Gson().toJson(reply);
-        return new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE_ERROR_RESULT, requestStr);
+        return new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE_ERROR_RESULT, reply.tojson());
     }
 
     private BlockchainRequestMessage buildGetBalanceRequestSuccessResult(int balance, PublicKey requestedPubliCkey) {
         GetBalanceRequestSucessResultMessage reply = new GetBalanceRequestSucessResultMessage(config.getId(), balance, requestedPubliCkey);
-        String requestStr = new Gson().toJson(reply);
-        return new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE_SUCESS_RESULT, requestStr);
+        return new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE_SUCESS_RESULT, reply.tojson());
     }
 
     private void tranferRequest(BlockchainRequestMessage message) {
