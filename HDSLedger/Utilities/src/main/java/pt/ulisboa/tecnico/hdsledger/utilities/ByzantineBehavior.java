@@ -9,5 +9,5 @@ public enum ByzantineBehavior {
     BYZANTINE_UPON_ROUND_CHANGE_QUORUM, // sets a wrong value 
     DONT_VERIFY_SIGNATURES,
     FAKE_LEADER_WITH_FORGED_PRE_PREPARE_MESSAGE, // broadcast PRE-PREPARE message with senderId of real leader
-    CLIENT_UNAUTHORIZED_GET_BALANCE
+    CLIENT_IS_BYZANTINE, // any client byzantine behavior
 }

@@ -5,6 +5,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Base64;
+import java.util.UUID;
 
 import com.google.gson.Gson;
 
@@ -14,6 +15,7 @@ public class GetBalanceRequestMessage extends Message {
 
     private byte[] clientPublicKey;
     private byte[] helloSignature;
+    private UUID uuid = UUID.randomUUID();
 
     public GetBalanceRequestMessage(String senderId, PublicKey clientPublicKey, byte[] helloSignature) {
         super(senderId, Type.APPEND_REQUEST);
@@ -31,5 +33,9 @@ public class GetBalanceRequestMessage extends Message {
 
     public String tojson() {
         return new Gson().toJson(this);
+    }
+
+    public UUID getUuid() {
+        return uuid;
     }
 }

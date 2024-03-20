@@ -1,22 +1,22 @@
 package pt.ulisboa.tecnico.hdsledger.client;
 
+import java.text.MessageFormat;
+import java.util.Arrays;
+import java.util.Scanner;
+import java.util.logging.Level;
+
+import pt.ulisboa.tecnico.hdsledger.client.services.ClientService;
 import pt.ulisboa.tecnico.hdsledger.communication.BlockchainResponseMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
-import pt.ulisboa.tecnico.hdsledger.client.services.ClientService;
-import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
-import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfigBuilder;
-import pt.ulisboa.tecnico.hdsledger.utilities.Utils;
 import pt.ulisboa.tecnico.hdsledger.utilities.ByzantineBehavior;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfigBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
-
-import java.text.MessageFormat;
-import java.util.Arrays;
-import java.util.Scanner;
-import java.util.logging.Level;
+import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
+import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfigBuilder;
+import pt.ulisboa.tecnico.hdsledger.utilities.Utils;
 
 public class Client {
 
@@ -57,7 +57,8 @@ public class Client {
                     nodeConfig.getId(), nodeConfig.getHostname(), nodeConfig.getPort()));
 
             Scanner in = new Scanner(System.in);
-            processRequests(clientService, in, clientConfigAux.getByzantineBehavior() == ByzantineBehavior.CLIENT_UNAUTHORIZED_GET_BALANCE);
+            boolean isByzantine = clientConfigAux.getByzantineBehavior() == ByzantineBehavior.CLIENT_IS_BYZANTINE;
+            processRequests(clientService, in, isByzantine);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -73,8 +74,13 @@ public class Client {
                 clientService.getBalance();
             else if (oper instanceof ByzantineBalance)
                 clientService.getBalance(((ByzantineBalance)oper).clientId);
-            else if (oper instanceof Transfer)
-                clientService.transfer();
+            else if (oper instanceof Transfer) {
+                Transfer operCasted = (Transfer)(oper);
+                clientService.transfer(operCasted.targetId, operCasted.amount);
+            } else if (oper instanceof ByzantineTransfer) {
+                ByzantineTransfer operCasted = (ByzantineTransfer)(oper);
+                clientService.transfer(operCasted.sourceId, operCasted.targetId, operCasted.amount);
+            }
             else if (oper == null)
                 System.out.println("Invalid operation!");
         }
@@ -96,20 +102,48 @@ public class Client {
             this.clientId = clientId;
         }
     }
-    private static class Transfer extends Operation {}
+    private static class Transfer extends Operation {
+        String targetId;
+        int amount;
+
+        public Transfer(String targetId, int amount) {
+            this.targetId = targetId;
+            this.amount = amount;
+        }
+    }
+    private static class ByzantineTransfer extends Transfer {
+        private String sourceId;
+
+        public ByzantineTransfer(String sourceId, String targetId, int amount) {
+            super(targetId, amount);
+            this.sourceId = sourceId;
+        }
+    }
 
     private static Operation getOperation(Scanner in, boolean isByzantine) {
         switch (in.nextLine()) {
             case "1": {
                 if (isByzantine) {
-                    System.out.println("> ");
+                    System.out.println("Client ID: ");
                     String clientId = in.nextLine();
                     return new ByzantineBalance(clientId);
                 } else
                     return new Balance();
             }
 
-            case "2": return new Transfer();
+            case "2": {
+                System.out.println("Source ID: ");
+                String sourceId = in.nextLine();
+                System.out.println("Amount: ");
+                int amount = in.nextInt();
+                if (isByzantine) {
+                    System.out.println("Target ID: ");
+                    String destinationId = in.nextLine();
+                    return new ByzantineTransfer(sourceId, destinationId, amount);
+                } else {
+                    return new Transfer(sourceId, amount);
+                }
+            }
 
             default:
                 return null;

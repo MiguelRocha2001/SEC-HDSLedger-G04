@@ -142,9 +142,9 @@ public class ClientService implements UDPService {
         }
     }
 
-    public void transfer(String clientDestinationId, int amount) {
+    public void transfer(String clientSourceId, String clientDestinationId, int amount) {
         try {
-            PublicKey selfPublicKey = criptoUtils.getClientPublicKey(config.getId());
+            PublicKey selfPublicKey = criptoUtils.getClientPublicKey(clientSourceId);
             PublicKey destPublicKey = criptoUtils.getClientPublicKey(clientDestinationId);
 
             TransferRequestMessage request = new TransferRequestMessage(config.getId(), selfPublicKey, destPublicKey, amount);
@@ -160,6 +160,10 @@ public class ClientService implements UDPService {
         }
     }
 
+    public void transfer(String clientDestinationId, int amount) {
+        transfer(config.getId(), clientDestinationId, amount);
+    }
+
     private void onTransferSuccess(BlockchainResponseMessage message) {
         LOGGER.log(Level.INFO, MessageFormat.format("Received transfer sucess result message from process {0}", message.getSenderId()));
 
@@ -167,10 +171,8 @@ public class ClientService implements UDPService {
         try {
             bucket.addAccountTransferSuccessResponseMsg(response);
 
-            String destClientId = criptoUtils.getClientId(response.getClientDestinationPubKey());
-
             if (bucket.hasAccountTransferSucessQuorum(response))
-                LOGGER.log(Level.INFO, MessageFormat.format("Transfer operation to client {0} concluded!", destClientId));
+                LOGGER.log(Level.INFO, MessageFormat.format("Transfer operation with id {0}, concluded!", response.getUuid()));
 
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, 

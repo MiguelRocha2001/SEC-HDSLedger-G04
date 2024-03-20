@@ -9,6 +9,6 @@
         "id": "18",
         "hostname": "localhost",
         "port": 3018,
-        "byzantineBehavior": "CLIENT_UNAUTHORIZED_GET_BALANCE"
+        "byzantineBehavior": "CLIENT_IS_BYZANTINE"
     }
 ]

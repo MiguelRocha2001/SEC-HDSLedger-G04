@@ -25,4 +25,4 @@
     - Finally, all update transactions must pay a fee to the block producer (the leader). Students must reason about the implications of these requirements and explain in the report possible ways how the design could address these implications.
     - "Students must reason about the potential attacks that a Byzantine server or client can make, including collusion between clients and servers, and discuss and implement the appropriate countermeasures." What is collusion???
 
-- What kind of byzantine cleint atacks can exist?
+- What kind of byzantine cleint atacks can exist? For instance, when the client pretends to be the server and sends a message to another client (pretending to be the server replying to a request). Is that a byzantine client behavior?

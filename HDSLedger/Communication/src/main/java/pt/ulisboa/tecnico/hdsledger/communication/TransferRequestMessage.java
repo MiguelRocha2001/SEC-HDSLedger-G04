@@ -1,6 +1,7 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
 import java.security.PublicKey;
+import java.util.UUID;
 
 import com.google.gson.Gson;
 
@@ -9,6 +10,7 @@ public class TransferRequestMessage extends Message {
     private PublicKey sourcePubKey;
     private PublicKey destinationPubKey;
     private int amount;
+    private UUID uuid = UUID.randomUUID();
 
     public TransferRequestMessage(String senderId, PublicKey sourcePubKey, PublicKey destinationPubKey, int amount) {
         super(senderId, Type.APPEND_REQUEST);
@@ -31,5 +33,9 @@ public class TransferRequestMessage extends Message {
 
     public String tojson() {
         return new Gson().toJson(this);
+    }
+
+    public UUID getUuid() {
+        return uuid;
     }
 }

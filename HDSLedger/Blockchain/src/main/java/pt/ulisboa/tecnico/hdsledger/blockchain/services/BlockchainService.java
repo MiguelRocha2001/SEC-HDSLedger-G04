@@ -6,6 +6,7 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Map;
+import java.util.UUID;
 import java.util.logging.Level;
 
 import com.google.gson.Gson;
@@ -126,6 +127,7 @@ public class BlockchainService implements UDPService {
                 config.getId(), senderId));
 
         GetBalanceRequestMessage request = message.deserializeGetBalanceRequest();
+        UUID requestUuid = request.getUuid();
 
         try {
             PublicKey clientPublicKey = request.getClientPublicKey();
@@ -133,15 +135,15 @@ public class BlockchainService implements UDPService {
 
             // verifies if correspondent private key was used to sign the "hello" message
             if (!criptoUtils.verifySignature(clientPublicKey, "hello".getBytes(), helloSiganture)) {
-                link.send(senderId, buildGetBalanceRequestErrorResult(GetBalanceErrroResultType.NOT_AUTHORIZED, clientPublicKey));
+                link.send(senderId, buildGetBalanceRequestErrorResult(GetBalanceErrroResultType.NOT_AUTHORIZED, requestUuid));
                 return;
             }
 
             Integer balance = checkBalance(clientPublicKey); // null if [clientPublicKey] is unknown
             if (balance != null) {
-                link.send(senderId, buildGetBalanceRequestSuccessResult(balance, clientPublicKey));
+                link.send(senderId, buildGetBalanceRequestSuccessResult(balance, requestUuid));
             } else {
-                link.send(senderId, buildGetBalanceRequestErrorResult(GetBalanceErrroResultType.INVALID_ACCOUNT, clientPublicKey));
+                link.send(senderId, buildGetBalanceRequestErrorResult(GetBalanceErrroResultType.INVALID_ACCOUNT, requestUuid));
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error: {1}", config.getId(), e.getMessage()));
@@ -150,18 +152,19 @@ public class BlockchainService implements UDPService {
 
 
     private enum GetBalanceErrroResultType { NOT_AUTHORIZED, INVALID_ACCOUNT }
-    private BlockchainRequestMessage buildGetBalanceRequestErrorResult(GetBalanceErrroResultType type, PublicKey requestedPubliCkey) {
+
+    private BlockchainRequestMessage buildGetBalanceRequestErrorResult(GetBalanceErrroResultType type, UUID requestUuid) {
         String message;
         if (type == GetBalanceErrroResultType.INVALID_ACCOUNT)
             message = "Invalid Account";
         else
             message = "Not authorized";
-        GetBalanceRequestErrorResultMessage reply = new GetBalanceRequestErrorResultMessage(config.getId(), message, requestedPubliCkey);
+        GetBalanceRequestErrorResultMessage reply = new GetBalanceRequestErrorResultMessage(config.getId(), message, requestUuid);
         return new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE_ERROR_RESULT, reply.tojson());
     }
 
-    private BlockchainRequestMessage buildGetBalanceRequestSuccessResult(int balance, PublicKey requestedPubliCkey) {
-        GetBalanceRequestSucessResultMessage reply = new GetBalanceRequestSucessResultMessage(config.getId(), balance, requestedPubliCkey);
+    private BlockchainRequestMessage buildGetBalanceRequestSuccessResult(int balance, UUID requestUuid) {
+        GetBalanceRequestSucessResultMessage reply = new GetBalanceRequestSucessResultMessage(config.getId(), balance, requestUuid);
         return new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE_SUCESS_RESULT, reply.tojson());
     }
 
@@ -174,23 +177,24 @@ public class BlockchainService implements UDPService {
                 config.getId(), senderId));
 
         TransferRequestMessage request = message.deserializeTransferRequest();
+        UUID requestUuid = request.getUuid();
 
         try {
             transfer(request.getSourcePubKey(), request.getDestinationPubKey(), request.getAmount());
 
-            TransferRequestSucessResultMessage reply = new TransferRequestSucessResultMessage(config.getId(), request.getDestinationPubKey());
+            TransferRequestSucessResultMessage reply = new TransferRequestSucessResultMessage(config.getId(), requestUuid);
             link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_SUCESS_RESULT, reply.tojson()));
 
         } catch(InvalidAccountException e) {
-            TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid account!");
+            TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid account!", requestUuid);
             link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, reply.tojson()));
 
         } catch (InvalidAmmountException e) {
-            TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid amount!");
+            TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid amount!", requestUuid);
             link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, reply.tojson()));
 
         } catch (InvalidClientKeyException e) {
-            TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid client public key!");
+            TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid client public key!", requestUuid);
             link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, reply.tojson()));
         }
     }
