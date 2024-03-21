@@ -16,7 +16,6 @@ import pt.ulisboa.tecnico.hdsledger.utilities.Pair;
 
 public class MessageBucket {
 
-    private static final CustomLogger LOGGER = new CustomLogger(MessageBucket.class.getName());
     // Quorum size
     private final int byzantineQuorumSize;
     private final int shortQuorumSize;
@@ -45,38 +44,38 @@ public class MessageBucket {
         bucket.get(consensusInstance).get(round).put(message.getSenderId(), message);
     }
 
-    public Optional<String> hasValidPrepareQuorum(String nodeId, int instance, int round) {
+    public Optional<TransactionV2> hasValidPrepareQuorum(String nodeId, int instance, int round) {
         // Create mapping of value to frequency
-        HashMap<String, Integer> frequency = new HashMap<>();
+        HashMap<TransactionV2, Integer> frequency = new HashMap<>();
         bucket.get(instance).get(round).values().forEach((message) -> {
             PrepareMessage prepareMessage = message.deserializePrepareMessage();
-            String value = prepareMessage.getValue();
+            TransactionV2 value = prepareMessage.getValue();
             frequency.put(value, frequency.getOrDefault(value, 0) + 1);
         });
 
         // Only one value (if any, thus the optional) will have a frequency
         // greater than or equal to the quorum size
-        return frequency.entrySet().stream().filter((Map.Entry<String, Integer> entry) -> {
+        return frequency.entrySet().stream().filter((Map.Entry<TransactionV2, Integer> entry) -> {
             return entry.getValue() >= byzantineQuorumSize;
-        }).map((Map.Entry<String, Integer> entry) -> {
+        }).map((Map.Entry<TransactionV2, Integer> entry) -> {
             return entry.getKey();
         }).findFirst();
     }
 
-    public Optional<String> hasValidCommitQuorum(String nodeId, int instance, int round) {
+    public Optional<TransactionV2> hasValidCommitQuorum(String nodeId, int instance, int round) {
         // Create mapping of value to frequency
-        HashMap<String, Integer> frequency = new HashMap<>();
+        HashMap<TransactionV2, Integer> frequency = new HashMap<>();
         bucket.get(instance).get(round).values().forEach((message) -> {
             CommitMessage commitMessage = message.deserializeCommitMessage();
-            String value = commitMessage.getValue();
+            TransactionV2 value = commitMessage.getValue();
             frequency.put(value, frequency.getOrDefault(value, 0) + 1);
         });
 
         // Only one value (if any, thus the optional) will have a frequency
         // greater than or equal to the quorum size
-        return frequency.entrySet().stream().filter((Map.Entry<String, Integer> entry) -> {
+        return frequency.entrySet().stream().filter((Map.Entry<TransactionV2, Integer> entry) -> {
             return entry.getValue() >= byzantineQuorumSize;
-        }).map((Map.Entry<String, Integer> entry) -> {
+        }).map((Map.Entry<TransactionV2, Integer> entry) -> {
             return entry.getKey();
         }).findFirst();
     }
@@ -109,10 +108,10 @@ public class MessageBucket {
      * Assuming that there is a quorum, returns an Optional with the heighest prepared value,
      * or an empty Optional if there isn't any.
      */
-    public Optional<Pair<Integer, String>> getHeighestPreparedRoundAndValueIfAny(String nodeId, int instance, int round) {
+    public Optional<Pair<Integer, TransactionV2>> getHeighestPreparedRoundAndValueIfAny(String nodeId, int instance, int round) {
         
         int heighestPreparedRound = -1; // TODO: check if this is safe
-        String heighestPreparedValue = null;
+        TransactionV2 heighestPreparedValue = null;
 
         for (Map.Entry<String, ConsensusMessage> entry : bucket.get(instance).get(round).entrySet()) {
             
@@ -126,13 +125,13 @@ public class MessageBucket {
         if (heighestPreparedValue == null)
             return Optional.empty();
 
-        return Optional.of(new Pair<Integer, String>(heighestPreparedRound, heighestPreparedValue));
+        return Optional.of(new Pair<Integer, TransactionV2>(heighestPreparedRound, heighestPreparedValue));
     }
 
     /**
      * Checks if all PREPARE messages have the round and value equal to [preparedRound] and [preparedValue].
      */
-    public boolean checkRoundAndValue(String nodeId, int instance, int round, int preparedRound, String preparedValue) {
+    public boolean checkRoundAndValue(String nodeId, int instance, int round, int preparedRound, TransactionV2 preparedValue) {
         int count = 0;
 
         // if didnt receive messages for [instance] and [round]
@@ -144,7 +143,7 @@ public class MessageBucket {
             PrepareMessage prepareMessage = entry.getValue().deserializePrepareMessage();
             
             int roundAux = entry.getValue().getRound();
-            String valueAux = prepareMessage.getValue();
+            TransactionV2 valueAux = prepareMessage.getValue();
             
             if (roundAux == preparedRound && valueAux == preparedValue)
                 ++count;
@@ -161,7 +160,7 @@ public class MessageBucket {
             RoundChangeMessage roundChangeMessage = entry.getValue().deserializeRoundChangeMessage();
             
             int preparedRound = roundChangeMessage.getPreparedRound();
-            String preparedValue = roundChangeMessage.getPreparedValue();
+            TransactionV2 preparedValue = roundChangeMessage.getPreparedValue();
             
             if (preparedRound != -1 || preparedValue != null)
                 return false;

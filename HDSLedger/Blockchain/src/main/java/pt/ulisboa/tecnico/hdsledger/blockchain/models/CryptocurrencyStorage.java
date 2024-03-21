@@ -13,24 +13,24 @@ public class CryptocurrencyStorage {
      * Initiates all account balances with 0 units.
      * @param clientIds account ids
      */
-    public CryptocurrencyStorage(String[] clientIds) {
-        for (int u = 0; u < clientIds.length; u++) {
-            accounts.put(clientIds[u], 0);
-            System.out.println(clientIds[u]);
+    public CryptocurrencyStorage(String[] accountIds) {
+        for (int u = 0; u < accountIds.length; u++) {
+            accounts.put(accountIds[u], 0);
+            System.out.println(accountIds[u]);
         }
     }
 
-    public boolean isClientIdValid(String clientId) {
+    public boolean isAccountIdValid(String accountId) {
         for (Map.Entry<String, Integer> entry : accounts.entrySet()) {
-            if (entry.getKey().equals(clientId))
+            if (entry.getKey().equals(accountId))
                 return true;
         }
         return false;
     }
 
-    public int getBalance(String clientId) {
+    public int getBalance(String accountId) {
         for (Map.Entry<String, Integer> entry : accounts.entrySet()) {
-            if (entry.getKey().equals(clientId))
+            if (entry.getKey().equals(accountId))
                 return entry.getValue();
         }
         throw new InvalidAccountException();

@@ -10,13 +10,16 @@ public class TransferRequestMessage extends Message {
     private PublicKey sourcePubKey;
     private PublicKey destinationPubKey;
     private int amount;
+    private byte[] valueSignature;
+    
     private UUID uuid = UUID.randomUUID();
 
-    public TransferRequestMessage(String senderId, PublicKey sourcePubKey, PublicKey destinationPubKey, int amount) {
+    public TransferRequestMessage(String senderId, PublicKey sourcePubKey, PublicKey destinationPubKey, int amount, byte[] valueSignature) {
         super(senderId, Type.APPEND_REQUEST);
         this.sourcePubKey = sourcePubKey;
         this.destinationPubKey = destinationPubKey;
         this.amount = amount;
+        this.valueSignature = valueSignature;
     }
 
     public PublicKey getSourcePubKey() {
@@ -33,6 +36,10 @@ public class TransferRequestMessage extends Message {
 
     public String tojson() {
         return new Gson().toJson(this);
+    }
+
+    public byte[] getValueSignature() {
+        return valueSignature;
     }
 
     public UUID getUuid() {

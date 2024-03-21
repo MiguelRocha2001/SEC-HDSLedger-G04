@@ -4,7 +4,7 @@ import pt.ulisboa.tecnico.hdsledger.communication.BlockchainRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
-import pt.ulisboa.tecnico.hdsledger.blockchain.services.BlockchainService;
+import pt.ulisboa.tecnico.hdsledger.blockchain.services.CriptoService;
 import pt.ulisboa.tecnico.hdsledger.blockchain.services.NodeService;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfigBuilder;
@@ -58,7 +58,7 @@ public class Node {
             
             // Services that implement listen from UDPService
             NodeService nodeService = new NodeService(linkToNodes, nodeConfigAux, nodesConfigAUx, linkToClients, requests, criptoUtils);
-            BlockchainService blockchainService = new BlockchainService(linkToClients, nodeConfigAux, clientConfigsAux, nodeService, requests, nodeIds, criptoUtils);
+            CriptoService blockchainService = new CriptoService(linkToClients, nodeConfigAux, clientConfigsAux, nodeService, requests, nodeIds, criptoUtils);
             
             nodeService.listen();
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Process is listenning on port host and port {1}:{2}",

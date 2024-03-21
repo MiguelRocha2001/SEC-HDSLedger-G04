@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
 
+import javax.swing.text.TabSet;
+
 import com.google.gson.Gson;
 
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.CryptocurrencyStorage;
@@ -32,13 +34,12 @@ import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.Pair;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
+import pt.ulisboa.tecnico.hdsledger.utilities.Utils;
 
-public class BlockchainService implements UDPService {
+public class CriptoService implements UDPService {
 
-    private static final CustomLogger LOGGER = new CustomLogger(BlockchainService.class.getName());
+    private static final CustomLogger LOGGER = new CustomLogger(CriptoService.class.getName());
 
-    // Nodes configurations
-    private final ClientConfig[] clientConfigs;
     // Current node is leader
     private final ServerConfig config;
 
@@ -53,7 +54,7 @@ public class BlockchainService implements UDPService {
     private final CryptocurrencyStorage storage;
     
 
-    public BlockchainService(
+    public CriptoService(
         Link link,
         ServerConfig config, 
         ClientConfig[] clientsConfig,
@@ -64,11 +65,14 @@ public class BlockchainService implements UDPService {
     ) {
         this.link = link;
         this.config = config;
-        this.clientConfigs = clientsConfig;
         this.nodeService = nodeService;
         this.requests = requests;
-        this.storage = new CryptocurrencyStorage(getClientIds(clientsConfig));
         this.criptoUtils = criptoUtils;
+
+        String[] clientIds = getClientIds(clientsConfig);
+        String[] processIds = Utils.joinArray(nodeIds, clientIds);
+
+        this.storage = new CryptocurrencyStorage(processIds);
     }
 
     private static String[] getClientIds(ClientConfig[] clientsConfig) {
@@ -94,13 +98,30 @@ public class BlockchainService implements UDPService {
         }
     }
 
-    private void transfer(PublicKey source, PublicKey destination, int amount) {
+    public class TransactionV1 {
+        private String sourceId; 
+        private String destinationId;
+        private int amount;
+
+        public TransactionV1(String source, String destination, int amount) {
+            this.sourceId = source;
+            this.destinationId = destination;
+            this.amount = amount;
+        }
+    }
+
+    private void transfer(PublicKey source, PublicKey destination, int amount, byte[] helloSignature) {
         String sourceClientId = criptoUtils.getClientId(source);
         String destinationClientId = criptoUtils.getClientId(source);
+
+        TransactionV1 transaction = new TransactionV1(sourceClientId, destinationClientId, amount);
+
+        nodeService.startConsensus(transaction, helloSignature);
 
         storage.transfer(sourceClientId, destinationClientId, amount);
     }
 
+    /*
     private void appendString(BlockchainRequestMessage message) {
         String senderId = message.getSenderId();
 
@@ -111,12 +132,13 @@ public class BlockchainService implements UDPService {
 
         AppendRequestMessage request = message.deserializeAppendRequest();
         String valueToAppend = request.getMessage();
-        String valueSignature = request.getValueSignature();
+        byte[] valueSignature = request.getValueSignature();
     
-        requests.add(new Pair<String, Pair<String, String>>(senderId, new Pair<String,String>(valueToAppend, valueSignature)));
+        requests.add(new Pair<String, Pair<String, byte[]>>(senderId, new Pair<String, byte[]>(valueToAppend, valueSignature)));
 
         nodeService.startConsensus(valueToAppend, valueSignature);
     }
+    */
 
     private void getBalanceRequest(BlockchainRequestMessage message) {
         String senderId = message.getSenderId();
@@ -180,7 +202,7 @@ public class BlockchainService implements UDPService {
         UUID requestUuid = request.getUuid();
 
         try {
-            transfer(request.getSourcePubKey(), request.getDestinationPubKey(), request.getAmount());
+            transfer(request.getSourcePubKey(), request.getDestinationPubKey(), request.getAmount(), request.getValueSignature());
 
             TransferRequestSucessResultMessage reply = new TransferRequestSucessResultMessage(config.getId(), requestUuid);
             link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_SUCESS_RESULT, reply.tojson()));
@@ -219,8 +241,10 @@ public class BlockchainService implements UDPService {
                             } else {
                                 switch (message.getType()) {
 
+                                    /*
                                     case APPEND_REQUEST ->
                                         appendString((BlockchainRequestMessage) message);
+                                    */
 
                                     case GET_BALANCE ->
                                         getBalanceRequest((BlockchainRequestMessage) message);

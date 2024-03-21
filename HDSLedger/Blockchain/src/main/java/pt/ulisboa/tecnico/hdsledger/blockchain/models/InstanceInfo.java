@@ -9,23 +9,25 @@ public class InstanceInfo {
 
     private int currentRound = 1;
     private int preparedRound = -1;
-    private String preparedValue;
+    private TransactionV2 preparedValue;
     private CommitMessage commitMessage;
-    private String inputValue;
+    private TransactionV2 inputValue;
     private int committedRound = -1;
     private String leaderId;
-    private String valueSignature;
+    private byte[] valueSignature;
     private Timer timer;
 
-    public InstanceInfo(String inputValue, String valueSignature) {
+    /*
+    public InstanceInfo(TransactionV2 inputValue, String valueSignature) {
         this.inputValue = inputValue;
         this.valueSignature = valueSignature;
     }
+    */
 
-    public InstanceInfo(String inputValue, String valueSignature, String leaderId) {
+    public InstanceInfo(TransactionV2 inputValue, byte[] helloSignature, String leaderId) {
         this.inputValue = inputValue;
         this.leaderId = leaderId;
-        this.valueSignature = valueSignature;
+        this.valueSignature = helloSignature;
     }
 
     public int getCurrentRound() {
@@ -44,19 +46,19 @@ public class InstanceInfo {
         this.preparedRound = preparedRound;
     }
 
-    public String getPreparedValue() {
+    public TransactionV2 getPreparedValue() {
         return preparedValue;
     }
 
-    public void setPreparedValue(String preparedValue) {
+    public void setPreparedValue(TransactionV2 preparedValue) {
         this.preparedValue = preparedValue;
     }
 
-    public String getInputValue() {
+    public TransactionV2 getInputValue() {
         return inputValue;
     }
 
-    public void setInputValue(String inputValue) {
+    public void setInputValue(TransactionV2 inputValue) {
         this.inputValue = inputValue;
     }
 
@@ -84,7 +86,7 @@ public class InstanceInfo {
         this.leaderId = leaderId;
     }
 
-    public String getValueSignature() {
+    public byte[] getValueSignature() {
         return valueSignature;
     }
 

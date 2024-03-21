@@ -2,18 +2,20 @@ package pt.ulisboa.tecnico.hdsledger.communication;
 
 import com.google.gson.Gson;
 
+import pt.ulisboa.tecnico.hdsledger.blockchain.models.TransactionV2;
+
 public class PrePrepareMessage {
     
     // Value
-    private String value;
-    private String valueSignature;
+    private TransactionV2 value;
+    private byte[] valueSignature;
 
-    public PrePrepareMessage(String value, String valueSignature) {
+    public PrePrepareMessage(TransactionV2 value, byte[] valueSignature) {
         this.value = value;
         this.valueSignature = valueSignature;
     }
 
-    public String getValue() {
+    public TransactionV2 getValue() {
         return value;
     }
 
@@ -21,7 +23,7 @@ public class PrePrepareMessage {
         return new Gson().toJson(this);
     }
 
-    public String getValueSignature() {
+    public byte[] getValueSignature() {
         return valueSignature;
     }
 }   

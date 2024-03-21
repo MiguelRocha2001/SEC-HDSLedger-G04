@@ -3,9 +3,9 @@ package pt.ulisboa.tecnico.hdsledger.communication;
 public class AppendRequestMessage extends Message {
 
     private String message;
-    private String valueSignature;
+    private byte[] valueSignature;
 
-    public AppendRequestMessage(String senderId, String message, String valueSignature) {
+    public AppendRequestMessage(String senderId, String message, byte[] valueSignature) {
         super(senderId, Type.APPEND_REQUEST);
         this.message = message;
         this.valueSignature = valueSignature;
@@ -15,7 +15,7 @@ public class AppendRequestMessage extends Message {
         return message;
     }
 
-    public String getValueSignature() {
+    public byte[] getValueSignature() {
         return valueSignature;
     }
 }

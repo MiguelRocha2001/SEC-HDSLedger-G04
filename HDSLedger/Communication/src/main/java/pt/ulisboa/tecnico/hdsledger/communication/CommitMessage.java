@@ -1,17 +1,18 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
+import pt.ulisboa.tecnico.hdsledger.blockchain.models.TransactionV2;
 import com.google.gson.Gson;
 
 public class CommitMessage {
 
     // Value
-    private String value;
+    private TransactionV2 value;
 
-    public CommitMessage(String value) {
+    public CommitMessage(TransactionV2 value) {
         this.value = value;
     }
 
-    public String getValue() {
+    public TransactionV2 getValue() {
         return value;
     }
 

@@ -24,6 +24,7 @@ import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestSucessResultMes
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidClientIdException;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
+import pt.ulisboa.tecnico.hdsledger.utilities.Utils;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 
 public class ClientService implements UDPService {
@@ -147,7 +148,11 @@ public class ClientService implements UDPService {
             PublicKey selfPublicKey = criptoUtils.getClientPublicKey(clientSourceId);
             PublicKey destPublicKey = criptoUtils.getClientPublicKey(clientDestinationId);
 
-            TransferRequestMessage request = new TransferRequestMessage(config.getId(), selfPublicKey, destPublicKey, amount);
+            // [messageToSign] represents a transaction
+            byte[] messageToSign = Utils.joinArray(clientDestinationId.getBytes(), clientDestinationId.getBytes(), Integer.toString(amount).getBytes());
+            byte[] helloSignature = criptoUtils.getMessageSignature(messageToSign, config.getId()); // encodes to Base 64
+
+            TransferRequestMessage request = new TransferRequestMessage(config.getId(), selfPublicKey, destPublicKey, amount, helloSignature);
             String requestStr = request.tojson();
             
             link.broadcast(new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER, requestStr));

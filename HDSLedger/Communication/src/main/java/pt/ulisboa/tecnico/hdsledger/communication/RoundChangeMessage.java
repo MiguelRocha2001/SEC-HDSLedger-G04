@@ -2,12 +2,14 @@ package pt.ulisboa.tecnico.hdsledger.communication;
 
 import com.google.gson.Gson;
 
+import pt.ulisboa.tecnico.hdsledger.blockchain.models.TransactionV2;
+
 public class RoundChangeMessage {
 
-    private String preparedValue;
+    private TransactionV2 preparedValue;
     private int preparedRound;
 
-    public RoundChangeMessage(String preparedValue, int preparedRound) {
+    public RoundChangeMessage(TransactionV2 preparedValue, int preparedRound) {
         this.preparedValue = preparedValue;
         this.preparedRound = preparedRound;
     }
@@ -16,7 +18,7 @@ public class RoundChangeMessage {
         return new Gson().toJson(this);
     }
 
-    public String getPreparedValue() { return preparedValue; }
+    public TransactionV2 getPreparedValue() { return preparedValue; }
 
     public int getPreparedRound() { return preparedRound; }
 }
