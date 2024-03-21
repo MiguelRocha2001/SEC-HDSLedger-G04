@@ -133,7 +133,12 @@ public class MessageBucket {
      * Checks if all PREPARE messages have the round and value equal to [preparedRound] and [preparedValue].
      */
     public boolean checkRoundAndValue(String nodeId, int instance, int round, int preparedRound, String preparedValue) {
-        
+        int count = 0;
+
+        // if didnt receive messages for [instance] and [round]
+        if (bucket.get(instance) == null || bucket.get(instance).get(round) == null)
+            return false;
+
         for (Map.Entry<String, ConsensusMessage> entry : bucket.get(instance).get(round).entrySet()) {
             
             PrepareMessage prepareMessage = entry.getValue().deserializePrepareMessage();
@@ -141,16 +146,16 @@ public class MessageBucket {
             int roundAux = entry.getValue().getRound();
             String valueAux = prepareMessage.getValue();
             
-            if (roundAux != preparedRound || valueAux != preparedValue)
-                return false;
+            if (roundAux == preparedRound && valueAux == preparedValue)
+                ++count;
         }
-        return true;
+        return count >= byzantineQuorumSize;
     }
 
     /**
      * @return true if all ROUND-MESSAGE's prepared round and value are not set. False otherwise
      */
-    public boolean isRoundChangeMessagesNotPrepared(String nodeId, int instance, int round) {
+    public boolean areAllRoundChangeMessagesNotPrepared(String nodeId, int instance, int round) {
         for (Map.Entry<String, ConsensusMessage> entry : bucket.get(instance).get(round).entrySet()) {
             
             RoundChangeMessage roundChangeMessage = entry.getValue().deserializeRoundChangeMessage();

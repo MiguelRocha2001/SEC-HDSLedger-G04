@@ -9,11 +9,7 @@
 - Should we stop sending not achknowledge msgs after consensus is decided/over? If, for instance, PREPARE messages sent to processes that are not correct, are not acknowledged, they will be kept sending until the process received an ACK.
 - What is the timeout for the leader change timer?
 
-- What should be the normnal flow of the append request? The request is made, a consensus is made and if the value is not decided? Should the client issue another request? Or should the request be chached and tried again by the nodes?
-- How to do tests?
-- What kind of tests should we make?: Types of atacks.
 - Does the leader persist across rounds?
-- I think we only added authentication as a dependability. What other dependabilities should we implement?
 - Should we explain the flow of the IBFT protocol in the report? Should we explainn the normal case? Or just the view change Or none?
 
 - If a node receives a PRE-PREPARE message from the leader, before calling startConsensus, what happens?
@@ -25,4 +21,8 @@
     - Finally, all update transactions must pay a fee to the block producer (the leader). Students must reason about the implications of these requirements and explain in the report possible ways how the design could address these implications.
     - "Students must reason about the potential attacks that a Byzantine server or client can make, including collusion between clients and servers, and discuss and implement the appropriate countermeasures." What is collusion???
 
-- What kind of byzantine cleint atacks can exist? For instance, when the client pretends to be the server and sends a message to another client (pretending to be the server replying to a request). Is that a byzantine client behavior?
+- What kind of byzantine client atacks can exist? For instance, when the client pretends to be the server and sends a message to another client (pretending to be the server replying to a request). Is that a byzantine client behavior?
+
+- What should be recorded in the blockchain?
+
+- 

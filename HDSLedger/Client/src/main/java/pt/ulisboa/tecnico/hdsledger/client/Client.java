@@ -132,13 +132,13 @@ public class Client {
     private static Operation getOperation(Scanner in, boolean isByzantine) {
         switch (in.nextLine()) {
             case "1": {
-                System.out.println("Value: ");
+                System.out.print("Value: ");
                 String value = in.nextLine();
                 return new AppendString(value);
             }
             case "2": {
                 if (isByzantine) {
-                    System.out.println("Client ID: ");
+                    System.out.print("Client ID: ");
                     String clientId = in.nextLine();
                     return new ByzantineBalance(clientId);
                 } else
@@ -146,12 +146,12 @@ public class Client {
             }
 
             case "3": {
-                System.out.println("Source ID: ");
+                System.out.print("Source ID: ");
                 String sourceId = in.nextLine();
-                System.out.println("Amount: ");
+                System.out.print("Amount: ");
                 int amount = in.nextInt();
                 if (isByzantine) {
-                    System.out.println("Target ID: ");
+                    System.out.print("Target ID: ");
                     String destinationId = in.nextLine();
                     return new ByzantineTransfer(sourceId, destinationId, amount);
                 } else {

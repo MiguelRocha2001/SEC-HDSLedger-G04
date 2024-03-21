@@ -189,26 +189,6 @@ public class Link {
     }
 
     /*
-    private Class<? extends Message> getMessageType(Message message) {
-        Type type = message.getType();
-        
-        if (
-            type == Type.APPEND | 
-            type == Type.PRE_PREPARE | 
-            type == Type.PREPARE | 
-            type == Type.COMMIT
-        ) {
-            return ConsensusMessage.class;
-        } if (type == Type.APPEND_REQUEST)
-            return AppendRequestMessage.class;
-        if (type == Type.APPEND_REQUEST_RESULT)
-            return AppendRequestResultMessage.class;
-        else
-            return null; // TODO: maybe, throw an Exception
-    }
-    */
-
-    /*
      * Receives a message from any node in the network (blocking)
      */
     public Message receive() throws IOException, ClassNotFoundException {
@@ -259,9 +239,6 @@ public class Link {
                     message.setType(Message.Type.IGNORE);
                     //throw new HDSSException(ErrorMessage.MessageVerificationFail);
                 } else {
-                    //LOGGER.log(Level.INFO, MessageFormat.format("{0} - Message {1} from sender {2} verified",
-                    //    config.getId(), message.getMessageId(), message.getSenderId()));
-
                     // Do nothing
                 }
             } catch(
@@ -304,8 +281,8 @@ public class Link {
         Type originalType = message.getType();
         // Message already received (add returns false if already exists) => Discard
         if (isRepeated) {
-            //LOGGER.log(Level.WARNING, MessageFormat.format("{0} - Message {1} is repeated",
-            //            config.getId(), message.getMessageId()));
+            LOGGER.log(Level.WARNING, MessageFormat.format("{0} - Message {1} is repeated; TYPE: {2}",
+                        config.getId(), message.getMessageId(), message.getType()));
             message.setType(Message.Type.IGNORE);
         }
 
