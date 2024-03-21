@@ -2,6 +2,8 @@ package pt.ulisboa.tecnico.hdsledger.blockchain.models;
 
 
 import pt.ulisboa.tecnico.hdsledger.communication.CommitMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.TransactionV2;
+
 import java.util.Timer;
 import java.util.TimerTask;
 

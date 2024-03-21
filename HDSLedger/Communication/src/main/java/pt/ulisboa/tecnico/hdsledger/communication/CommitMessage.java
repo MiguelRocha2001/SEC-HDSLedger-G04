@@ -1,6 +1,5 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
-import pt.ulisboa.tecnico.hdsledger.blockchain.models.TransactionV2;
 import com.google.gson.Gson;
 
 public class CommitMessage {

@@ -2,8 +2,6 @@ package pt.ulisboa.tecnico.hdsledger.communication;
 
 import com.google.gson.Gson;
 
-import pt.ulisboa.tecnico.hdsledger.blockchain.models.TransactionV2;
-
 public class PrePrepareMessage {
     
     // Value

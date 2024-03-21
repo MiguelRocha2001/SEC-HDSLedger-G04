@@ -32,12 +32,13 @@ import pt.ulisboa.tecnico.hdsledger.communication.PrePrepareMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.PrepareMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.RoundChangeMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.StartConsensusMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.TransactionV1;
+import pt.ulisboa.tecnico.hdsledger.communication.TransactionV2;
 import pt.ulisboa.tecnico.hdsledger.communication.builder.ConsensusMessageBuilder;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
+import pt.ulisboa.tecnico.hdsledger.blockchain.models.CryptocurrencyStorage;
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.InstanceInfo;
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.MessageBucket;
-import pt.ulisboa.tecnico.hdsledger.blockchain.models.TransactionV2;
-import pt.ulisboa.tecnico.hdsledger.blockchain.services.CriptoService.TransactionV1;
 import pt.ulisboa.tecnico.hdsledger.utilities.ByzantineBehavior;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.ErrorMessage;
@@ -84,6 +85,8 @@ public class NodeService implements UDPService {
 
     private CriptoUtils criptoUtils;
 
+    private CriptoService criptoService;
+
     public NodeService(
         Link linkToNodes, 
         ServerConfig config, 
@@ -103,6 +106,10 @@ public class NodeService implements UDPService {
         this.prepareMessages = new MessageBucket(nodesConfig.length);
         this.commitMessages = new MessageBucket(nodesConfig.length);
         this.roundChangeMessages = new MessageBucket(nodesConfig.length);
+    }
+
+    public void setCriptoService(CriptoService criptoService) {
+        this.criptoService = criptoService;
     }
 
     public ServerConfig getConfig() {
@@ -582,10 +589,7 @@ public class NodeService implements UDPService {
         }
     }
 
-    /**
-     * Appends the value to the ledger and increments [lastDecidedConsensusInstance]
-     */
-    private void appendValue(int consensusInstance, int round, TransactionV2 value) {
+    private void appendToLedger(int consensusInstance, TransactionV2 value) {
         // Append value to the ledger (must be synchronized to be thread-safe)
         synchronized(ledger) {
 
@@ -602,12 +606,24 @@ public class NodeService implements UDPService {
             int index = consensusInstance - 1;
             ledger.add(index, value);
             
+            /*
             LOGGER.log(Level.INFO,
                 MessageFormat.format(
                         "{0} - Current Ledger: {1}",
                         config.getId(), String.join("", ledger)));
+            */
 
         }
+    }
+
+    /**
+     * Appends the value to the ledger and increments [lastDecidedConsensusInstance]
+     */
+    private void appendValue(int consensusInstance, int round, TransactionV2 value) {
+        appendToLedger(consensusInstance, value);
+
+        // apply transaction
+        criptoService.applyTrasaction(value.getSourceId(), value.getDestinationId(), value.getAmount(), value.getReceiverId());
 
         lastDecidedConsensusInstance.getAndIncrement();
 

@@ -59,7 +59,8 @@ public class ClientService implements UDPService {
         try {
             byte[] signature = criptoUtils.getMessageSignature(value.getBytes(), config.getId());
             byte[] signatureEnconded = Base64.getEncoder().encodeToString(signature).getBytes(); // encodes to Base 64
-            AppendRequestMessage request = new AppendRequestMessage(config.getId(), value, new String(signatureEnconded));
+            
+            AppendRequestMessage request = new AppendRequestMessage(config.getId(), value, signatureEnconded);
             String requestStr = new Gson().toJson(request);
 
             link.broadcast(new BlockchainRequestMessage(config.getId(), Message.Type.APPEND_REQUEST, requestStr));

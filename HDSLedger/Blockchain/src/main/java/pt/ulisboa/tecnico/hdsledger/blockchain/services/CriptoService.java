@@ -26,6 +26,7 @@ import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestSucessResultMes
 import pt.ulisboa.tecnico.hdsledger.communication.LeaderChangeMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
+import pt.ulisboa.tecnico.hdsledger.communication.TransactionV1;
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestErrorResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidClientKeyException;
@@ -98,18 +99,6 @@ public class CriptoService implements UDPService {
         }
     }
 
-    public class TransactionV1 {
-        private String sourceId; 
-        private String destinationId;
-        private int amount;
-
-        public TransactionV1(String source, String destination, int amount) {
-            this.sourceId = source;
-            this.destinationId = destination;
-            this.amount = amount;
-        }
-    }
-
     private void transfer(PublicKey source, PublicKey destination, int amount, byte[] helloSignature) {
         String sourceClientId = criptoUtils.getClientId(source);
         String destinationClientId = criptoUtils.getClientId(source);
@@ -118,7 +107,19 @@ public class CriptoService implements UDPService {
 
         nodeService.startConsensus(transaction, helloSignature);
 
+        //storage.transfer(sourceClientId, destinationClientId, amount);
+    }
+
+    /**
+     * Trasnfers units from sourceClientId to destinationClientId, and a fee to receiverId
+     * @param sourceClientId
+     * @param destinationClientId
+     * @param amount
+     * @param receiverId
+     */
+    public void applyTrasaction(String sourceClientId, String destinationClientId, int amount, String receiverId) {
         storage.transfer(sourceClientId, destinationClientId, amount);
+        storage.transfer(sourceClientId, receiverId, 1);
     }
 
     /*
