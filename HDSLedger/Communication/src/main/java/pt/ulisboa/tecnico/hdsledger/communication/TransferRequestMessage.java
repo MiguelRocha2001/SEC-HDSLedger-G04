@@ -1,14 +1,18 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
+import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
 import java.util.UUID;
 
 import com.google.gson.Gson;
 
+import pt.ulisboa.tecnico.hdsledger.communication.cripto.RSAKeyGenerator;
+
 public class TransferRequestMessage extends Message {
 
-    private PublicKey sourcePubKey;
-    private PublicKey destinationPubKey;
+    private byte[] sourcePubKey;
+    private byte[] destinationPubKey;
     private int amount;
     private byte[] valueSignature;
     
@@ -16,18 +20,18 @@ public class TransferRequestMessage extends Message {
 
     public TransferRequestMessage(String senderId, PublicKey sourcePubKey, PublicKey destinationPubKey, int amount, byte[] valueSignature) {
         super(senderId, Type.APPEND_REQUEST);
-        this.sourcePubKey = sourcePubKey;
-        this.destinationPubKey = destinationPubKey;
+        this.sourcePubKey = sourcePubKey.getEncoded();
+        this.destinationPubKey = destinationPubKey.getEncoded();
         this.amount = amount;
         this.valueSignature = valueSignature;
     }
 
-    public PublicKey getSourcePubKey() {
-        return sourcePubKey;
+    public PublicKey getSourcePubKey() throws NoSuchAlgorithmException, InvalidKeySpecException {
+        return (PublicKey) RSAKeyGenerator.read(this.sourcePubKey, "pub");
     }
 
-    public PublicKey getDestinationPubKey() {
-        return destinationPubKey;
+    public PublicKey getDestinationPubKey() throws NoSuchAlgorithmException, InvalidKeySpecException {
+        return (PublicKey) RSAKeyGenerator.read(this.destinationPubKey, "pub");
     }
 
     public int getAmount() {

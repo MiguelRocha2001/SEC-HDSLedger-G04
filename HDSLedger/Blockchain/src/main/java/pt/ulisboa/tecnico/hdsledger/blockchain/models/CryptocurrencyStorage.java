@@ -10,12 +10,12 @@ public class CryptocurrencyStorage {
     public class InvalidAmmountException extends RuntimeException {}
 
     /**
-     * Initiates all account balances with 0 units.
+     * Initiates all account balances with 10 units.
      * @param clientIds account ids
      */
     public CryptocurrencyStorage(String[] accountIds) {
         for (int u = 0; u < accountIds.length; u++) {
-            accounts.put(accountIds[u], 0);
+            accounts.put(accountIds[u], 10);
             System.out.println(accountIds[u]);
         }
     }

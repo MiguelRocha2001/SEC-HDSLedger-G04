@@ -47,7 +47,7 @@ public class CriptoService implements UDPService {
     // Link to communicate with nodes
     private final Link link;
   
-    private final ArrayList<Pair<String, Pair<String, String>>> requests;
+    private final ArrayList<Pair<UUID, TransactionV1>> transferRequests;
     private final NodeService nodeService;
 
     private CriptoUtils criptoUtils;
@@ -60,20 +60,20 @@ public class CriptoService implements UDPService {
         ServerConfig config, 
         ClientConfig[] clientsConfig,
         NodeService nodeService, 
-        ArrayList<Pair<String, Pair<String, String>>> requests,
         String[] nodeIds,
         CriptoUtils criptoUtils
     ) {
         this.link = link;
         this.config = config;
         this.nodeService = nodeService;
-        this.requests = requests;
         this.criptoUtils = criptoUtils;
 
         String[] clientIds = getClientIds(clientsConfig);
         String[] processIds = Utils.joinArray(nodeIds, clientIds);
 
         this.storage = new CryptocurrencyStorage(processIds);
+
+        this.transferRequests = new ArrayList<>();
     }
 
     private static String[] getClientIds(ClientConfig[] clientsConfig) {
@@ -99,15 +99,47 @@ public class CriptoService implements UDPService {
         }
     }
 
-    private void transfer(PublicKey source, PublicKey destination, int amount, byte[] helloSignature) {
+    private void transfer(UUID requestUuid, PublicKey source, PublicKey destination, int amount, byte[] helloSignature) {
         String sourceClientId = criptoUtils.getClientId(source);
-        String destinationClientId = criptoUtils.getClientId(source);
-
+        String destinationClientId = criptoUtils.getClientId(destination);
         TransactionV1 transaction = new TransactionV1(sourceClientId, destinationClientId, amount);
 
-        nodeService.startConsensus(transaction, helloSignature);
+        // Stores request so, after consensus is finished, is possible to locate original request
+        transferRequests.add(new Pair<UUID,TransactionV1>(requestUuid, transaction));
 
-        //storage.transfer(sourceClientId, destinationClientId, amount);
+        nodeService.startConsensus(transaction, helloSignature);
+    }
+
+
+    /**
+     * Transfers [amount] from [sourceClientId] to [destinationClientId], and pays a fee to [receiverId]
+     */
+    private void doTransactionAndPayNode(String sourceClientId, String destinationClientId, int amount, String feeReceiverId) {
+        storage.transfer(sourceClientId, destinationClientId, amount);
+        storage.transfer(sourceClientId, feeReceiverId, 1);
+    }
+
+    private void sendTransactionReplyToClient(String senderId, UUID requestUuid) {
+        TransferRequestSucessResultMessage reply = new TransferRequestSucessResultMessage(config.getId(), requestUuid);
+        link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_SUCESS_RESULT, reply.tojson()));   
+    }
+
+    private class InvalidTransferRequest extends RuntimeException {}
+
+    private UUID getRequestUuid(String sourceClientId, String destinationClientId, int amount) {
+        for (Pair<UUID, TransactionV1> item : transferRequests) {
+            TransactionV1 t = item.getValue();
+            if (
+                t.getSourceId().equals(sourceClientId)
+                &&
+                t.getDestinationId().equals(destinationClientId)
+                &&
+                t.getAmount() == amount
+            ) {
+                return item.getKey();
+            }
+        }
+        throw new InvalidTransferRequest();
     }
 
     /**
@@ -115,11 +147,13 @@ public class CriptoService implements UDPService {
      * @param sourceClientId
      * @param destinationClientId
      * @param amount
-     * @param receiverId
+     * @param feeReceiverId
      */
-    public void applyTrasaction(String sourceClientId, String destinationClientId, int amount, String receiverId) {
-        storage.transfer(sourceClientId, destinationClientId, amount);
-        storage.transfer(sourceClientId, receiverId, 1);
+    public void applyTransaction(String sourceClientId, String destinationClientId, int amount, String feeReceiverId) {
+        doTransactionAndPayNode(sourceClientId, destinationClientId, amount, feeReceiverId);
+
+        UUID requestUuid = getRequestUuid(sourceClientId, destinationClientId, amount);
+        sendTransactionReplyToClient(feeReceiverId, requestUuid);
     }
 
     /*
@@ -141,6 +175,7 @@ public class CriptoService implements UDPService {
     }
     */
 
+    // It's not necessary to verify if the sender is the owner of the public key since the Link layer already garantees that.
     private void getBalanceRequest(BlockchainRequestMessage message) {
         String senderId = message.getSenderId();
 
@@ -154,13 +189,6 @@ public class CriptoService implements UDPService {
 
         try {
             PublicKey clientPublicKey = request.getClientPublicKey();
-            byte[] helloSiganture = request.getHelloSignature();
-
-            // verifies if correspondent private key was used to sign the "hello" message
-            if (!criptoUtils.verifySignature(clientPublicKey, "hello".getBytes(), helloSiganture)) {
-                link.send(senderId, buildGetBalanceRequestErrorResult(GetBalanceErrroResultType.NOT_AUTHORIZED, requestUuid));
-                return;
-            }
 
             Integer balance = checkBalance(clientPublicKey); // null if [clientPublicKey] is unknown
             if (balance != null) {
@@ -203,10 +231,9 @@ public class CriptoService implements UDPService {
         UUID requestUuid = request.getUuid();
 
         try {
-            transfer(request.getSourcePubKey(), request.getDestinationPubKey(), request.getAmount(), request.getValueSignature());
+            transfer(requestUuid, request.getSourcePubKey(), request.getDestinationPubKey(), request.getAmount(), request.getValueSignature());
 
-            TransferRequestSucessResultMessage reply = new TransferRequestSucessResultMessage(config.getId(), requestUuid);
-            link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_SUCESS_RESULT, reply.tojson()));
+            // Dont send reply because it has to wait for consensus
 
         } catch(InvalidAccountException e) {
             TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid account!", requestUuid);
@@ -219,6 +246,8 @@ public class CriptoService implements UDPService {
         } catch (InvalidClientKeyException e) {
             TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid client public key!", requestUuid);
             link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, reply.tojson()));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error: {1}", config.getId(), e.getMessage()));
         }
     }
 

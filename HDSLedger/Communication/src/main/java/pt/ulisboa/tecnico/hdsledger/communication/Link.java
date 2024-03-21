@@ -281,8 +281,8 @@ public class Link {
         Type originalType = message.getType();
         // Message already received (add returns false if already exists) => Discard
         if (isRepeated) {
-            LOGGER.log(Level.WARNING, MessageFormat.format("{0} - Message {1} is repeated; TYPE: {2}",
-                        config.getId(), message.getMessageId(), message.getType()));
+            //LOGGER.log(Level.WARNING, MessageFormat.format("{0} - Message {1} is repeated; TYPE: {2}",
+            //            config.getId(), message.getMessageId(), message.getType()));
             message.setType(Message.Type.IGNORE);
         }
 

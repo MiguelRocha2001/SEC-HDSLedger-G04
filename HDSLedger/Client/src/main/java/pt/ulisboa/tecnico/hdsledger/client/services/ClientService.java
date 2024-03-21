@@ -55,11 +55,12 @@ public class ClientService implements UDPService {
         return this.config;
     }
 
+    /*
     public void appendRequest(String value) {
         try {
             byte[] signature = criptoUtils.getMessageSignature(value.getBytes(), config.getId());
             byte[] signatureEnconded = Base64.getEncoder().encodeToString(signature).getBytes(); // encodes to Base 64
-            
+
             AppendRequestMessage request = new AppendRequestMessage(config.getId(), value, signatureEnconded);
             String requestStr = new Gson().toJson(request);
 
@@ -68,7 +69,9 @@ public class ClientService implements UDPService {
             LOGGER.log(Level.INFO, MessageFormat.format("{0}", e));
         }
     }
+    */
 
+    /*
     private void appendValueResultReceived(BlockchainResponseMessage message) {
         AppendRequestResultMessage response = message.deserializeAppendRequestResultMessage();
 
@@ -77,6 +80,7 @@ public class ClientService implements UDPService {
                 "Value {0} appended in block: {1}",
                 response.getAppendedValue(), response.getBlockIndex()));
     }
+    */
 
     /**
      * Requests current account balance for self.
@@ -91,9 +95,8 @@ public class ClientService implements UDPService {
     public void getBalance(String clientId) {
         try {
             PublicKey clientPublicKey = criptoUtils.getClientPublicKey(clientId);
-            byte[] helloSignature = criptoUtils.getMessageSignature("hello".getBytes(), config.getId()); // encodes to Base 64
 
-            GetBalanceRequestMessage request = new GetBalanceRequestMessage(config.getId(), clientPublicKey, helloSignature);
+            GetBalanceRequestMessage request = new GetBalanceRequestMessage(config.getId(), clientPublicKey);
             String requestStr = request.tojson();
             
             link.broadcast(new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE, requestStr));
@@ -116,7 +119,7 @@ public class ClientService implements UDPService {
             bucket.addAccountBalanceSuccessResponseMsg(response);
 
             if (bucket.hasAccountBalanceSucessQuorum(response))
-                LOGGER.log(Level.INFO, MessageFormat.format("Balance: {0}", response.getBalance()));
+                LOGGER.log(Level.INFO, MessageFormat.format("Balance: {0} units", response.getBalance()));
 
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, 
@@ -150,10 +153,11 @@ public class ClientService implements UDPService {
             PublicKey destPublicKey = criptoUtils.getClientPublicKey(clientDestinationId);
 
             // [messageToSign] represents a transaction
-            byte[] messageToSign = Utils.joinArray(clientDestinationId.getBytes(), clientDestinationId.getBytes(), Integer.toString(amount).getBytes());
-            byte[] helloSignature = criptoUtils.getMessageSignature(messageToSign, config.getId()); // encodes to Base 64
+            byte[] messageToSign = Utils.joinArray(clientSourceId.getBytes(), clientDestinationId.getBytes(), Integer.toString(amount).getBytes());
+            byte[] requestSignature = criptoUtils.getMessageSignature(messageToSign, config.getId());
+            System.out.println(new String(messageToSign));
 
-            TransferRequestMessage request = new TransferRequestMessage(config.getId(), selfPublicKey, destPublicKey, amount, helloSignature);
+            TransferRequestMessage request = new TransferRequestMessage(config.getId(), selfPublicKey, destPublicKey, amount, requestSignature);
             String requestStr = request.tojson();
             
             link.broadcast(new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER, requestStr));
@@ -220,8 +224,10 @@ public class ClientService implements UDPService {
 
                             switch (message.getType()) {
 
+                                /*
                                 case APPEND_REQUEST_RESULT ->
                                     appendValueResultReceived((BlockchainResponseMessage) message);
+                                */
 
                                 case GET_BALANCE_SUCESS_RESULT ->
                                     getBalanceSuccessResultReceived((BlockchainResponseMessage) message);

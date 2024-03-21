@@ -54,11 +54,9 @@ public class Node {
             Link linkToNodes = new Link(nodeConfig, nodeConfig.getPort(), serversConfig, ConsensusMessage.class, criptoUtils);
             Link linkToClients = new Link(nodeConfig, nodeConfigAux.getClientPort(), clientsConfig, BlockchainRequestMessage.class, criptoUtils);
 
-            ArrayList<Pair<String, Pair<String, String>>> requests = new ArrayList<Pair<String, Pair<String, String>>>(); // holds client requests
-            
             // Services that implement listen from UDPService
-            NodeService nodeService = new NodeService(linkToNodes, nodeConfigAux, nodesConfigAUx, linkToClients, requests, criptoUtils);
-            CriptoService criptoService = new CriptoService(linkToClients, nodeConfigAux, clientConfigsAux, nodeService, requests, nodeIds, criptoUtils);
+            NodeService nodeService = new NodeService(linkToNodes, nodeConfigAux, nodesConfigAUx, linkToClients, criptoUtils);
+            CriptoService criptoService = new CriptoService(linkToClients, nodeConfigAux, clientConfigsAux, nodeService, nodeIds, criptoUtils);
 
             nodeService.setCriptoService(criptoService);
             

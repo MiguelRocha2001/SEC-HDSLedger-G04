@@ -24,5 +24,3 @@
 - What kind of byzantine client atacks can exist? For instance, when the client pretends to be the server and sends a message to another client (pretending to be the server replying to a request). Is that a byzantine client behavior?
 
 - What should be recorded in the blockchain?
-
-- 

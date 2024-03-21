@@ -47,6 +47,7 @@ import pt.ulisboa.tecnico.hdsledger.utilities.Pair;
 import pt.ulisboa.tecnico.hdsledger.utilities.RandomIntGenerator;
 import pt.ulisboa.tecnico.hdsledger.utilities.RandomStringGenerator;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
+import pt.ulisboa.tecnico.hdsledger.utilities.Utils;
 
 public class NodeService implements UDPService {
 
@@ -78,8 +79,6 @@ public class NodeService implements UDPService {
     // Last decided consensus instance
     private final AtomicInteger lastDecidedConsensusInstance = new AtomicInteger(0);
 
-    private final ArrayList<Pair<String, Pair<String, String>>> requests;
-
     // Ledger (for now, just a list of strings)
     private ArrayList<TransactionV2> ledger = new ArrayList<TransactionV2>();
 
@@ -92,15 +91,12 @@ public class NodeService implements UDPService {
         ServerConfig config, 
         ServerConfig[] nodesConfig, 
         Link linkToClients, 
-        ArrayList<Pair<String, Pair<String, String>>> requests, 
         CriptoUtils criptoUtils
     ) {
-
         this.linkToNodes = linkToNodes;
         this.linkToClients = linkToClients;
         this.config = config;
         this.nodesConfig = nodesConfig;
-        this.requests = requests;
         this.criptoUtils = criptoUtils;
 
         this.prepareMessages = new MessageBucket(nodesConfig.length);
@@ -197,7 +193,7 @@ public class NodeService implements UDPService {
      * @param inputValue Value to value agreed upon
      */
     public void startConsensus(TransactionV1 transactionV1, byte[] valueSignature) {
-        
+
         // Set initial consensus values
         int localConsensusInstance = this.consensusInstance.incrementAndGet();
 
@@ -308,6 +304,13 @@ public class NodeService implements UDPService {
         return instanceInfo;
     }
 
+    /**
+     * Returns the bytes that were used to sign value message.
+     */
+    private byte[] getOriginalValue(TransactionV2 value) {
+        return Utils.joinArray(value.getSourceId().getBytes(), value.getDestinationId().getBytes(), Integer.toString(value.getAmount()).getBytes());
+    }
+
     /*
      * Handle pre prepare messages and if the message
      * came from leader and is justified then broadcast prepare
@@ -324,11 +327,12 @@ public class NodeService implements UDPService {
         PrePrepareMessage prePrepareMessage = message.deserializePrePrepareMessage();
 
         TransactionV2 value = prePrepareMessage.getValue();
-        byte[] valueSignatureEncoded = prePrepareMessage.getValueSignature();
-        byte[] valueSignature = Base64.getDecoder().decode(valueSignatureEncoded); // decodes from Base 64
+        byte[] valueSignature = prePrepareMessage.getValueSignature();
         
         try {
-            if (!criptoUtils.verifySignatureWithClientKeys("hello".getBytes(), valueSignature)) {
+            byte[] originalMessage = getOriginalValue(value);
+
+            if (!criptoUtils.verifySignatureWithClientKeys(originalMessage, valueSignature)) {
                 LOGGER.log(Level.INFO,
                     MessageFormat.format(
                             "{0} - Received PRE-PREPARE message from {1} Consensus Instance {2}, Round {3}, but the value could not be verified",
@@ -384,7 +388,7 @@ public class NodeService implements UDPService {
         // set timer
         instance.schedualeTask(createRoundChangeTimerTask(consensusInstance));
 
-        PrepareMessage prepareMessage = new PrepareMessage(prePrepareMessage.getValue(), valueSignatureEncoded);
+        PrepareMessage prepareMessage = new PrepareMessage(prePrepareMessage.getValue(), valueSignature);
 
         ConsensusMessage consensusMessage = new ConsensusMessageBuilder(config.getId(), Message.Type.PREPARE)
                 .setConsensusInstance(consensusInstance)
@@ -420,11 +424,12 @@ public class NodeService implements UDPService {
         PrepareMessage prepareMessage = message.deserializePrepareMessage();
 
         TransactionV2 value = prepareMessage.getValue();
-        byte[] helloSignatureEncoded = prepareMessage.getValueSignature();
-        byte[] helloSignature = Base64.getDecoder().decode(helloSignatureEncoded); // decodes from Base 64
+        byte[] valueSignature = prepareMessage.getValueSignature();
 
         try {
-            if (!criptoUtils.verifySignatureWithClientKeys("hello".getBytes(), helloSignature)) {
+            byte[] originalMessage = getOriginalValue(value);
+
+            if (!criptoUtils.verifySignatureWithClientKeys(originalMessage, valueSignature)) {
                 LOGGER.log(Level.INFO,
                     MessageFormat.format(
                             "{0} - Received PREPARE message from {1} Consensus Instance {2}, Round {3}, but the value could not be verified",
@@ -622,8 +627,8 @@ public class NodeService implements UDPService {
     private void appendValue(int consensusInstance, int round, TransactionV2 value) {
         appendToLedger(consensusInstance, value);
 
-        // apply transaction
-        criptoService.applyTrasaction(value.getSourceId(), value.getDestinationId(), value.getAmount(), value.getReceiverId());
+        // Applies transaction and warns clients
+        criptoService.applyTransaction(value.getSourceId(), value.getDestinationId(), value.getAmount(), value.getReceiverId());
 
         lastDecidedConsensusInstance.getAndIncrement();
 
@@ -631,25 +636,6 @@ public class NodeService implements UDPService {
                 MessageFormat.format(
                         "{0} - Decided on Consensus Instance {1}, Round {2}, Successful? {3}",
                         config.getId(), consensusInstance, round, true));
-
-        // Warns clients
-        for (int u = 0; u < requests.size(); u++) {
-            String clientId = requests.get(u).getKey();
-            String valueToAppend = requests.get(u).getValue().getKey();
-            if (valueToAppend.equals(value)) {
-                requests.remove(u);
-
-                LOGGER.log(Level.INFO,
-                    MessageFormat.format(
-                        "{0} - Sending APPEND_REQUEST_RESULT to client: {1}",
-                        config.getId(), clientId));
-
-                
-                AppendRequestResultMessage result = new AppendRequestResultMessage(config.getId(), consensusInstance, valueToAppend);
-                String resultStr = new Gson().toJson(result);
-                linkToClients.send(clientId, new BlockchainResponseMessage(config.getId(), Message.Type.APPEND_REQUEST_RESULT, resultStr));
-            }
-        }
 
         // start new consensus instance, if theres more pending requests
         /*
