@@ -22,4 +22,29 @@ public class TransactionV1 {
     public int getAmount() {
         return amount;
     }
+
+    @Override
+    public boolean equals(Object objectArg) {
+        if (this == objectArg)
+            return true;
+
+        if (!(objectArg instanceof TransactionV1))
+            return false;
+
+        TransactionV1 transactionV1 = (TransactionV1) objectArg;
+        
+        return sourceId.equals(transactionV1.getSourceId()) &&
+               destinationId.equals(transactionV1.getDestinationId()) &&
+               amount == transactionV1.getAmount();
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + sourceId.hashCode();
+        result = prime * result + destinationId.hashCode();
+        result = prime * result + amount;
+        return result;
+    }
 }

@@ -119,9 +119,9 @@ public class CriptoService implements UDPService {
         storage.transfer(sourceClientId, feeReceiverId, 1);
     }
 
-    private void sendTransactionReplyToClient(String senderId, UUID requestUuid) {
+    private void sendTransactionReplyToClient(String clientId, UUID requestUuid) {
         TransferRequestSucessResultMessage reply = new TransferRequestSucessResultMessage(config.getId(), requestUuid);
-        link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_SUCESS_RESULT, reply.tojson()));   
+        link.send(clientId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_SUCESS_RESULT, reply.tojson()));   
     }
 
     private class InvalidTransferRequest extends RuntimeException {}
@@ -153,7 +153,7 @@ public class CriptoService implements UDPService {
         doTransactionAndPayNode(sourceClientId, destinationClientId, amount, feeReceiverId);
 
         UUID requestUuid = getRequestUuid(sourceClientId, destinationClientId, amount);
-        sendTransactionReplyToClient(feeReceiverId, requestUuid);
+        sendTransactionReplyToClient(sourceClientId, requestUuid);
     }
 
     /*

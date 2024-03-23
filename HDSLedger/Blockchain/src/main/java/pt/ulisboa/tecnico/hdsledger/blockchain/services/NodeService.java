@@ -480,6 +480,10 @@ public class NodeService implements UDPService {
         // Find value with valid quorum
         Optional<TransactionV2> preparedValue = prepareMessages.hasValidPrepareQuorum(config.getId(), consensusInstance, round);
         if (preparedValue.isPresent() && instance.getPreparedRound() < round) {
+            
+            LOGGER.log(Level.INFO,
+                MessageFormat.format("{0} - Received quorum of PREPARE messages for instance {1}",
+                    config.getId(), consensusInstance));
 
             instance.setPreparedRound(round);
 
@@ -489,7 +493,6 @@ public class NodeService implements UDPService {
                 LOGGER.log(Level.INFO,
                     MessageFormat.format("{0} - Node is byzantine, setting a fake/random PREPARE VALUE after receiving quorum of PREPARE-MESSAGE's", config.getId()));
 
-                int valueLength = RandomIntGenerator.generateRandomInt(1, 5);
                 TransactionV2 randomValue = TransactionV2.createRandom();
                 instance.setPreparedValue(randomValue);
             } else

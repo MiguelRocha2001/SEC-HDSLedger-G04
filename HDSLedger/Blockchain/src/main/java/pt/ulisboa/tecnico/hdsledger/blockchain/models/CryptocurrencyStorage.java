@@ -37,9 +37,12 @@ public class CryptocurrencyStorage {
     }
 
     public void transfer(String sourceId, String destinationId, int amount) {
-        int balance = getBalance(sourceId);
-        if (balance >= amount) {
-            getBalance(destinationId);
+        int sourceBalance = getBalance(sourceId);
+        if (sourceBalance >= amount) {
+            accounts.put(sourceId, sourceBalance - amount);
+            
+            int destinationBalance = accounts.get(destinationId);
+            accounts.put(destinationId, destinationBalance + amount);
         } else
             throw new InvalidAmmountException();
     }

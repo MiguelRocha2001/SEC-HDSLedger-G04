@@ -28,4 +28,36 @@ public class TransactionV2 {
     public String getReceiverId() {
         return receiverId;
     }
+
+    @Override
+    public boolean equals(Object objectArg) {
+        if (this == objectArg)
+            return true;
+
+        if (!(objectArg instanceof TransactionV2))
+            return false;
+
+        TransactionV2 transactionV2 = (TransactionV2) objectArg;
+        
+        if (
+            receiverId.equals(transactionV2.getReceiverId())
+            &&
+            transactionv1.getAmount() == transactionV2.getAmount()
+            &&
+            transactionv1.getSourceId().equals(transactionV2.getSourceId())
+            &&
+            transactionv1.getDestinationId().equals(transactionV2.getDestinationId())
+        ) return true;
+
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((receiverId == null) ? 0 : receiverId.hashCode());
+        result = prime * result + ((transactionv1 == null) ? 0 : transactionv1.hashCode());
+        return result;
+    }
 }
