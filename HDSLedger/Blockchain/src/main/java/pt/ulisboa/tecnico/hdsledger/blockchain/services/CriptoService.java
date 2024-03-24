@@ -100,23 +100,21 @@ public class CriptoService implements UDPService {
     }
 
     private void transfer(UUID requestUuid, PublicKey source, PublicKey destination, int amount, byte[] helloSignature) {
+        int sourceBalance = checkBalance(source);
+
         String sourceClientId = criptoUtils.getClientId(source);
         String destinationClientId = criptoUtils.getClientId(destination);
+
+        if (sourceBalance < amount) {
+            sendInvalidAmountReply(sourceClientId, requestUuid);
+        }
+
         TransactionV1 transaction = new TransactionV1(sourceClientId, destinationClientId, amount);
 
         // Stores request so, after consensus is finished, is possible to locate original request
         transferRequests.add(new Pair<UUID,TransactionV1>(requestUuid, transaction));
 
         nodeService.startConsensus(transaction, helloSignature);
-    }
-
-
-    /**
-     * Transfers [amount] from [sourceClientId] to [destinationClientId], and pays a fee to [receiverId]
-     */
-    private void doTransactionAndPayNode(String sourceClientId, String destinationClientId, int amount, String feeReceiverId) {
-        storage.transfer(sourceClientId, destinationClientId, amount);
-        storage.transfer(sourceClientId, feeReceiverId, 1);
     }
 
     private void sendTransactionReplyToClient(String clientId, UUID requestUuid) {
@@ -143,37 +141,29 @@ public class CriptoService implements UDPService {
     }
 
     /**
-     * Trasnfers units from sourceClientId to destinationClientId, and a fee to receiverId
-     * @param sourceClientId
-     * @param destinationClientId
-     * @param amount
-     * @param feeReceiverId
+     * Transfers units from [sourceClientId] to destinationClientId, and a fee to receiverId.
+     * If, meanwhile, [sourceClientId] has not a sufficient balance, the function sends an apropriate
+     * reply to the client.
+     * @return true if transaction was successfull. Otherwise, retuns false
      */
-    public void applyTransaction(String sourceClientId, String destinationClientId, int amount, String feeReceiverId) {
-        doTransactionAndPayNode(sourceClientId, destinationClientId, amount, feeReceiverId);
-
+    public boolean applyTransaction(String sourceClientId, String destinationClientId, int amount, String feeReceiverId) {
         UUID requestUuid = getRequestUuid(sourceClientId, destinationClientId, amount);
-        sendTransactionReplyToClient(sourceClientId, requestUuid);
+        
+        // checks balance again
+        int sourceBalance = storage.getBalance(sourceClientId);
+        if (sourceBalance < amount) {
+            sendInvalidAmountReply(sourceClientId, requestUuid);
+        }
+
+        try {
+            storage.transferTwoTimes(sourceClientId, destinationClientId, amount, feeReceiverId, 1); // TODO: maybe change from 1 to another value
+            sendTransactionReplyToClient(sourceClientId, requestUuid);
+            return true;
+        } catch(InvalidAmmountException e) {
+            sendInvalidAmountReply(sourceClientId, requestUuid);
+            return false;
+        }
     }
-
-    /*
-    private void appendString(BlockchainRequestMessage message) {
-        String senderId = message.getSenderId();
-
-        LOGGER.log(Level.INFO,
-            MessageFormat.format(
-                "{0} - Received APPEND-REQUEST message from {1}",
-                config.getId(), senderId));
-
-        AppendRequestMessage request = message.deserializeAppendRequest();
-        String valueToAppend = request.getMessage();
-        byte[] valueSignature = request.getValueSignature();
-    
-        requests.add(new Pair<String, Pair<String, byte[]>>(senderId, new Pair<String, byte[]>(valueToAppend, valueSignature)));
-
-        nodeService.startConsensus(valueToAppend, valueSignature);
-    }
-    */
 
     // It's not necessary to verify if the sender is the owner of the public key since the Link layer already garantees that.
     private void getBalanceRequest(BlockchainRequestMessage message) {
@@ -240,8 +230,7 @@ public class CriptoService implements UDPService {
             link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, reply.tojson()));
 
         } catch (InvalidAmmountException e) {
-            TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid amount!", requestUuid);
-            link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, reply.tojson()));
+            sendInvalidAmountReply(senderId, requestUuid);
 
         } catch (InvalidClientKeyException e) {
             TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid client public key!", requestUuid);
@@ -249,6 +238,11 @@ public class CriptoService implements UDPService {
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error: {1}", config.getId(), e.getMessage()));
         }
+    }
+
+    private void sendInvalidAmountReply(String targetId, UUID requestUuid) {
+        TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid amount!", requestUuid);
+        link.send(targetId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, reply.tojson()));
     }
 
     @Override

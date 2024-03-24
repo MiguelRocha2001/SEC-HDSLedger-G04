@@ -628,26 +628,22 @@ public class NodeService implements UDPService {
      * Appends the value to the ledger and increments [lastDecidedConsensusInstance]
      */
     private void appendValue(int consensusInstance, int round, TransactionV2 value) {
-        appendToLedger(consensusInstance, value);
+        // Applies transaction and warn client
+        // At this point, every node will decide the same transaction. Therefore, this transaction will be successfull or not for every node.
+        // For instance, T1 could invalidate T2, waiting for T1, because it removed every unit in the account.
+        boolean successfull = criptoService.applyTransaction(value.getSourceId(), value.getDestinationId(), value.getAmount(), value.getReceiverId());
 
-        // Applies transaction and warns clients
-        criptoService.applyTransaction(value.getSourceId(), value.getDestinationId(), value.getAmount(), value.getReceiverId());
+        if (successfull)
+            appendToLedger(consensusInstance, value);
 
+        // Will be always incremented despite transaction is appended or not.
+        // Therefore, next consensus instances could be decided.
         lastDecidedConsensusInstance.getAndIncrement();
 
         LOGGER.log(Level.WARNING,
                 MessageFormat.format(
                         "{0} - Decided on Consensus Instance {1}, Round {2}, Successful? {3}",
                         config.getId(), consensusInstance, round, true));
-
-        // start new consensus instance, if theres more pending requests
-        /*
-        if (!requests.isEmpty()) {
-            String nextRequestValueToAppend = requests.get(0).getValue().getKey();
-            String valueSignature = requests.get(0).getValue().getValue();
-            startConsensus(nextRequestValueToAppend, valueSignature);
-        }
-        */
     }
 
     private boolean justifyRoundChange(int instance, int round) {
