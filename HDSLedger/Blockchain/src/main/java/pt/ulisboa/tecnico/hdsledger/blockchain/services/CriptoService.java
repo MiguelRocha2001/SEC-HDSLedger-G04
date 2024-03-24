@@ -186,7 +186,7 @@ public class CriptoService implements UDPService {
         UUID requestUuid = request.getUuid();
 
         try {
-            PublicKey clientPublicKey = request.getClientPublicKey();
+            PublicKey clientPublicKey = criptoUtils.getClientPublicKey(senderId);
 
             Integer balance = checkBalance(clientPublicKey); // null if [clientPublicKey] is unknown
             if (balance != null) {

@@ -40,6 +40,9 @@ public class Node {
             // Create configuration instances
             ServerConfig[] nodesConfigAUx = new ServerConfigBuilder().fromFile(PROCESSE_CONFIG_PATH + nodesConfigArg);
             ClientConfig[] clientConfigsAux = new ClientConfigBuilder().fromFile(PROCESSE_CONFIG_PATH + clientsConfigArg);
+            
+            // Removes clients with ID equal to "null"
+            clientConfigsAux = new ClientConfigBuilder().removeUnknownClients(clientConfigsAux);
 
             ProcessConfig[] serversConfig = ServerConfigBuilder.fromServerConfigToProcessConfig(nodesConfigAUx, false);
             ProcessConfig[] clientsConfig = ClientConfigBuilder.fromClientConfigToProcessConfig(clientConfigsAux);

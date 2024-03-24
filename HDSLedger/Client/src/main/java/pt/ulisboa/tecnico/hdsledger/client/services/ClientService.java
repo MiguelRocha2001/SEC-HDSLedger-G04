@@ -58,33 +58,6 @@ public class ClientService implements UDPService {
         return this.config;
     }
 
-    /*
-    public void appendRequest(String value) {
-        try {
-            byte[] signature = criptoUtils.getMessageSignature(value.getBytes(), config.getId());
-            byte[] signatureEnconded = Base64.getEncoder().encodeToString(signature).getBytes(); // encodes to Base 64
-
-            AppendRequestMessage request = new AppendRequestMessage(config.getId(), value, signatureEnconded);
-            String requestStr = new Gson().toJson(request);
-
-            link.broadcast(new BlockchainRequestMessage(config.getId(), Message.Type.APPEND_REQUEST, requestStr));
-        } catch (Exception e) {
-            LOGGER.log(Level.INFO, MessageFormat.format("{0}", e));
-        }
-    }
-    */
-
-    /*
-    private void appendValueResultReceived(BlockchainResponseMessage message) {
-        AppendRequestResultMessage response = message.deserializeAppendRequestResultMessage();
-
-        LOGGER.log(Level.INFO,
-            MessageFormat.format(
-                "Value {0} appended in block: {1}",
-                response.getAppendedValue(), response.getBlockIndex()));
-    }
-    */
-
     /**
      * Requests current account balance for self.
      */

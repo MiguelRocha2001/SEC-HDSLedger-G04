@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 
 import pt.ulisboa.tecnico.hdsledger.communication.Message.Type;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
+import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.PublicKeyNotFound;
 import pt.ulisboa.tecnico.hdsledger.utilities.*;
 
 import java.io.IOException;
@@ -227,6 +228,12 @@ public class Link {
         String senderId = message.getSenderId();
         int messageId = message.getMessageId();
 
+        if (!nodes.containsKey(senderId)) {
+            LOGGER.log(Level.WARNING, MessageFormat.format("{0} - Message {1} came from an unknown sender. Ignoring...",
+                        config.getId(), message.getMessageId()));
+            message.setType(Message.Type.IGNORE);
+        }
+
         if (config.getByzantineBehavior() == ByzantineBehavior.DONT_VERIFY_SIGNATURES) {
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Node is byzantine (DONT_VERIFY_SIGNATURES). Message {1} wont be verified",
                         config.getId(), message.getMessageId()));
@@ -238,8 +245,6 @@ public class Link {
                         config.getId(), message.getMessageId()));
                     message.setType(Message.Type.IGNORE);
                     //throw new HDSSException(ErrorMessage.MessageVerificationFail);
-                } else {
-                    // Do nothing
                 }
             } catch(
                 IOException |
@@ -250,18 +255,14 @@ public class Link {
             ) {
                 e.printStackTrace();
                 throw new HDSSException(ErrorMessage.ProgrammingError); // TODO: maybe other exception type ???
+            } catch(PublicKeyNotFound e) {
+                LOGGER.log(Level.WARNING, MessageFormat.format("{0} - Message {1} could not be verified because sender is unknown!",
+                        config.getId(), message.getMessageId()));
+                message.setType(Message.Type.IGNORE);
             }
         } else {
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Message {1} is local and wont be verified",
                         config.getId(), message.getMessageId()));
-        }
-
-        if (!nodes.containsKey(senderId)) {
-            LOGGER.log(Level.WARNING,
-                            MessageFormat.format("{0} - Cant receive message from invalid sender {1}",
-                                    config.getId(), senderId));
-            throw new HDSSException(ErrorMessage.NoSuchNode);
-            //message.setType(Message.Type.IGNORE);
         }
 
         // Handle ACKS, since it's possible to receive multiple acks from the same
@@ -277,14 +278,17 @@ public class Link {
             message = new Gson().fromJson(serialized, this.messageClass);
         }
 
-        boolean isRepeated = !receivedMessages.get(message.getSenderId()).add(messageId);
-        Type originalType = message.getType();
-        // Message already received (add returns false if already exists) => Discard
-        if (isRepeated) {
-            //LOGGER.log(Level.WARNING, MessageFormat.format("{0} - Message {1} is repeated; TYPE: {2}",
-            //            config.getId(), message.getMessageId(), message.getType()));
-            message.setType(Message.Type.IGNORE);
+        if (message.getType() != Type.IGNORE) {
+            boolean isRepeated = !receivedMessages.get(message.getSenderId()).add(messageId);
+            // Message already received (add returns false if already exists) => Discard
+            if (isRepeated) {
+                //LOGGER.log(Level.WARNING, MessageFormat.format("{0} - Message {1} is repeated; TYPE: {2}",
+                //            config.getId(), message.getMessageId(), message.getType()));
+                message.setType(Message.Type.IGNORE);
+            }
         }
+
+        Type originalType = message.getType();
 
         switch (message.getType()) {
             case PRE_PREPARE -> {

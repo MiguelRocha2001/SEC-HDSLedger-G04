@@ -30,8 +30,9 @@ public class CriptoUtils {
 
     private static final CustomLogger LOGGER = new CustomLogger(CriptoUtils.class.getName());
 
-    private String KEY_LOCATION = "../resources/keys/";
-    private Path directory = Paths.get(KEY_LOCATION);
+    private String REGISTERED_KEY_LOCATION = "../resources/keys/";
+    private String UNREGISTERED_KEY_LOCATION = "../resources/unregistered/";
+    private Path directory = Paths.get(REGISTERED_KEY_LOCATION);
 
     private PrivateKey privateKey;
     private Map<String, PublicKey> clientPublicKeys = new HashMap<>();
@@ -42,15 +43,13 @@ public class CriptoUtils {
     public class InvalidClientKeyException extends RuntimeException {}
     public class InvalidIdException extends RuntimeException {}
     public class InvalidClientIdException extends RuntimeException {}
+    public class PublicKeyNotFound extends RuntimeException {}
 
-    /**
-     * 
-     */
     public CriptoUtils(String nodeId, String nodeIds[]) {
         try {
             this.nodeIds = nodeIds;
             loadPrivateKey(nodeId);
-            loadPublicKeys();
+            loadPublicKeys(nodeId);
         } catch (Exception e) {
             // TODO: log error using costumn logger
             e.printStackTrace();
@@ -89,16 +88,22 @@ public class CriptoUtils {
      * @param nodeId used to locate public key inside path
      */
     private void loadPrivateKey(String nodeId) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
-        String pathToPrivKey = KEY_LOCATION + "private" + nodeId + ".key";
+        String pathToPrivKey;
+
+        if (nodeId.equals("null"))
+            pathToPrivKey = UNREGISTERED_KEY_LOCATION + "private" + nodeId + ".key";
+        else
+            pathToPrivKey = REGISTERED_KEY_LOCATION + "private" + nodeId + ".key";
+
         this.privateKey = (PrivateKey) RSAKeyGenerator.read(pathToPrivKey, "priv");
     }
 
     /**
      * Loads all public keys inside "HDSLedger/resources/keys" path.
      */
-    private void loadPublicKeys() throws IOException
+    private void loadPublicKeys(String processIdVar) throws IOException
     {
-        // Iterate over all files in the directory
+        // Iterate over all files in the directory of REGISTERED Public keys
         Files.walk(directory)
             .filter(Files::isRegularFile)
             .forEach(filePath -> {
@@ -119,7 +124,7 @@ public class CriptoUtils {
                             !nodePublicKeys.containsKey(processId)
                         )
                     ) {
-                        String pathToPubKey = KEY_LOCATION + "public" + processId + ".key";                
+                        String pathToPubKey = REGISTERED_KEY_LOCATION + "public" + processId + ".key";                
         
                         try {
                             PublicKey publicKey = (PublicKey) RSAKeyGenerator.read(pathToPubKey, "pub");
@@ -129,7 +134,7 @@ public class CriptoUtils {
                             else
                                 clientPublicKeys.put(processId, publicKey);
 
-                            LOGGER.log(Level.INFO, MessageFormat.format("Process {0} keys loaded", processId));
+                            //LOGGER.log(Level.INFO, MessageFormat.format("Process {0} keys loaded", processId));
 
                         } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException e) {
                             // TODO: log error using costumn logger
@@ -139,6 +144,19 @@ public class CriptoUtils {
                     }
                 }
             });
+
+            // Loads unregistered public key if process ID is "null"
+            if (processIdVar.equals("null")) {
+                String pathToPubKey = UNREGISTERED_KEY_LOCATION + "public" + processIdVar + ".key";
+                try {
+                    PublicKey publicKey = (PublicKey) RSAKeyGenerator.read(pathToPubKey, "pub");
+                    clientPublicKeys.put(processIdVar, publicKey);   
+                } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException e) {
+                    // TODO: log error using costumn logger
+                    e.printStackTrace();
+                    throw new HDSSException(ErrorMessage.CannotLoadKeys);
+                }
+            }
     }
 
     private static byte[] appendArrays(byte[] arr1, byte[] arr2) {
@@ -275,7 +293,7 @@ public class CriptoUtils {
             return verifySignature(publicKey, originalMessage, signature);
         } else {
             // Handle the case where keys for the specified node ID are not found
-            throw new HDSSException(ErrorMessage.ProgrammingError); // TODO: improve later
+            throw new PublicKeyNotFound();
         }
     }
 

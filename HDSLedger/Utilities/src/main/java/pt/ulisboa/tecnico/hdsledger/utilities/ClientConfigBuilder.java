@@ -8,10 +8,23 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 
 public class ClientConfigBuilder {
 
     private final ClientConfig instance = new ClientConfig();
+
+    public ClientConfig[] removeUnknownClients(ClientConfig[] clientConfigs) {
+        ArrayList<ClientConfig> trimmedClients = new ArrayList<ClientConfig>();
+        
+        for (int u = 0; u < clientConfigs.length; u++) {
+            ClientConfig c = clientConfigs[u];
+            if (!c.getId().equals("null"))
+                trimmedClients.add(c);
+        }
+
+        return trimmedClients.toArray(new ClientConfig[1]);
+    }
 
     public ClientConfig[] fromFile(String path) {
         System.out.println(path);

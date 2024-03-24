@@ -56,7 +56,7 @@ public class Client {
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Process is listenning on port host and port {1}:{2}",
                     nodeConfig.getId(), nodeConfig.getHostname(), nodeConfig.getPort()));
 
-            boolean isByzantine = clientConfigAux.getByzantineBehavior() == ByzantineBehavior.CLIENT_IS_BYZANTINE;
+            boolean isByzantine = clientConfigAux.getByzantineBehavior() == ByzantineBehavior.IS_BYZANTINE;
             processRequests(clientService, isByzantine);
 
         } catch (Exception e) {
