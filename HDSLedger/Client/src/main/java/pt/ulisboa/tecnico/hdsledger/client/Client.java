@@ -56,16 +56,16 @@ public class Client {
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Process is listenning on port host and port {1}:{2}",
                     nodeConfig.getId(), nodeConfig.getHostname(), nodeConfig.getPort()));
 
-            Scanner in = new Scanner(System.in);
             boolean isByzantine = clientConfigAux.getByzantineBehavior() == ByzantineBehavior.CLIENT_IS_BYZANTINE;
-            processRequests(clientService, in, isByzantine);
+            processRequests(clientService, isByzantine);
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private static void processRequests(ClientService clientService, Scanner in, boolean isByzantine) {
+    private static void processRequests(ClientService clientService, boolean isByzantine) {
+        Scanner in = new Scanner(System.in);
         while (true) {
             printMenu();
             Operation oper = getOperation(in, isByzantine);
@@ -79,7 +79,7 @@ public class Client {
                 clientService.transfer(operCasted.destinationId, operCasted.amount);
             } else if (oper instanceof ByzantineTransfer) {
                 ByzantineTransfer operCasted = (ByzantineTransfer)(oper);
-                clientService.transfer(operCasted.sourceId, operCasted.destinationId, operCasted.amount);
+                clientService.transfer(operCasted.sourceId, operCasted.destinationId, operCasted.amount, true);
             }
             else if (oper == null)
                 System.out.println("Invalid operation!");
@@ -122,11 +122,12 @@ public class Client {
     }
 
     private static Operation getOperation(Scanner in, boolean isByzantine) {
-        switch (in.nextLine()) {
+        String oper = in.next();
+        switch (oper) {
             case "1": {
                 if (isByzantine) {
                     System.out.print("Client ID: ");
-                    String clientId = in.nextLine();
+                    String clientId = in.next();
                     return new ByzantineBalance(clientId);
                 } else
                     return new Balance();
@@ -134,12 +135,12 @@ public class Client {
 
             case "2": {
                 System.out.print("Destination ID: ");
-                String destinationId = in.nextLine();
+                String destinationId = in.next();
                 System.out.print("Amount: ");
                 int amount = in.nextInt();
                 if (isByzantine) {
                     System.out.print("Source ID: ");
-                    String sourceId = in.nextLine();
+                    String sourceId = in.next();
                     return new ByzantineTransfer(sourceId, destinationId, amount);
                 } else {
                     return new Transfer(destinationId, amount);
@@ -150,5 +151,4 @@ public class Client {
                 return null;
         }
     }
-
 }

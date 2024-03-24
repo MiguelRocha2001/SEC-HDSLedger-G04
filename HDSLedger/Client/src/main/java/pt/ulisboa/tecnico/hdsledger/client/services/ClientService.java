@@ -1,6 +1,7 @@
 package pt.ulisboa.tecnico.hdsledger.client.services;
 
 import java.io.IOException;
+import java.security.InvalidKeyException;
 import java.security.PublicKey;
 import java.text.MessageFormat;
 import java.util.Base64;
@@ -23,6 +24,8 @@ import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestSucessResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidClientIdException;
+import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidClientKeyException;
+import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidIdException;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.Utils;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
@@ -147,22 +150,28 @@ public class ClientService implements UDPService {
         }
     }
 
-    public void transfer(String clientSourceId, String clientDestinationId, int amount) {
+    public void transfer(String clientSourceId, String clientDestinationId, int amount, boolean isByzantine) {
+        PublicKey selfPublicKey = criptoUtils.getClientPublicKey(clientSourceId);
         try {
-            PublicKey selfPublicKey = criptoUtils.getClientPublicKey(clientSourceId);
-            PublicKey destPublicKey = criptoUtils.getClientPublicKey(clientDestinationId);
+            PublicKey destPublicKey;
+            if (isByzantine) {
+                destPublicKey = criptoUtils.getPublicKey(clientDestinationId); // searches for clients and nodes
+            } else {
+                destPublicKey = criptoUtils.getClientPublicKey(clientDestinationId);
+            }
 
             // [messageToSign] represents a transaction
             byte[] messageToSign = Utils.joinArray(clientSourceId.getBytes(), clientDestinationId.getBytes(), Integer.toString(amount).getBytes());
             byte[] requestSignature = criptoUtils.getMessageSignature(messageToSign, config.getId());
-            System.out.println(new String(messageToSign));
 
             TransferRequestMessage request = new TransferRequestMessage(config.getId(), selfPublicKey, destPublicKey, amount, requestSignature);
             String requestStr = request.tojson();
             
             link.broadcast(new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER, requestStr));
         } catch (InvalidClientIdException e) { // [clientDestinationId] is unknown
-            LOGGER.log(Level.INFO, "Invalid client ID");
+            LOGGER.log(Level.INFO, "Invalid client ID!");
+        } catch (InvalidIdException e) { // [clientDestinationId] is unknown
+            LOGGER.log(Level.INFO, "Invalid ID!");
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, 
                 MessageFormat.format("Error while trying to request transfer to client id: {0}. \n{1}", clientDestinationId, e.getMessage())
@@ -171,7 +180,7 @@ public class ClientService implements UDPService {
     }
 
     public void transfer(String clientDestinationId, int amount) {
-        transfer(config.getId(), clientDestinationId, amount);
+        transfer(config.getId(), clientDestinationId, amount, false);
     }
 
     private void onTransferSuccess(BlockchainResponseMessage message) {

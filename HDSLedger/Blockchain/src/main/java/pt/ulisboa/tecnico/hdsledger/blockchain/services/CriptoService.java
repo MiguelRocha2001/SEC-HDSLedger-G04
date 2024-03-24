@@ -99,22 +99,30 @@ public class CriptoService implements UDPService {
         }
     }
 
-    private void transfer(UUID requestUuid, PublicKey source, PublicKey destination, int amount, byte[] helloSignature) {
+    private void transfer(UUID requestUuid, PublicKey source, PublicKey destination, int amount, byte[] helloSignature, String requestSenderId) {
         int sourceBalance = checkBalance(source);
 
-        String sourceClientId = criptoUtils.getClientId(source);
-        String destinationClientId = criptoUtils.getClientId(destination);
+        try {
+            String sourceClientId = criptoUtils.getClientId(source);
+            String destinationClientId = criptoUtils.getClientId(destination);
 
-        if (sourceBalance < amount) {
-            sendInvalidAmountReply(sourceClientId, requestUuid);
+            if (sourceBalance < amount) {
+                sendInvalidAmountReply(sourceClientId, requestUuid);
+            }
+    
+            TransactionV1 transaction = new TransactionV1(sourceClientId, destinationClientId, amount);
+
+            // Stores request so, after consensus is finished, is possible to locate original request
+            transferRequests.add(new Pair<UUID,TransactionV1>(requestUuid, transaction));
+            
+            nodeService.startConsensus(transaction, helloSignature);
+
+        } catch(InvalidClientKeyException e) {
+            // This should never happen because if the node received a transfer request, it means that the Link layer confirmed
+            // the sender ID with a valid client known public key. Therefore, [source] argument should always be associated with
+            // a valid Client ID
+            sendInvalidAccountReply(requestSenderId, requestUuid);
         }
-
-        TransactionV1 transaction = new TransactionV1(sourceClientId, destinationClientId, amount);
-
-        // Stores request so, after consensus is finished, is possible to locate original request
-        transferRequests.add(new Pair<UUID,TransactionV1>(requestUuid, transaction));
-
-        nodeService.startConsensus(transaction, helloSignature);
     }
 
     private void sendTransactionReplyToClient(String clientId, UUID requestUuid) {
@@ -221,13 +229,12 @@ public class CriptoService implements UDPService {
         UUID requestUuid = request.getUuid();
 
         try {
-            transfer(requestUuid, request.getSourcePubKey(), request.getDestinationPubKey(), request.getAmount(), request.getValueSignature());
+            transfer(requestUuid, request.getSourcePubKey(), request.getDestinationPubKey(), request.getAmount(), request.getValueSignature(), senderId);
 
-            // Dont send reply because it has to wait for consensus
+            // Dont send reply because it has to wait for consensus...
 
         } catch(InvalidAccountException e) {
-            TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid account!", requestUuid);
-            link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, reply.tojson()));
+            sendInvalidAccountReply(senderId, requestUuid);
 
         } catch (InvalidAmmountException e) {
             sendInvalidAmountReply(senderId, requestUuid);
@@ -242,6 +249,11 @@ public class CriptoService implements UDPService {
 
     private void sendInvalidAmountReply(String targetId, UUID requestUuid) {
         TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid amount!", requestUuid);
+        link.send(targetId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, reply.tojson()));
+    }
+
+    private void sendInvalidAccountReply(String targetId, UUID requestUuid) {
+        TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid account!", requestUuid);
         link.send(targetId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, reply.tojson()));
     }
 

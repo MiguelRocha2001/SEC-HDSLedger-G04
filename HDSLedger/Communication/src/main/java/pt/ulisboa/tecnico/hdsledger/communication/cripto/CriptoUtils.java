@@ -40,6 +40,7 @@ public class CriptoUtils {
     private final String nodeIds[];
 
     public class InvalidClientKeyException extends RuntimeException {}
+    public class InvalidIdException extends RuntimeException {}
     public class InvalidClientIdException extends RuntimeException {}
 
     /**
@@ -294,9 +295,25 @@ public class CriptoUtils {
         throw new InvalidClientKeyException();
     }
 
-    public PublicKey getClientPublicKey(String clientId) {
-        PublicKey key = clientPublicKeys.get(clientId);
+    public PublicKey getPublicKey(String id) {
+        PublicKey clientPublicKey = clientPublicKeys.get(id);
+        if (clientPublicKey == null) {
+            PublicKey nodePublicKey = nodePublicKeys.get(id);
+            if (nodePublicKey == null)
+                throw new InvalidIdException();
+            else
+                return nodePublicKey;
+        }
+        else
+            return clientPublicKey;
+    }
 
+    public PublicKey getClientPublicKeyOrNull(String clientId) {
+        return clientPublicKeys.get(clientId);
+    }
+
+    public PublicKey getClientPublicKey(String clientId) {
+        PublicKey key = getClientPublicKeyOrNull(clientId);
         if (key == null)
             throw new InvalidClientIdException();
         else

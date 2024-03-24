@@ -1,5 +1,7 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
+import pt.ulisboa.tecnico.hdsledger.utilities.RandomStringGenerator;
+
 public class TransactionV2 {
     private TransactionV1 transactionv1;
     private String receiverId;
@@ -10,7 +12,9 @@ public class TransactionV2 {
     }
 
     public static TransactionV2 createRandom() {
-        return new TransactionV2(null, null); // TODO: improve later!
+        TransactionV1 randomTransactionV1 = TransactionV1.createRandom();
+        String randomReceiverId = RandomStringGenerator.generateRandomString(2);
+        return new TransactionV2(randomTransactionV1, randomReceiverId); // TODO: improve later!
     }
 
     public String getSourceId() {

@@ -1,7 +1,11 @@
 package pt.ulisboa.tecnico.hdsledger.blockchain.services;
 
 import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.SignatureException;
+import java.security.spec.InvalidKeySpecException;
 import java.sql.Time;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -184,6 +188,25 @@ public class NodeService implements UDPService {
             }
         };
     }
+
+    /**
+     * Uses this node Private key to generate the signature.
+     * @return the signature correspondent to the [transactionV2] value.
+     */
+    private byte[] generateValueSignature(TransactionV2 transactionV2) 
+        throws 
+            InvalidKeyException, 
+            NoSuchAlgorithmException, 
+            SignatureException, 
+            InvalidKeySpecException, IOException 
+    {
+        byte[] messageToSign = Utils.joinArray(
+            transactionV2.getSourceId().getBytes(), 
+            transactionV2.getDestinationId().getBytes(), 
+            Integer.toString(transactionV2.getAmount()).getBytes()
+        );
+        return criptoUtils.getMessageSignature(messageToSign, config.getId());
+    }
     
     /*
      * Start an instance of consensus for a value
@@ -252,14 +275,28 @@ public class NodeService implements UDPService {
             if (config.getByzantineBehavior() == ByzantineBehavior.FAKE_LEADER_WITH_FORGED_PRE_PREPARE_MESSAGE)
                 LOGGER.log(Level.INFO,
                     MessageFormat.format("{0} - Node is byzanine leader (FORGED_PRE_PREPARE_MESSAGE). Sending PRE-PREPARE message with leaderId", config.getId()));
-
             
 
-            if (config.getByzantineBehavior() == ByzantineBehavior.BAD_LEADER_PROPOSE) {
+            // Proposes random generated value to all nodes.
+            // Uses self Private Key to generate signature.
+            if (
+                config.getByzantineBehavior() == ByzantineBehavior.BAD_LEADER_PROPOSE_WITH_GENERATED_SIGNATURE
+                ||
+                config.getByzantineBehavior() == ByzantineBehavior.BAD_LEADER_PROPOSE_WITH_ORIGINAL_SIGNATURE
+            ) {
                 for (ServerConfig node : nodesConfig) {
                     TransactionV2 randomValue = TransactionV2.createRandom();
-                    
-                    this.linkToNodes.send(node.getId(), this.createConsensusMessage(randomValue, localConsensusInstance, instance.getCurrentRound(), valueSignature));
+                    try {
+                        byte[] signature;
+                        if (config.getByzantineBehavior() == ByzantineBehavior.BAD_LEADER_PROPOSE_WITH_GENERATED_SIGNATURE)
+                            signature = generateValueSignature(randomValue);
+                        else
+                            signature = valueSignature;
+
+                        this.linkToNodes.send(node.getId(), this.createConsensusMessage(randomValue, localConsensusInstance, instance.getCurrentRound(), signature));
+                    } catch (Exception e) {
+                        throw new HDSSException(ErrorMessage.ProgrammingError); // Should be improved later!
+                    }
                 }
                 return;
             } 
@@ -308,7 +345,11 @@ public class NodeService implements UDPService {
      * Returns the bytes that were used to sign value message.
      */
     private byte[] getOriginalValue(TransactionV2 value) {
-        return Utils.joinArray(value.getSourceId().getBytes(), value.getDestinationId().getBytes(), Integer.toString(value.getAmount()).getBytes());
+        return Utils.joinArray(
+            value.getSourceId().getBytes(), 
+            value.getDestinationId().getBytes(), 
+            Integer.toString(value.getAmount()).getBytes()
+        );
     }
 
     /*
@@ -340,7 +381,7 @@ public class NodeService implements UDPService {
                 return;
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - {1}", config.getId(), e.getMessage()));
+            LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - {1}\n{2}", config.getId(), e.getLocalizedMessage()));
             throw new HDSSException(ErrorMessage.ProgrammingError);
         }
         
@@ -721,7 +762,7 @@ public class NodeService implements UDPService {
                         MessageFormat.format("{0} - Received justified quorum of ROUND_CHANGE messages and Iam the leader",
                             config.getId()));
 
-            // changes the input value to a random value with random size
+            // Changes the input value to a newly generated random value.
             if (config.getByzantineBehavior() == ByzantineBehavior.BYZANTINE_UPON_ROUND_CHANGE_QUORUM) {
 
                 LOGGER.log(Level.INFO,

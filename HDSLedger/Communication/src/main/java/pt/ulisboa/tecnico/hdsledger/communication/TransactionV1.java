@@ -1,5 +1,8 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
+import pt.ulisboa.tecnico.hdsledger.utilities.RandomIntGenerator;
+import pt.ulisboa.tecnico.hdsledger.utilities.RandomStringGenerator;
+
 public class TransactionV1 {
     private String sourceId; 
     private String destinationId;
@@ -9,6 +12,13 @@ public class TransactionV1 {
         this.sourceId = sourceId;
         this.destinationId = destinationId;
         this.amount = amount;
+    }
+
+    public static TransactionV1 createRandom() {
+        String randomSourceId = RandomStringGenerator.generateRandomString(2);
+        String randomDestinationId = RandomStringGenerator.generateRandomString(2);
+        int randomAmount = RandomIntGenerator.generateRandomInt(1, 100);
+        return new TransactionV1(randomSourceId, randomDestinationId, randomAmount);
     }
 
     public String getSourceId() {
