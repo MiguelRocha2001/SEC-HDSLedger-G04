@@ -304,11 +304,10 @@ public class NodeService implements UDPService {
             // TODO: this only makes sense if the sent value is fake
             if (config.getByzantineBehavior() == ByzantineBehavior.FAKE_LEADER_WITH_FORGED_PRE_PREPARE_MESSAGE) {
                 this.linkToNodes.broadcast(this.createConsensusMessage(instance.getLeaderId(), value, localConsensusInstance, instance.getCurrentRound(), valueSignature));    
+                return;
             }
             
-
-            if (config.getByzantineBehavior() == ByzantineBehavior.NONE)
-                this.linkToNodes.broadcast(this.createConsensusMessage(value, localConsensusInstance, instance.getCurrentRound(), valueSignature));    
+            this.linkToNodes.broadcast(this.createConsensusMessage(value, localConsensusInstance, instance.getCurrentRound(), valueSignature));    
 
         } else {
             LOGGER.log(Level.INFO,
@@ -390,6 +389,9 @@ public class NodeService implements UDPService {
                 MessageFormat.format(
                         "{0} - Received PRE-PREPARE message from {1} Consensus Instance {2}, Round {3}",
                         config.getId(), senderId, consensusInstance, round));
+
+        // Set instance value
+        this.instanceInfo.putIfAbsent(consensusInstance, createInstanceInfo(consensusInstance, valueSignature, value));
                         
         InstanceInfo instance = this.instanceInfo.get(consensusInstance);
 
@@ -409,11 +411,8 @@ public class NodeService implements UDPService {
                 return;
             }
         } catch(Exception e) {
-
+            // TODO
         }
-
-        // Set instance value
-        this.instanceInfo.putIfAbsent(consensusInstance, createInstanceInfo(consensusInstance, instance.getValueSignature(), value));
 
         // Within an instance of the algorithm, each upon rule is triggered at most once
         // for any round r
@@ -490,10 +489,10 @@ public class NodeService implements UDPService {
         // Doesn't add duplicate messages
         prepareMessages.addMessage(message);
 
-        InstanceInfo instance = this.instanceInfo.get(consensusInstance);
-
         // Set instance values
-        this.instanceInfo.putIfAbsent(consensusInstance, createInstanceInfo(consensusInstance, instance.getValueSignature(), value));
+        this.instanceInfo.putIfAbsent(consensusInstance, createInstanceInfo(consensusInstance, valueSignature, value));
+
+        InstanceInfo instance = this.instanceInfo.get(consensusInstance);
 
         // Within an instance of the algorithm, each upon rule is triggered at most once
         // for any round r

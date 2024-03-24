@@ -63,11 +63,16 @@ public class CryptocurrencyStorage {
         String destinationId1, 
         int amount1, 
         String destinationId2, 
-        int amount2
+        int amount2,
+        boolean checkAmount
     ) {
         lock.lock();
         int sourceBalance = getBalance(sourceId);
-        if (sourceBalance >= amount1 + amount2) {
+        if (checkAmount && sourceBalance < amount1 + amount2) {
+            lock.unlock();
+            throw new InvalidAmmountException();
+        
+        } else {
             int newSourceBalance = sourceBalance - amount1;
             accounts.put(sourceId, newSourceBalance);
             int destinationBalance1 = accounts.get(destinationId1);
@@ -78,9 +83,6 @@ public class CryptocurrencyStorage {
             accounts.put(destinationId2, destinationBalance2 + amount2);
 
             lock.unlock();
-        } else {
-            lock.unlock();
-            throw new InvalidAmmountException();
         }
     }
 }

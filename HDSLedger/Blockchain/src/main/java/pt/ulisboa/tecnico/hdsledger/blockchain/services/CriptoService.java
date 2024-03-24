@@ -90,7 +90,7 @@ public class CriptoService implements UDPService {
      * @param key account user Public key
      * @return the balance or null if the user does not exist
      */
-    private Integer checkBalance(PublicKey key) {
+    private Integer getBalanceOrNull(PublicKey key) {
         if (criptoUtils.isAcossiatedWithClient(key)) {
             String clientId = criptoUtils.getClientId(key);
             return storage.getBalance(clientId);
@@ -99,15 +99,23 @@ public class CriptoService implements UDPService {
         }
     }
 
-    private void transfer(UUID requestUuid, PublicKey source, PublicKey destination, int amount, byte[] helloSignature, String requestSenderId) {
-        int sourceBalance = checkBalance(source);
+    private void transfer(UUID requestUuid, PublicKey source, PublicKey destination, int amount, byte[] valueSignature, String requestSenderId) {
+        int sourceBalance = getBalanceOrNull(source);
 
         try {
             String sourceClientId = criptoUtils.getClientId(source);
             String destinationClientId = criptoUtils.getClientId(destination);
 
-            if (sourceBalance < amount) {
-                sendInvalidAmountReply(sourceClientId, requestUuid);
+            if (config.getByzantineBehavior() != ByzantineBehavior.DONT_VALIDATE_TRANSACTION) {
+                if (sourceBalance < amount) {
+                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction {1} could not be verified!", config.getId(), requestUuid));
+                    sendInvalidAmountReply(sourceClientId, requestUuid);
+                    return;
+                } else {
+                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction {1} verified.", config.getId(), requestUuid));
+                }
+            } else {
+                LOGGER.log(Level.INFO, MessageFormat.format("{0} - Node is Byzantine. Not verifying transaction {1}.", config.getId(), requestUuid));
             }
     
             TransactionV1 transaction = new TransactionV1(sourceClientId, destinationClientId, amount);
@@ -115,7 +123,7 @@ public class CriptoService implements UDPService {
             // Stores request so, after consensus is finished, is possible to locate original request
             transferRequests.add(new Pair<UUID,TransactionV1>(requestUuid, transaction));
             
-            nodeService.startConsensus(transaction, helloSignature);
+            nodeService.startConsensus(transaction, valueSignature);
 
         } catch(InvalidClientKeyException e) {
             // This should never happen because if the node received a transfer request, it means that the Link layer confirmed
@@ -155,20 +163,40 @@ public class CriptoService implements UDPService {
      * @return true if transaction was successfull. Otherwise, retuns false
      */
     public boolean applyTransaction(String sourceClientId, String destinationClientId, int amount, String feeReceiverId) {
-        UUID requestUuid = getRequestUuid(sourceClientId, destinationClientId, amount);
-        
-        // checks balance again
-        int sourceBalance = storage.getBalance(sourceClientId);
-        if (sourceBalance < amount) {
-            sendInvalidAmountReply(sourceClientId, requestUuid);
-        }
-
         try {
-            storage.transferTwoTimes(sourceClientId, destinationClientId, amount, feeReceiverId, 1); // TODO: maybe change from 1 to another value
-            sendTransactionReplyToClient(sourceClientId, requestUuid);
-            return true;
-        } catch(InvalidAmmountException e) {
-            sendInvalidAmountReply(sourceClientId, requestUuid);
+            UUID requestUuid = getRequestUuid(sourceClientId, destinationClientId, amount);
+
+            boolean validateTransaction = config.getByzantineBehavior() != ByzantineBehavior.DONT_VALIDATE_TRANSACTION;
+        
+            if (validateTransaction) {
+                // checks balance again
+                int sourceBalance = storage.getBalance(sourceClientId);
+                if (sourceBalance < amount) {
+
+                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction {1} could not be verified after end of consensus!", config.getId(), requestUuid));
+
+                    sendInvalidAmountReply(sourceClientId, requestUuid);
+                } else {
+                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction {1} verified after end of consensus!", config.getId(), requestUuid));
+                }
+            } else {
+                LOGGER.log(Level.INFO, MessageFormat.format("{0} - Node is Byzantine. Not verifying transaction {1} after end of consensus.", config.getId(), requestUuid));
+            }
+
+            try {
+                storage.transferTwoTimes(sourceClientId, destinationClientId, amount, feeReceiverId, 1, validateTransaction); // TODO: maybe change from 1 to another value
+                sendTransactionReplyToClient(sourceClientId, requestUuid);
+                return true;
+            } catch(InvalidAmmountException e) {
+
+                LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction {1} could not be verified after end of consensus!", config.getId(), requestUuid));
+
+                sendInvalidAmountReply(sourceClientId, requestUuid);
+                return false;
+            }
+
+        } catch(InvalidTransferRequest e) { // Happens when UUID cannot be retreived because transaction is unknown.
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction is not registered in storage. Not executing!", config.getId()));
             return false;
         }
     }
@@ -188,7 +216,7 @@ public class CriptoService implements UDPService {
         try {
             PublicKey clientPublicKey = criptoUtils.getClientPublicKey(senderId);
 
-            Integer balance = checkBalance(clientPublicKey); // null if [clientPublicKey] is unknown
+            Integer balance = getBalanceOrNull(clientPublicKey); // null if [clientPublicKey] is unknown
             if (balance != null) {
                 link.send(senderId, buildGetBalanceRequestSuccessResult(balance, requestUuid));
             } else {
@@ -217,18 +245,35 @@ public class CriptoService implements UDPService {
         return new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE_SUCESS_RESULT, reply.tojson());
     }
 
+    private boolean validatePublicKey(String senderId, PublicKey sourcePublicKey) {
+        System.out.println(criptoUtils.getClientId(sourcePublicKey));
+        return senderId.equals(criptoUtils.getClientId(sourcePublicKey));
+    }
+
     private void tranferRequest(BlockchainRequestMessage message) {
         String senderId = message.getSenderId();
 
         LOGGER.log(Level.INFO,
             MessageFormat.format(
                 "{0} - Received TRANFER-REQUEST message from {1}",
-                config.getId(), senderId));
+                    config.getId(), senderId));
 
         TransferRequestMessage request = message.deserializeTransferRequest();
         UUID requestUuid = request.getUuid();
 
         try {
+            if (config.getByzantineBehavior() == ByzantineBehavior.DONT_VALIDATE_TRANSACTION) {
+                LOGGER.log(Level.INFO, MessageFormat.format("{0} - Node is Byzantine. Not validating Transaction request", config.getId(), requestUuid));
+            } else {
+                if (validatePublicKey(senderId, request.getSourcePubKey()))
+                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request validated", config.getId(), requestUuid));
+                else {
+                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request not accepted because Public key doesn't belong to sender", config.getId(), requestUuid));
+                    sendInvalidAccountReply(senderId, requestUuid); 
+                    return;
+                }
+            }
+
             transfer(requestUuid, request.getSourcePubKey(), request.getDestinationPubKey(), request.getAmount(), request.getValueSignature(), senderId);
 
             // Dont send reply because it has to wait for consensus...

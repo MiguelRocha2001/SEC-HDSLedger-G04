@@ -74,14 +74,13 @@ public class Client {
                 clientService.getBalance();
             else if (oper instanceof ByzantineBalance)
                 clientService.getBalance(((ByzantineBalance)oper).clientId);
-            else if (oper instanceof Transfer) {
-                Transfer operCasted = (Transfer)(oper);
-                clientService.transfer(operCasted.destinationId, operCasted.amount);
-            } else if (oper instanceof ByzantineTransfer) {
+            else if (oper instanceof ByzantineTransfer) {
                 ByzantineTransfer operCasted = (ByzantineTransfer)(oper);
                 clientService.transfer(operCasted.sourceId, operCasted.destinationId, operCasted.amount, true);
-            }
-            else if (oper == null)
+            } else if (oper instanceof Transfer) {
+                Transfer operCasted = (Transfer)(oper);
+                clientService.transfer(operCasted.destinationId, operCasted.amount);
+            } else if (oper == null)
                 System.out.println("Invalid operation!");
         }
     }

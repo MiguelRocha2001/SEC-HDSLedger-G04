@@ -47,10 +47,10 @@ For stage 1:
     - Ter amplificação.
 
 For stage 2:
-    - Nao é preciso assinar "hello" no get_balance pq o Link layer ja garante.
+    - Nao é preciso assinar "hello" no get_balance pq o Link layer ja garante: Done
     - Tolerar clientes bizantinos. Os nodes podem ser bizantinos de formas diferenetes da fase 1;
     - Garantir que o clientes nao csg quebrar as dependabilities novas;
-    - Performance é muioto importante: performace normal é performance assumindo que toda a gente sao amigos uns dos outros e ta tudo correto. Existe uma soluçao que  Melhora a performance no lado do server e piora no lado do cliente. Analisar esse impacto. Pode ser da outra way arround; Agr performance under atacks: atackes bizantinos. Garantir que os atackes nao sao problematicos e garantir que a performance nao piora. Alguns casos o IBF ja previne. Mas explicar esses casos que ja tao garantidos no report.
+    - Performance é muito importante: performace normal é performance assumindo que toda a gente sao amigos uns dos outros e ta tudo correto. Existe uma soluçao que melhora a performance no lado do server e piora no lado do cliente. Analisar esse impacto. Pode ser da outra way arround; Agr performance under atacks: atackes bizantinos. Garantir que os atackes nao sao problematicos e garantir que a performance nao piora. Alguns casos o IBF ja previne. Mas explicar esses casos que ja tao garantidos no report.
     - Tomar atençao pra que um cliente nao possa mesmo pegar dinheiro de outra conta pra meter na sua. Isso é mega importante.
     - Garantir nao repudio: garatir mesmo depois das coisas ficarem na blockchain.
     - Os nodes tambem têm contas. Eles vao receber o pagamento da fee (gas in eutherum) dos clients.

@@ -13,10 +13,12 @@ terminal = "kitty"
 server_configs = [
     "correctConfig.json",
     "ignoreRequestsConfig.json",
-    "badLeaderProposeConfig.json",
+    "badLeaderProposeWithGeneratedSignatureConfig.json",
+    "badLeaderProposeWithOriginalSignatureConfig.json",
     "uponPrepareQuorumWrongValue.json",
     "uponRoundChangeQuorumWrongValue.json",
-    "fakeLeaderWithForgedPrePrepareConfig.json"
+    "fakeLeaderWithForgedPrePrepareConfig.json",
+    "dont_validate_transaction.json"
 ]
 
 # Client configuration file name
@@ -25,7 +27,7 @@ client_config = [
 ]
 
 
-server_config = server_configs[5]
+server_config = server_configs[7]
 client_config = client_config[0]
 
 def quit_handler(*args):

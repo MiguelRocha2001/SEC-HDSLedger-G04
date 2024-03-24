@@ -4,7 +4,7 @@
         "hostname": "localhost",
         "port": 3001,
         "clientPort": 4001,
-        "byzantineBehavior": "BAD_LEADER_PROPOSE"
+        "byzantineBehavior": "BAD_LEADER_PROPOSE_WITH_ORIGINAL_SIGNATURE"
     },
     {
         "id": "2",

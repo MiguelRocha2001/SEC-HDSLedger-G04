@@ -9,6 +9,12 @@
         "id": "18",
         "hostname": "localhost",
         "port": 3018,
-        "byzantineBehavior": "CLIENT_IS_BYZANTINE"
+        "byzantineBehavior": "IS_BYZANTINE"
+    },
+    {   
+        "id": "null",
+        "hostname": "localhost",
+        "port": 3019,
+        "byzantineBehavior": "IS_BYZANTINE_AND_NOT_REGISTERED"
     }
 ]

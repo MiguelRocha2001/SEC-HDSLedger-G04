@@ -124,12 +124,15 @@ public class ClientService implements UDPService {
     }
 
     public void transfer(String clientSourceId, String clientDestinationId, int amount, boolean isByzantine) {
-        PublicKey selfPublicKey = criptoUtils.getClientPublicKey(clientSourceId);
         try {
             PublicKey destPublicKey;
+            PublicKey sourcePublicKey;
+
             if (isByzantine) {
+                sourcePublicKey = criptoUtils.getPublicKey(clientSourceId);
                 destPublicKey = criptoUtils.getPublicKey(clientDestinationId); // searches for clients and nodes
             } else {
+                sourcePublicKey = criptoUtils.getClientPublicKey(clientSourceId);
                 destPublicKey = criptoUtils.getClientPublicKey(clientDestinationId);
             }
 
@@ -137,10 +140,11 @@ public class ClientService implements UDPService {
             byte[] messageToSign = Utils.joinArray(clientSourceId.getBytes(), clientDestinationId.getBytes(), Integer.toString(amount).getBytes());
             byte[] requestSignature = criptoUtils.getMessageSignature(messageToSign, config.getId());
 
-            TransferRequestMessage request = new TransferRequestMessage(config.getId(), selfPublicKey, destPublicKey, amount, requestSignature);
+            TransferRequestMessage request = new TransferRequestMessage(config.getId(), sourcePublicKey, destPublicKey, amount, requestSignature);
             String requestStr = request.tojson();
             
             link.broadcast(new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER, requestStr));
+
         } catch (InvalidClientIdException e) { // [clientDestinationId] is unknown
             LOGGER.log(Level.INFO, "Invalid client ID!");
         } catch (InvalidIdException e) { // [clientDestinationId] is unknown
