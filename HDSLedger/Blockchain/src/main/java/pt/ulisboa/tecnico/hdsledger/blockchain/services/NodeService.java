@@ -207,6 +207,17 @@ public class NodeService implements UDPService {
         );
         return criptoUtils.getMessageSignature(messageToSign, config.getId());
     }
+
+    /**
+     * @return the first instance where [nodeId] is leader.
+     */
+    private int getConsensusInstanceWithLeader(String nodeId) {
+        for (int u = 0; u < nodesConfig.length; u++) {
+            if (nodesConfig[u].getId().equals(nodeId))
+                return u + 1;
+        }
+        throw new HDSSException(ErrorMessage.ProgrammingError); // Should be improved later!
+    }
     
     /*
      * Start an instance of consensus for a value
@@ -216,18 +227,36 @@ public class NodeService implements UDPService {
      * @param inputValue Value to value agreed upon
      */
     public void startConsensus(TransactionV1 transactionV1, byte[] valueSignature) {
-
+    
         // Set initial consensus values
-        int localConsensusInstance = this.consensusInstance.incrementAndGet();
+        int localConsensusInstance;
+
+        if (config.getByzantineBehavior() == ByzantineBehavior.FAKE_CONSENSUS_INSTANCE) {
+            localConsensusInstance = getConsensusInstanceWithLeader(config.getId()) + nodesConfig.length; // This only matters if self is the leader
+            
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Node is Byzantine... Faking consensus instance number with {1}",
+                    config.getId(), localConsensusInstance));
+        } else {
+            localConsensusInstance = this.consensusInstance.incrementAndGet();
+        }
 
         String leaderId;
-        if (localConsensusInstance == 1) 
-            leaderId = nodesConfig[0].getId();
-        else {
-            InstanceInfo prevConsensusInstanceInfo = this.instanceInfo.get(localConsensusInstance - 1);
-            String oldLeader = prevConsensusInstanceInfo.getLeaderId();
-            String nextLeader = getNextLeader(oldLeader);
-            leaderId = nextLeader;
+        
+        // If self is faking instance number, 
+        if (config.getByzantineBehavior() == ByzantineBehavior.FAKE_CONSENSUS_INSTANCE) {
+            leaderId = config.getId();
+        } else {
+            leaderId = getLeaderId(localConsensusInstance);
+            /*
+            if (localConsensusInstance == 1) 
+                leaderId = nodesConfig[0].getId();
+            else {
+                InstanceInfo prevConsensusInstanceInfo = this.instanceInfo.get(localConsensusInstance - 1);
+                String oldLeader = prevConsensusInstanceInfo.getLeaderId();
+                String nextLeader = getNextLeader(oldLeader);
+                leaderId = nextLeader;
+            }
+            */
         }
 
         TransactionV2 value = new TransactionV2(transactionV1, leaderId);
@@ -236,6 +265,9 @@ public class NodeService implements UDPService {
 
         InstanceInfo instance = this.instanceInfo.get(localConsensusInstance);
 
+        instance.setLeaderId(leaderId);
+
+        /*
         // If it's the first consensus instance, the first node is assigned as the leader
         if (localConsensusInstance == 1) 
             instance.setLeaderId(nodesConfig[0].getId());
@@ -243,8 +275,9 @@ public class NodeService implements UDPService {
             InstanceInfo prevConsensusInstanceInfo = this.instanceInfo.get(localConsensusInstance - 1);
             String oldLeader = prevConsensusInstanceInfo.getLeaderId();
             String nextLeader = getNextLeader(oldLeader);
-            instance.setLeaderId(nextLeader);   
+            instance.setLeaderId(nextLeader);
         }
+        */
 
         // If startConsensus was already called for a given round
         if (existingConsensus != null) {
@@ -326,8 +359,12 @@ public class NodeService implements UDPService {
     }
 
     private String getLeaderId(int instaceId) {
-        InstanceInfo instanceInfo = this.instanceInfo.get(instaceId);
-        return instanceInfo.getLeaderId();
+        String currentLeaderId = nodesConfig[0].getId();
+        for (int currentInstanceCounter = 1; true; currentInstanceCounter++) {
+            if (currentInstanceCounter == instaceId)
+                return currentLeaderId;
+            currentLeaderId = getNextLeader(currentLeaderId);
+        }
     }
 
     private InstanceInfo createInstanceInfo(int instaceId, byte[] helloSignature, TransactionV2 value) {
@@ -654,12 +691,7 @@ public class NodeService implements UDPService {
             int index = consensusInstance - 1;
             ledger.add(index, value);
             
-            /*
-            LOGGER.log(Level.INFO,
-                MessageFormat.format(
-                        "{0} - Current Ledger: {1}",
-                        config.getId(), String.join("", ledger)));
-            */
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Current Ledger size: {1}", config.getId(), ledger.size()));
 
         }
     }
@@ -739,6 +771,14 @@ public class NodeService implements UDPService {
         }
 
         InstanceInfo roundChangeMsgInstance = this.instanceInfo.get(roundChangeMsgConsensusInstance);
+        
+        // TODO: confirm this!!!
+        if (roundChangeMsgInstance == null) {
+            LOGGER.log(Level.INFO,
+                MessageFormat.format("{0} - Consensus Instance {1} is not stored! Doing nothing...",
+                    config.getId(), roundChangeMsgConsensusInstance));
+            return;   
+        }
 
         // null if there isn't a set
         ConsensusMessage[] msgs = roundChangeMessages.getQuorumWithRoundGreaterThan(config.getId(), roundChangeMsgConsensusInstance, roundChangeMsgRound);

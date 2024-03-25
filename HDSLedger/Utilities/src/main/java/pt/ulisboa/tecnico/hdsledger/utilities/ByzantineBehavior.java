@@ -11,6 +11,7 @@ public enum ByzantineBehavior {
     DONT_VERIFY_SIGNATURES,
     FAKE_LEADER_WITH_FORGED_PRE_PREPARE_MESSAGE, // broadcast PRE-PREPARE message with senderId of real leader
     DONT_VALIDATE_TRANSACTION,
+    FAKE_CONSENSUS_INSTANCE,
     IS_BYZANTINE, // any client byzantine behavior
     IS_BYZANTINE_AND_NOT_REGISTERED // Any client that is not registered and should be ignored in the loading by correct nodes,
 }
