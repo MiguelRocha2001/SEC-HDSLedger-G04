@@ -66,11 +66,12 @@ public class ClientService implements UDPService {
     }
 
     /**
-     * Requests current account balance for [clientId].
+     * Requests current account balance for [processId].
+     * This could be a client or a node.
      */
-    public void getBalance(String clientId) {
+    public void getBalance(String processId) {
         try {
-            PublicKey clientPublicKey = criptoUtils.getClientPublicKey(clientId);
+            PublicKey clientPublicKey = criptoUtils.getPublicKey(processId);
 
             GetBalanceRequestMessage request = new GetBalanceRequestMessage(config.getId(), clientPublicKey);
             String requestStr = request.tojson();
@@ -80,7 +81,7 @@ public class ClientService implements UDPService {
             LOGGER.log(Level.INFO, "Invalid client ID");
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, 
-                MessageFormat.format("Error while trying to request balance for client id: {0}. \n{1}", clientId, e.getMessage())
+                MessageFormat.format("Error while trying to request balance for client id: {0}. \n{1}", processId, e.getMessage())
             );
         }
     }

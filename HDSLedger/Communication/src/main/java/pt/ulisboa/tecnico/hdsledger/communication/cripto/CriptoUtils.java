@@ -166,11 +166,6 @@ public class CriptoUtils {
         return result;
     }
 
-
-    private PrivateKey getPrivateKey() {
-        return privateKey;
-    }
-
     public byte[] addSignatureToDataAndEncode(byte[] buf, String nodeId) 
         throws 
                 IOException,
@@ -310,6 +305,19 @@ public class CriptoUtils {
             if (entry.getValue().equals(publicKey))
                 return entry.getKey(); // client ID
         }
+        throw new InvalidClientKeyException();
+    }
+
+    public String getId(PublicKey publicKey) {
+        if (isAcossiatedWithClient(publicKey)) {
+            return getClientId(publicKey);
+        }
+
+        for (Map.Entry<String, PublicKey> entry : nodePublicKeys.entrySet()) {
+            if (entry.getValue().equals(publicKey))
+                return entry.getKey(); // client ID
+        }
+        
         throw new InvalidClientKeyException();
     }
 

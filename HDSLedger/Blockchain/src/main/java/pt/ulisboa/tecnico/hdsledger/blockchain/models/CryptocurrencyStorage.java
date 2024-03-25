@@ -9,8 +9,8 @@ public class CryptocurrencyStorage {
     private final Map<String, Integer> accounts = new HashMap<>();
     private Lock lock = new ReentrantLock();
 
-    public class InvalidAccountException extends RuntimeException {}
-    public class InvalidAmmountException extends RuntimeException {}
+    public static class InvalidAccountException extends RuntimeException {}
+    public static class InvalidAmmountException extends RuntimeException {}
 
     /**
      * Initiates all account balances with 10 units.

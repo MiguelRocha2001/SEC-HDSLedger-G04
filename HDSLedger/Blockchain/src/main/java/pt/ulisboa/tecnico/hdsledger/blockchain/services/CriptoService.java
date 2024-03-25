@@ -101,36 +101,30 @@ public class CriptoService implements UDPService {
 
     private void transfer(UUID requestUuid, PublicKey source, PublicKey destination, int amount, byte[] valueSignature, String requestSenderId) {
         int sourceBalance = getBalanceOrNull(source);
+        
+        String sourceClientId;
+        String destinationClientId;
+        
+        if (config.getByzantineBehavior() != ByzantineBehavior.DONT_VALIDATE_TRANSACTION) {
+            sourceClientId = criptoUtils.getClientId(source);
+            destinationClientId = criptoUtils.getClientId(destination);
 
-        try {
-            String sourceClientId = criptoUtils.getClientId(source);
-            String destinationClientId = criptoUtils.getClientId(destination);
-
-            if (config.getByzantineBehavior() != ByzantineBehavior.DONT_VALIDATE_TRANSACTION) {
-                if (sourceBalance < amount) {
-                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction {1} could not be verified!", config.getId(), requestUuid));
-                    sendInvalidAmountReply(sourceClientId, requestUuid);
-                    return;
-                } else {
-                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction {1} verified.", config.getId(), requestUuid));
-                }
-            } else {
-                LOGGER.log(Level.INFO, MessageFormat.format("{0} - Node is Byzantine. Not verifying transaction {1}.", config.getId(), requestUuid));
-            }
-    
-            TransactionV1 transaction = new TransactionV1(sourceClientId, destinationClientId, amount);
-
-            // Stores request so, after consensus is finished, is possible to locate original request
-            transferRequests.add(new Pair<UUID,TransactionV1>(requestUuid, transaction));
+            if (sourceBalance < amount)
+                throw new InvalidAmmountException();
             
-            nodeService.startConsensus(transaction, valueSignature);
+        } else {
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Node is Byzantine. Not verifying transaction {1}.", config.getId(), requestUuid));
 
-        } catch(InvalidClientKeyException e) {
-            // This should never happen because if the node received a transfer request, it means that the Link layer confirmed
-            // the sender ID with a valid client known public key. Therefore, [source] argument should always be associated with
-            // a valid Client ID
-            sendInvalidAccountReply(requestSenderId, requestUuid);
+            sourceClientId = criptoUtils.getId(source); // could be Client or Node
+            destinationClientId = criptoUtils.getId(destination); // could be Client or Node
         }
+
+        TransactionV1 transaction = new TransactionV1(sourceClientId, destinationClientId, amount);
+
+        // Stores request so, after consensus is finished, is possible to locate original request
+        transferRequests.add(new Pair<UUID,TransactionV1>(requestUuid, transaction));
+        
+        nodeService.startConsensus(transaction, valueSignature);
     }
 
     private void sendTransactionReplyToClient(String clientId, UUID requestUuid) {
@@ -201,7 +195,10 @@ public class CriptoService implements UDPService {
         }
     }
 
-    // It's not necessary to verify if the sender is the owner of the public key since the Link layer already garantees that.
+    /**
+     * The resquest is fullfiled based on the senderId of the request, which, is already authenticated by the Link layer.
+     * So, if the request contains a public key of another process, it doesn't do anything since it is not used.
+     */
     private void getBalanceRequest(BlockchainRequestMessage message) {
         String senderId = message.getSenderId();
 
@@ -245,11 +242,6 @@ public class CriptoService implements UDPService {
         return new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE_SUCESS_RESULT, reply.tojson());
     }
 
-    private boolean validatePublicKey(String senderId, PublicKey sourcePublicKey) {
-        System.out.println(criptoUtils.getClientId(sourcePublicKey));
-        return senderId.equals(criptoUtils.getClientId(sourcePublicKey));
-    }
-
     private void tranferRequest(BlockchainRequestMessage message) {
         String senderId = message.getSenderId();
 
@@ -262,29 +254,43 @@ public class CriptoService implements UDPService {
         UUID requestUuid = request.getUuid();
 
         try {
+            /*
             if (config.getByzantineBehavior() == ByzantineBehavior.DONT_VALIDATE_TRANSACTION) {
                 LOGGER.log(Level.INFO, MessageFormat.format("{0} - Node is Byzantine. Not validating Transaction request", config.getId(), requestUuid));
             } else {
                 if (validatePublicKey(senderId, request.getSourcePubKey()))
                     LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request validated", config.getId(), requestUuid));
                 else {
-                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request not accepted because Public key doesn't belong to sender", config.getId(), requestUuid));
+                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request not accepted because source Public key doesn't belong to sender", config.getId(), requestUuid));
                     sendInvalidAccountReply(senderId, requestUuid); 
                     return;
                 }
+                
+                if (!criptoUtils.isAcossiatedWithClient(request.getDestinationPubKey())) {
+                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request not accepted because destination Public key doesn't belong to a client", config.getId(), requestUuid));
+                    sendInvalidAccountReply(senderId, requestUuid);
+                    return;
+                }
+
             }
+            */
 
             transfer(requestUuid, request.getSourcePubKey(), request.getDestinationPubKey(), request.getAmount(), request.getValueSignature(), senderId);
+
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request validated", config.getId(), requestUuid));
 
             // Dont send reply because it has to wait for consensus...
 
         } catch(InvalidAccountException e) {
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request rejected!", config.getId(), requestUuid));
             sendInvalidAccountReply(senderId, requestUuid);
 
         } catch (InvalidAmmountException e) {
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request rejected duo to not enough funds!", config.getId(), requestUuid));
             sendInvalidAmountReply(senderId, requestUuid);
 
         } catch (InvalidClientKeyException e) {
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request rejected duo to an invalid client Public key!!", config.getId(), requestUuid));
             TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid client public key!", requestUuid);
             link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, reply.tojson()));
         } catch (Exception e) {
