@@ -219,6 +219,17 @@ public class NodeService implements UDPService {
         }
         throw new HDSSException(ErrorMessage.ProgrammingError); // Should be improved later!
     }
+
+    private boolean waitMsAndBroadcastRoundChange(Long time, int consensusInstance) {
+        try {
+            Thread.sleep(time); // Gives time for other nodes to start initialize respective consensus instance
+            broadcastRoundChangeMsg(consensusInstance);
+            return true;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
     
     /*
      * Start an instance of consensus for a value
@@ -248,16 +259,6 @@ public class NodeService implements UDPService {
             leaderId = config.getId();
         } else {
             leaderId = getLeaderId(localConsensusInstance);
-            /*
-            if (localConsensusInstance == 1) 
-                leaderId = nodesConfig[0].getId();
-            else {
-                InstanceInfo prevConsensusInstanceInfo = this.instanceInfo.get(localConsensusInstance - 1);
-                String oldLeader = prevConsensusInstanceInfo.getLeaderId();
-                String nextLeader = getNextLeader(oldLeader);
-                leaderId = nextLeader;
-            }
-            */
         }
 
         TransactionV2 value = new TransactionV2(transactionV1, leaderId);
@@ -268,25 +269,11 @@ public class NodeService implements UDPService {
 
         instance.setLeaderId(leaderId);
 
-        /*
-        // If it's the first consensus instance, the first node is assigned as the leader
-        if (localConsensusInstance == 1) 
-            instance.setLeaderId(nodesConfig[0].getId());
-        else {
-            InstanceInfo prevConsensusInstanceInfo = this.instanceInfo.get(localConsensusInstance - 1);
-            String oldLeader = prevConsensusInstanceInfo.getLeaderId();
-            String nextLeader = getNextLeader(oldLeader);
-            instance.setLeaderId(nextLeader);
-        }
-        */
-
         // If startConsensus was already called for a given round
         if (existingConsensus != null) {
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Node already started consensus for instance {1}",
                     config.getId(), localConsensusInstance));
         }
-
-        // TODO: check if value was already decided! This is important if the order of requests differ between nodes.
 
         // set timer
         instance.schedualeTask(createRoundChangeTimerTask(localConsensusInstance));
@@ -344,8 +331,14 @@ public class NodeService implements UDPService {
             this.linkToNodes.broadcast(this.createConsensusMessage(value, localConsensusInstance, instance.getCurrentRound(), valueSignature));    
 
         } else {
-            LOGGER.log(Level.INFO,
+            if (config.getByzantineBehavior() == ByzantineBehavior.FORCE_ROUND_CHANGE) {LOGGER.log(Level.INFO,
+                MessageFormat.format("{0} - Node is Byzantine. Broadcasting unexpected ROUND-CHANGE messages", config.getId()));
+                waitMsAndBroadcastRoundChange(100L, localConsensusInstance);
+            }
+            else {
+                LOGGER.log(Level.INFO,
                     MessageFormat.format("{0} - Node is not leader. Waiting for PRE-PREPARE message", config.getId()));
+            }
         }
     }
 

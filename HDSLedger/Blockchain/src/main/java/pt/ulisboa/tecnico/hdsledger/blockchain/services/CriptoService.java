@@ -146,7 +146,7 @@ public class CriptoService implements UDPService {
         TransactionV1 transaction = new TransactionV1(sourceClientId, destinationClientId, amount, requestUuid);
 
         // Stores request so, after consensus is finished, is possible to locate original request
-        transferRequests.add(new Pair<UUID, Pair<String, TransactionV1>>(requestUuid, new Pair(requestSenderId, transaction)));
+        transferRequests.add(new Pair<UUID, Pair<String, TransactionV1>>(requestUuid, new Pair<String, TransactionV1>(requestSenderId, transaction)));
         
         nodeService.startConsensus(transaction, valueSignature);
     }
@@ -162,7 +162,6 @@ public class CriptoService implements UDPService {
             UUID uuid = pair.getKey();
             Pair<String, TransactionV1> innerPair = pair.getValue();
             String senderId = innerPair.getKey();
-            TransactionV1 transaction = innerPair.getValue();
 
             if (uuid.equals(requeUuid))
                 return senderId;

@@ -19,7 +19,8 @@ server_configs = [
     "uponRoundChangeQuorumWrongValue.json",
     "fakeLeaderWithForgedPrePrepareConfig.json",
     "dont_validate_transaction.json",
-    "fake_consensus_instance.json"
+    "fake_consensus_instance.json",
+    "force_round_change_config.json"
 ]
 
 # Client configuration file name
@@ -28,7 +29,7 @@ client_config = [
 ]
 
 
-server_config = server_configs[8]
+server_config = server_configs[9]
 client_config = client_config[0]
 
 def quit_handler(*args):
