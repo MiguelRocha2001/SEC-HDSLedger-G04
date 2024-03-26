@@ -23,6 +23,7 @@ import com.google.gson.Gson;
 
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.UUID;
 
 import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestResultMessage;
@@ -655,7 +656,7 @@ public class NodeService implements UDPService {
             // Only proceeds appends to ledger if the last one was decided
             // We need to be sure that the previous value has been appended
             if (!(lastDecidedConsensusInstance.get() < consensusInstance - 1)) {
-                appendValue(consensusInstance, round, value);
+                tryAppendValue(consensusInstance, round, value);
                 
                 // Deals with pending decided values
                 while (true) {
@@ -664,7 +665,7 @@ public class NodeService implements UDPService {
                     
                     if (nextInstanceInfo == null || nextInstanceInfo.getCommittedRound() == -1) return;
 
-                    appendValue(nextConsensusInstance, nextInstanceInfo.getCommittedRound(), nextInstanceInfo.getInputValue());
+                    tryAppendValue(nextConsensusInstance, nextInstanceInfo.getCommittedRound(), nextInstanceInfo.getInputValue());
                 }
             } else {
                 LOGGER.log(Level.INFO,
@@ -677,16 +678,8 @@ public class NodeService implements UDPService {
     private void appendToLedger(int consensusInstance, TransactionV2 value) {
         // Append value to the ledger (must be synchronized to be thread-safe)
         synchronized(ledger) {
-
             // Increment size of ledger to accommodate current instance
             ledger.ensureCapacity(consensusInstance);
-            
-            // I think it is not necessary anymore since instance i will whait for instance i - 1
-            /*
-            while (ledger.size() < consensusInstance - 1) {
-                ledger.add("");
-            }
-            */
             
             int index = consensusInstance - 1;
             ledger.add(index, value);
@@ -696,17 +689,35 @@ public class NodeService implements UDPService {
         }
     }
 
-    /**
-     * Appends the value to the ledger and increments [lastDecidedConsensusInstance]
-     */
-    private void appendValue(int consensusInstance, int round, TransactionV2 value) {
-        // Applies transaction and warn client
-        // At this point, every node will decide the same transaction. Therefore, this transaction will be successfull or not for every node.
-        // For instance, T1 could invalidate T2, waiting for T1, because it removed every unit in the account.
-        boolean successfull = criptoService.applyTransaction(value.getSourceId(), value.getDestinationId(), value.getAmount(), value.getReceiverId());
+    private boolean existentInLedger(UUID requestUuid) {
+        for (TransactionV2 transactionV2 : ledger) {
+            if (transactionV2.getRequestUUID().equals(requestUuid))
+                return true;
+        }
+        return false;
+    }
 
-        if (successfull)
-            appendToLedger(consensusInstance, value);
+    /**
+     * Appends the value to the ledger if the transaction is validated, and increments [lastDecidedConsensusInstance]
+     */
+    private void tryAppendValue(int consensusInstance, int round, TransactionV2 value) {
+
+        // The transaction could already be appended in a previous consensus instance, if two nodes have received the same request in diferent orders.
+        // They will propose the same transaction in a diferent consensus instance.
+        if(!existentInLedger(value.getRequestUUID())) {
+
+            // Applies transaction and warn client
+            // At this point, every node will decide the same transaction. Therefore, this transaction will be successfull or not for every node.
+            // For instance, T1 could invalidate T2, waiting for T1, because it removed every unit in the account.
+            boolean successfull = criptoService.applyTransaction(value);
+
+            if (successfull)
+                appendToLedger(consensusInstance, value);
+        } else {
+            LOGGER.log(
+                Level.INFO, MessageFormat.format("{0} - Transaction {1} was already appended to ledger in a different previous consensus instance! Not appending...", 
+                    config.getId(), value.getRequestUUID()));
+        }
 
         // Will be always incremented despite transaction is appended or not.
         // Therefore, next consensus instances could be decided.

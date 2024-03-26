@@ -1,5 +1,7 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
+import java.util.UUID;
+
 import pt.ulisboa.tecnico.hdsledger.utilities.RandomStringGenerator;
 
 public class TransactionV2 {
@@ -31,6 +33,10 @@ public class TransactionV2 {
 
     public String getReceiverId() {
         return receiverId;
+    }
+
+    public UUID getRequestUUID() {
+        return transactionv1.getRequestUUID();
     }
 
     @Override

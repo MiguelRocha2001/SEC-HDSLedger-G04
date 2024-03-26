@@ -40,7 +40,7 @@ public class CriptoUtils {
 
     private final String nodeIds[];
 
-    public class InvalidClientKeyException extends RuntimeException {}
+    public static class InvalidClientKeyException extends RuntimeException {}
     public class InvalidIdException extends RuntimeException {}
     public class InvalidClientIdException extends RuntimeException {}
     public class PublicKeyNotFound extends RuntimeException {}
@@ -317,7 +317,7 @@ public class CriptoUtils {
             if (entry.getValue().equals(publicKey))
                 return entry.getKey(); // client ID
         }
-        
+
         throw new InvalidClientKeyException();
     }
 

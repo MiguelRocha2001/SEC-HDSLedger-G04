@@ -1,5 +1,7 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
+import java.util.UUID;
+
 import pt.ulisboa.tecnico.hdsledger.utilities.RandomIntGenerator;
 import pt.ulisboa.tecnico.hdsledger.utilities.RandomStringGenerator;
 
@@ -7,18 +9,21 @@ public class TransactionV1 {
     private String sourceId; 
     private String destinationId;
     private int amount;
+    private UUID requestUUID;
 
-    public TransactionV1(String sourceId, String destinationId, int amount) {
+    public TransactionV1(String sourceId, String destinationId, int amount, UUID requestUUID) {
         this.sourceId = sourceId;
         this.destinationId = destinationId;
         this.amount = amount;
+        this.requestUUID = requestUUID;
     }
 
     public static TransactionV1 createRandom() {
         String randomSourceId = RandomStringGenerator.generateRandomString(2);
         String randomDestinationId = RandomStringGenerator.generateRandomString(2);
         int randomAmount = RandomIntGenerator.generateRandomInt(1, 100);
-        return new TransactionV1(randomSourceId, randomDestinationId, randomAmount);
+        UUID randomRequestUUID = UUID.randomUUID();
+        return new TransactionV1(randomSourceId, randomDestinationId, randomAmount, randomRequestUUID);
     }
 
     public String getSourceId() {
@@ -31,6 +36,10 @@ public class TransactionV1 {
 
     public int getAmount() {
         return amount;
+    }
+
+    public UUID getRequestUUID() {
+        return requestUUID;
     }
 
     @Override
