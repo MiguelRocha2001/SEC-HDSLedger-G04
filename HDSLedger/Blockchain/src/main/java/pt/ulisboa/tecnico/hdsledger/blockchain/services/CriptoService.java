@@ -4,33 +4,25 @@ import java.io.IOException;
 import java.security.PublicKey;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
-
-import javax.swing.text.TabSet;
-
-import com.google.gson.Gson;
 
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.CryptocurrencyStorage;
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.CryptocurrencyStorage.InvalidAccountException;
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.CryptocurrencyStorage.InvalidAmmountException;
-import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.BlockchainRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestErrorResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestSucessResultMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestSucessResultMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.LeaderChangeMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.communication.TransactionV1;
 import pt.ulisboa.tecnico.hdsledger.communication.TransactionV2;
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestErrorResultMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestSucessResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
-import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidClientKeyException;
+import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidClientPublicKeyException;
 import pt.ulisboa.tecnico.hdsledger.utilities.ByzantineBehavior;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
@@ -56,6 +48,8 @@ public class CriptoService implements UDPService {
     private final CryptocurrencyStorage storage;
 
     String[] clientIds;
+
+    private final int FEE = 1;
     
 
     public CriptoService(
@@ -104,7 +98,7 @@ public class CriptoService implements UDPService {
     private Integer getClientBalance(PublicKey key) {
         Integer clientBalance = getClientBalanceOrNull(key);
         if (clientBalance == null)
-            throw new InvalidClientKeyException();
+            throw new InvalidClientPublicKeyException();
         else
             return clientBalance;
     }
@@ -127,20 +121,24 @@ public class CriptoService implements UDPService {
         String sourceClientId;
         String destinationClientId;
 
-        if (config.getByzantineBehavior() != ByzantineBehavior.DONT_VALIDATE_TRANSACTION) {
+        if (config.getByzantineBehavior() == ByzantineBehavior.DONT_VALIDATE_TRANSACTION) {
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Node is Byzantine. Not verifying transaction {1}.", config.getId(), requestUuid));
+
+            sourceClientId = criptoUtils.getId(source); // could be Client or Node
+            destinationClientId = criptoUtils.getId(destination); // could be Client or Node
+
+        } else {
+            if (!criptoUtils.isOwnerOfKey(source, requestSenderId)) {
+                throw new InvalidTransferRequest();
+            }
+            
             int sourceBalance = getClientBalance(source);
             
             sourceClientId = criptoUtils.getClientId(source);
             destinationClientId = criptoUtils.getClientId(destination);
 
-            if (sourceBalance < amount)
+            if (sourceBalance < amount + FEE)
                 throw new InvalidAmmountException();
-            
-        } else {
-            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Node is Byzantine. Not verifying transaction {1}.", config.getId(), requestUuid));
-
-            sourceClientId = criptoUtils.getId(source); // could be Client or Node
-            destinationClientId = criptoUtils.getId(destination); // could be Client or Node
         }
 
         TransactionV1 transaction = new TransactionV1(sourceClientId, destinationClientId, amount, requestUuid);
@@ -190,7 +188,7 @@ public class CriptoService implements UDPService {
             if (validateTransaction) {
                 // checks balance again...
                 int sourceBalance = getClientBalance(sourceClientId);
-                if (sourceBalance < amount) {
+                if (sourceBalance < amount + FEE) {
                     LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction {1} could not be verified after end of consensus!", config.getId(), requestUuid));
 
                     sendInvalidAmountReply(sourceClientId, requestUuid);
@@ -202,7 +200,7 @@ public class CriptoService implements UDPService {
             }
 
             try {
-                storage.transferTwoTimes(sourceClientId, destinationClientId, amount, feeReceiverId, 1, validateTransaction); // TODO: maybe change from 1 to another value
+                storage.transferTwoTimes(sourceClientId, destinationClientId, amount, feeReceiverId, FEE, validateTransaction); // TODO: maybe change from 1 to another value
 
                 if (
                     config.getByzantineBehavior() == ByzantineBehavior.DONT_VALIDATE_TRANSACTION
@@ -222,7 +220,7 @@ public class CriptoService implements UDPService {
                 return false;
             }
         } catch(InvalidTransferRequest e) { // Happens when UUID cannot be retreived because transaction is unknown.
-            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction is not registered in storage. Not executing!", config.getId()));
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request rejected!", config.getId()));
             return false;
         } catch(InvalidAccountException e) {
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request rejected!", config.getId(), requestUuid));
@@ -308,13 +306,20 @@ public class CriptoService implements UDPService {
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request rejected duo to not enough funds!", config.getId(), requestUuid));
             sendInvalidAmountReply(senderId, requestUuid);
 
-        } catch (InvalidClientKeyException e) {
+        } catch (InvalidClientPublicKeyException e) {
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request rejected duo to an invalid client Public key!!", config.getId(), requestUuid));
-            TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid client public key!", requestUuid);
-            link.send(senderId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, reply.tojson()));
+            sendInvalidCLientPublicKey(senderId, requestUuid);
+        } catch (InvalidTransferRequest e) { // Happens when UUID cannot be retreived because transaction is unknown.
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request rejected!", config.getId()));
+            sendInvalidCLientPublicKey(senderId, requestUuid);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error: {1}", config.getId(), e.getMessage()));
+            System.out.println(e.getMessage());
         }
+    }
+
+    private void sendInvalidCLientPublicKey(String targetId, UUID requestUuid) {
+        TransferRequestErrorResultMessage reply = new TransferRequestErrorResultMessage(config.getId(), "Invalid client public key!", requestUuid);
+        link.send(targetId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_ERROR_RESULT, reply.tojson()));
     }
 
     private void sendInvalidAmountReply(String targetId, UUID requestUuid) {

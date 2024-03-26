@@ -331,8 +331,10 @@ public class NodeService implements UDPService {
             this.linkToNodes.broadcast(this.createConsensusMessage(value, localConsensusInstance, instance.getCurrentRound(), valueSignature));    
 
         } else {
-            if (config.getByzantineBehavior() == ByzantineBehavior.FORCE_ROUND_CHANGE) {LOGGER.log(Level.INFO,
-                MessageFormat.format("{0} - Node is Byzantine. Broadcasting unexpected ROUND-CHANGE messages", config.getId()));
+            if (config.getByzantineBehavior() == ByzantineBehavior.FORCE_ROUND_CHANGE) {
+                LOGGER.log(Level.INFO,
+                    MessageFormat.format("{0} - Node is Byzantine. Broadcasting unexpected ROUND-CHANGE messages", 
+                        config.getId()));
                 waitMsAndBroadcastRoundChange(100L, localConsensusInstance);
             }
             else {
@@ -403,7 +405,7 @@ public class NodeService implements UDPService {
         try {
             byte[] originalMessage = getOriginalValue(value);
 
-            if (!criptoUtils.verifySignatureWithClientKeys(originalMessage, valueSignature)) {
+            if (!criptoUtils.verifySignatureWithClientKey(originalMessage, valueSignature, value.getSourceId())) {
                 LOGGER.log(Level.INFO,
                     MessageFormat.format(
                             "{0} - Received PRE-PREPARE message from {1} Consensus Instance {2}, Round {3}, but the value could not be verified",
@@ -500,7 +502,7 @@ public class NodeService implements UDPService {
         try {
             byte[] originalMessage = getOriginalValue(value);
 
-            if (!criptoUtils.verifySignatureWithClientKeys(originalMessage, valueSignature)) {
+            if (!criptoUtils.verifySignatureWithClientKey(originalMessage, valueSignature, value.getSourceId())) {
                 LOGGER.log(Level.INFO,
                     MessageFormat.format(
                             "{0} - Received PREPARE message from {1} Consensus Instance {2}, Round {3}, but the value could not be verified",

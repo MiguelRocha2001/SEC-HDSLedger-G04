@@ -24,7 +24,7 @@ import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestSucessResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidClientIdException;
-import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidClientKeyException;
+import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidClientPublicKeyException;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidIdException;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.Utils;

@@ -4,27 +4,22 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.InvalidKeyException;
-import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.security.InvalidKeyException;
 import java.security.spec.InvalidKeySpecException;
-import java.text.MessageFormat;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.ErrorMessage;
 import pt.ulisboa.tecnico.hdsledger.utilities.HDSSException;
-import pt.ulisboa.tecnico.hdsledger.utilities.Pair;
-import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 
 public class CriptoUtils {
 
@@ -40,7 +35,8 @@ public class CriptoUtils {
 
     private final String nodeIds[];
 
-    public static class InvalidClientKeyException extends RuntimeException {}
+    public static class InvalidClientPublicKeyException extends RuntimeException {}
+    public static class InvalidPublicKeyException extends RuntimeException {}
     public class InvalidIdException extends RuntimeException {}
     public class InvalidClientIdException extends RuntimeException {}
     public class PublicKeyNotFound extends RuntimeException {}
@@ -248,12 +244,23 @@ public class CriptoUtils {
         throws 
                 NoSuchAlgorithmException, 
                 InvalidKeyException,
+                InvalidKeyException,
                 SignatureException
     {
         Signature rsaForVerify = Signature.getInstance("SHA1withRSA");
         rsaForVerify.initVerify(publicKey);
         rsaForVerify.update(originalMessage);
         return rsaForVerify.verify(signature);
+    }
+
+    public boolean verifySignatureWithClientKey(byte[] originalMessage, byte[] signature, String clientId) {
+        PublicKey publicKey = getClientPublicKeyOrNull(clientId);
+        if (publicKey == null) return false;
+        try {
+            return verifySignature(publicKey, originalMessage, signature);
+        } catch (InvalidKeyException | NoSuchAlgorithmException | SignatureException e) {
+            return false;
+        }
     }
 
     public boolean verifySignature(String senderId, byte[] originalMessage, byte[] signature)
@@ -266,30 +273,26 @@ public class CriptoUtils {
     {
         PublicKey publicKey = null;
 
-        for (Map.Entry<String, PublicKey> entry : clientPublicKeys.entrySet()) {
-            String nodeId = entry.getKey();
-            if (nodeId.equals(senderId)) {
-                publicKey = entry.getValue();
-                break; // Exit the loop once the key is found
-            }
-        }
-
-        if (publicKey == null) {
-            for (Map.Entry<String, PublicKey> entry : nodePublicKeys.entrySet()) {
-                String nodeId = entry.getKey();
-                if (nodeId.equals(senderId)) {
-                    publicKey = entry.getValue();
-                    break; // Exit the loop once the key is found
+        if (!verifySignatureWithClientKey(originalMessage, signature, senderId)) {
+            if (publicKey == null) {
+                for (Map.Entry<String, PublicKey> entry : nodePublicKeys.entrySet()) {
+                    String nodeId = entry.getKey();
+                    if (nodeId.equals(senderId)) {
+                        publicKey = entry.getValue();
+                        break; // Exit the loop once the key is found
+                    }
                 }
             }
-        }
+            
+            if (publicKey != null) {
+                return verifySignature(publicKey, originalMessage, signature);
+            } else {
+                // Handle the case where keys for the specified node ID are not found
+                throw new PublicKeyNotFound();
+            }
+        } else
+            return true;
         
-        if (publicKey != null) {
-            return verifySignature(publicKey, originalMessage, signature);
-        } else {
-            // Handle the case where keys for the specified node ID are not found
-            throw new PublicKeyNotFound();
-        }
     }
 
     public boolean isAcossiatedWithClient(PublicKey publicKey) {
@@ -302,10 +305,11 @@ public class CriptoUtils {
 
     public String getClientId(PublicKey publicKey) {
         for (Map.Entry<String, PublicKey> entry : clientPublicKeys.entrySet()) {
-            if (entry.getValue().equals(publicKey))
+            if (entry.getValue().equals(publicKey)) {
                 return entry.getKey(); // client ID
+            }
         }
-        throw new InvalidClientKeyException();
+        throw new InvalidClientPublicKeyException();
     }
 
     public String getId(PublicKey publicKey) {
@@ -318,7 +322,7 @@ public class CriptoUtils {
                 return entry.getKey(); // client ID
         }
 
-        throw new InvalidClientKeyException();
+        throw new InvalidPublicKeyException();
     }
 
     public PublicKey getPublicKey(String id) {
@@ -344,5 +348,9 @@ public class CriptoUtils {
             throw new InvalidClientIdException();
         else
             return key;
+    }
+
+    public boolean isOwnerOfKey(PublicKey publicKey, String processId) {
+        return getId(publicKey).equals(processId);
     }
 }
