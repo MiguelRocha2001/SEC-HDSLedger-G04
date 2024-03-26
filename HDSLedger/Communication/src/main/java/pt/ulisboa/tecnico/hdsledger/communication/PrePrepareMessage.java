@@ -5,23 +5,17 @@ import com.google.gson.Gson;
 public class PrePrepareMessage {
     
     // Value
-    private TransactionV2 value;
-    private byte[] valueSignature;
+    private TransactionBlock value;
 
-    public PrePrepareMessage(TransactionV2 value, byte[] valueSignature) {
+    public PrePrepareMessage(TransactionBlock value) {
         this.value = value;
-        this.valueSignature = valueSignature;
     }
 
-    public TransactionV2 getValue() {
+    public TransactionBlock getValue() {
         return value;
     }
 
     public String toJson() {
         return new Gson().toJson(this);
-    }
-
-    public byte[] getValueSignature() {
-        return valueSignature;
     }
 }   

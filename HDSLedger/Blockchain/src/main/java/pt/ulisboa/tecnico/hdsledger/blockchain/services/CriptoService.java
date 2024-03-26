@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.security.PublicKey;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -16,8 +18,8 @@ import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestSucessResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
+import pt.ulisboa.tecnico.hdsledger.communication.TransactionBlock;
 import pt.ulisboa.tecnico.hdsledger.communication.TransactionV1;
-import pt.ulisboa.tecnico.hdsledger.communication.TransactionV2;
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestErrorResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestSucessResultMessage;
@@ -141,12 +143,15 @@ public class CriptoService implements UDPService {
                 throw new InvalidAmmountException();
         }
 
-        TransactionV1 transaction = new TransactionV1(sourceClientId, destinationClientId, amount, requestUuid);
+        TransactionV1 transaction = new TransactionV1(sourceClientId, destinationClientId, amount, requestUuid, valueSignature);
 
         // Stores request so, after consensus is finished, is possible to locate original request
         transferRequests.add(new Pair<UUID, Pair<String, TransactionV1>>(requestUuid, new Pair<String, TransactionV1>(requestSenderId, transaction)));
+
+        List<TransactionV1> transactions = new LinkedList<>();
+        transactions.add(transaction);
         
-        nodeService.startConsensus(transaction, valueSignature);
+        nodeService.startConsensus(transactions);
     }
 
     private void sendTransactionReplyToClient(String clientId, UUID requestUuid) {
@@ -175,7 +180,7 @@ public class CriptoService implements UDPService {
      * reply to the client.
      * @return true if transaction was successfull. Otherwise, retuns false
      */
-    public boolean applyTransaction(TransactionV2 transactionV2) {
+    public boolean applyTransaction(TransactionBlock transactionBlock) {
         String sourceClientId = transactionV2.getSourceId();
         String destinationClientId = transactionV2.getDestinationId();
         String feeReceiverId = transactionV2.getReceiverId();
@@ -200,7 +205,7 @@ public class CriptoService implements UDPService {
             }
 
             try {
-                storage.transferTwoTimes(sourceClientId, destinationClientId, amount, feeReceiverId, FEE, validateTransaction); // TODO: maybe change from 1 to another value
+                storage.transferTwoTimes(sourceClientId, destinationClientId, amount, feeReceiverId, FEE, validateTransaction);
 
                 if (
                     config.getByzantineBehavior() == ByzantineBehavior.DONT_VALIDATE_TRANSACTION

@@ -1,7 +1,9 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
+import java.security.SecureRandom;
 import java.util.UUID;
 
+import pt.ulisboa.tecnico.hdsledger.utilities.RandomByteArrayGenerator;
 import pt.ulisboa.tecnico.hdsledger.utilities.RandomIntGenerator;
 import pt.ulisboa.tecnico.hdsledger.utilities.RandomStringGenerator;
 
@@ -10,12 +12,14 @@ public class TransactionV1 {
     private String destinationId;
     private int amount;
     private UUID requestUUID;
+    private byte[] valueSignature;
 
-    public TransactionV1(String sourceId, String destinationId, int amount, UUID requestUUID) {
+    public TransactionV1(String sourceId, String destinationId, int amount, UUID requestUUID, byte[] valueSignature) {
         this.sourceId = sourceId;
         this.destinationId = destinationId;
         this.amount = amount;
         this.requestUUID = requestUUID;
+        this.valueSignature = valueSignature;
     }
 
     public static TransactionV1 createRandom() {
@@ -23,7 +27,9 @@ public class TransactionV1 {
         String randomDestinationId = RandomStringGenerator.generateRandomString(2);
         int randomAmount = RandomIntGenerator.generateRandomInt(1, 100);
         UUID randomRequestUUID = UUID.randomUUID();
-        return new TransactionV1(randomSourceId, randomDestinationId, randomAmount, randomRequestUUID);
+        byte[] randomSignature = RandomByteArrayGenerator.generateRandomByteArray(256);
+
+        return new TransactionV1(randomSourceId, randomDestinationId, randomAmount, randomRequestUUID, randomSignature);
     }
 
     public String getSourceId() {
@@ -40,6 +46,10 @@ public class TransactionV1 {
 
     public UUID getRequestUUID() {
         return requestUUID;
+    }
+
+    public byte[] getValueSignature() {
+        return valueSignature;
     }
 
     @Override

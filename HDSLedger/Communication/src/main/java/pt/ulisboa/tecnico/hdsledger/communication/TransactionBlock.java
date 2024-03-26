@@ -1,42 +1,36 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.UUID;
 
 import pt.ulisboa.tecnico.hdsledger.utilities.RandomStringGenerator;
 
-public class TransactionV2 {
-    private TransactionV1 transactionv1;
+public class TransactionBlock {
+    private List<TransactionV1> transactions;
     private String receiverId;
 
-    public TransactionV2(TransactionV1 transactionv1, String receiverId) {
-        this.transactionv1 = transactionv1;
+    public TransactionBlock(List<TransactionV1> transactions, String receiverId) {
+        this.transactions = transactions;
         this.receiverId = receiverId;
     }
 
-    public static TransactionV2 createRandom() {
+    public static TransactionBlock createRandom() {
         TransactionV1 randomTransactionV1 = TransactionV1.createRandom();
         String randomReceiverId = RandomStringGenerator.generateRandomString(2);
-        return new TransactionV2(randomTransactionV1, randomReceiverId); // TODO: improve later!
+
+        List<TransactionV1> transactions = new LinkedList<>();
+        transactions.add(randomTransactionV1);
+
+        return new TransactionBlock(transactions, randomReceiverId); // TODO: improve later!
     }
 
-    public String getSourceId() {
-        return transactionv1.getSourceId();
-    }
-
-    public String getDestinationId() {
-        return transactionv1.getDestinationId();
-    }
-
-    public int getAmount() {
-        return transactionv1.getAmount();
+    public List<TransactionV1> getTransactions() {
+        return transactions;
     }
 
     public String getReceiverId() {
         return receiverId;
-    }
-
-    public UUID getRequestUUID() {
-        return transactionv1.getRequestUUID();
     }
 
     @Override

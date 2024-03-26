@@ -5,13 +5,13 @@ import com.google.gson.Gson;
 public class CommitMessage {
 
     // Value
-    private TransactionV2 value;
+    private TransactionBlock value;
 
-    public CommitMessage(TransactionV2 value) {
+    public CommitMessage(TransactionBlock value) {
         this.value = value;
     }
 
-    public TransactionV2 getValue() {
+    public TransactionBlock getValue() {
         return value;
     }
 

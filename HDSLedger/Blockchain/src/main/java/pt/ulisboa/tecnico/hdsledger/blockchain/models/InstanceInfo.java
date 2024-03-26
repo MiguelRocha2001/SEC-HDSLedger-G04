@@ -2,7 +2,7 @@ package pt.ulisboa.tecnico.hdsledger.blockchain.models;
 
 
 import pt.ulisboa.tecnico.hdsledger.communication.CommitMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.TransactionV2;
+import pt.ulisboa.tecnico.hdsledger.communication.TransactionBlock;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -11,12 +11,11 @@ public class InstanceInfo {
 
     private int currentRound = 1;
     private int preparedRound = -1;
-    private TransactionV2 preparedValue;
+    private TransactionBlock preparedValue;
     private CommitMessage commitMessage;
-    private TransactionV2 inputValue;
+    private TransactionBlock inputValue;
     private int committedRound = -1;
     private String leaderId;
-    private byte[] valueSignature;
     private Timer timer;
 
     /*
@@ -26,10 +25,9 @@ public class InstanceInfo {
     }
     */
 
-    public InstanceInfo(TransactionV2 inputValue, byte[] helloSignature, String leaderId) {
+    public InstanceInfo(TransactionBlock inputValue, String leaderId) {
         this.inputValue = inputValue;
         this.leaderId = leaderId;
-        this.valueSignature = helloSignature;
     }
 
     public int getCurrentRound() {
@@ -48,19 +46,19 @@ public class InstanceInfo {
         this.preparedRound = preparedRound;
     }
 
-    public TransactionV2 getPreparedValue() {
+    public TransactionBlock getPreparedValue() {
         return preparedValue;
     }
 
-    public void setPreparedValue(TransactionV2 preparedValue) {
+    public void setPreparedValue(TransactionBlock preparedValue) {
         this.preparedValue = preparedValue;
     }
 
-    public TransactionV2 getInputValue() {
+    public TransactionBlock getInputValue() {
         return inputValue;
     }
 
-    public void setInputValue(TransactionV2 inputValue) {
+    public void setInputValue(TransactionBlock inputValue) {
         this.inputValue = inputValue;
     }
 
@@ -86,10 +84,6 @@ public class InstanceInfo {
 
     public void setLeaderId(String leaderId) {
         this.leaderId = leaderId;
-    }
-
-    public byte[] getValueSignature() {
-        return valueSignature;
     }
 
     // TODO: this should be parameterized by the round. See this later...
