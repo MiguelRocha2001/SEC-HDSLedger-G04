@@ -3,45 +3,31 @@ package pt.ulisboa.tecnico.hdsledger.blockchain.services;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
 import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
-import java.sql.Time;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
-import com.google.gson.Gson;
-
-import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 
-import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestResultMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.BlockchainResponseMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.CommitMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.ConsensusMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.LeaderChangeMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.communication.PrePrepareMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.PrepareMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.RoundChangeMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.StartConsensusMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.TransactionBlock;
 import pt.ulisboa.tecnico.hdsledger.communication.TransactionV1;
 import pt.ulisboa.tecnico.hdsledger.communication.builder.ConsensusMessageBuilder;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
-import pt.ulisboa.tecnico.hdsledger.blockchain.models.CryptocurrencyStorage;
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.InstanceInfo;
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.MessageBucket;
 import pt.ulisboa.tecnico.hdsledger.utilities.ByzantineBehavior;
@@ -49,8 +35,6 @@ import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 import pt.ulisboa.tecnico.hdsledger.utilities.ErrorMessage;
 import pt.ulisboa.tecnico.hdsledger.utilities.HDSSException;
 import pt.ulisboa.tecnico.hdsledger.utilities.Pair;
-import pt.ulisboa.tecnico.hdsledger.utilities.RandomIntGenerator;
-import pt.ulisboa.tecnico.hdsledger.utilities.RandomStringGenerator;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.Utils;
 
@@ -65,8 +49,6 @@ public class NodeService implements UDPService {
 
     // Link to communicate with nodes
     private final Link linkToNodes;
-    // Link to communicate with clients
-    private final Link linkToClients;
 
     // Consensus instance -> Round -> List of prepare messages
     private final MessageBucket prepareMessages;
@@ -95,11 +77,9 @@ public class NodeService implements UDPService {
         Link linkToNodes, 
         ServerConfig config, 
         ServerConfig[] nodesConfig, 
-        Link linkToClients, 
         CriptoUtils criptoUtils
     ) {
         this.linkToNodes = linkToNodes;
-        this.linkToClients = linkToClients;
         this.config = config;
         this.nodesConfig = nodesConfig;
         this.criptoUtils = criptoUtils;
@@ -162,6 +142,11 @@ public class NodeService implements UDPService {
         int currentRound = instance.getCurrentRound();
         int newRound = currentRound + 1;
         instance.setCurrentRound(newRound); // increments current round
+
+        // Adjusts round-change timeout
+        long oldRoundChangeTimeoutTrigger = instance.getRoundChangeTimeoutTrigger();
+        long newRoundChangeTimeoutTrigger = oldRoundChangeTimeoutTrigger * 2;
+        instance.setRoundChangeTimeoutTrigger(newRoundChangeTimeoutTrigger);
 
         RoundChangeMessage message = new RoundChangeMessage(instance.getPreparedValue(), instance.getPreparedRound());
 
@@ -263,7 +248,7 @@ public class NodeService implements UDPService {
 
         TransactionBlock value = new TransactionBlock(transactions, leaderId);
 
-        InstanceInfo existingConsensus = this.instanceInfo.put(localConsensusInstance, new InstanceInfo(value, valueSignature, leaderId)); // should be putIfAbsent!!! WHat if he receives a PREPARE message first, and already creates a new InstanceInfo???
+        InstanceInfo existingConsensus = this.instanceInfo.put(localConsensusInstance, new InstanceInfo(value, leaderId)); // should be putIfAbsent!!! WHat if he receives a PREPARE message first, and already creates a new InstanceInfo???
 
         InstanceInfo instance = this.instanceInfo.get(localConsensusInstance);
 

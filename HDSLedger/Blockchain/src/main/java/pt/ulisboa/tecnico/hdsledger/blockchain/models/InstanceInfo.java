@@ -17,10 +17,11 @@ public class InstanceInfo {
     private int committedRound = -1;
     private String leaderId;
     private Timer timer;
+    private long ROUND_CHANGE_TIMEOUT_TRIGGER = 3000;
 
-    /*
-    public InstanceInfo(TransactionV2 inputValue, String valueSignature) {
+    public InstanceInfo(TransactionV2 inputValue, byte[] valueSignature, String leaderId) {
         this.inputValue = inputValue;
+        this.leaderId = leaderId;
         this.valueSignature = valueSignature;
     }
     */
@@ -88,8 +89,6 @@ public class InstanceInfo {
 
     // TODO: this should be parameterized by the round. See this later...
     public void schedualeTask(TimerTask timerTask) {
-        long TIMEOUT = 3000; // TODO: change to another place
-
         if (timer != null) {
             timer.cancel();
             timer.purge();
@@ -97,7 +96,7 @@ public class InstanceInfo {
         } else {
             timer = new Timer();
         }
-        timer.schedule(timerTask, TIMEOUT); // set timer
+        timer.schedule(timerTask, ROUND_CHANGE_TIMEOUT_TRIGGER); // set timer
     }
 
     public void cancelTimer() {
