@@ -58,7 +58,7 @@ public class Node {
             Link linkToClients = new Link(nodeConfig, nodeConfigAux.getClientPort(), clientsConfig, BlockchainRequestMessage.class, criptoUtils);
 
             // Services that implement listen from UDPService
-            NodeService nodeService = new NodeService(linkToNodes, nodeConfigAux, nodesConfigAUx, linkToClients, criptoUtils);
+            NodeService nodeService = new NodeService(linkToNodes, nodeConfigAux, nodesConfigAUx, criptoUtils);
             CriptoService criptoService = new CriptoService(linkToClients, nodeConfigAux, clientConfigsAux, nodeService, nodeIds, criptoUtils);
 
             nodeService.setCriptoService(criptoService);

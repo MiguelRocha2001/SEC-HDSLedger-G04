@@ -1,17 +1,11 @@
 package pt.ulisboa.tecnico.hdsledger.client.services;
 
 import java.io.IOException;
-import java.security.InvalidKeyException;
 import java.security.PublicKey;
 import java.text.MessageFormat;
-import java.util.Base64;
 import java.util.logging.Level;
 
-import com.google.gson.Gson;
-
 import pt.ulisboa.tecnico.hdsledger.client.models.ClientMessageBucket;
-import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.AppendRequestResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.BlockchainRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.BlockchainResponseMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestErrorResultMessage;
@@ -24,7 +18,6 @@ import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestSucessResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidClientIdException;
-import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidClientPublicKeyException;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidIdException;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.Utils;
@@ -86,7 +79,6 @@ public class ClientService implements UDPService {
         }
     }
 
-    // TODO: what if a byzantine client sends a get balance result to another node?
     private void getBalanceSuccessResultReceived(BlockchainResponseMessage message) {
         LOGGER.log(Level.INFO, MessageFormat.format("Received get-balance sucess Result message from process {0}", message.getSenderId()));
 
