@@ -4,10 +4,10 @@ import com.google.gson.Gson;
 
 public class RoundChangeMessage {
 
-    private TransactionBlock preparedValue;
+    private Block preparedValue;
     private int preparedRound;
 
-    public RoundChangeMessage(TransactionBlock preparedValue, int preparedRound) {
+    public RoundChangeMessage(Block preparedValue, int preparedRound) {
         this.preparedValue = preparedValue;
         this.preparedRound = preparedRound;
     }
@@ -16,7 +16,7 @@ public class RoundChangeMessage {
         return new Gson().toJson(this);
     }
 
-    public TransactionBlock getPreparedValue() { return preparedValue; }
+    public Block getPreparedValue() { return preparedValue; }
 
     public int getPreparedRound() { return preparedRound; }
 }

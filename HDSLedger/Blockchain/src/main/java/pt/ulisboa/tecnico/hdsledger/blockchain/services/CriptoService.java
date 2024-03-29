@@ -18,8 +18,8 @@ import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestSucessResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
-import pt.ulisboa.tecnico.hdsledger.communication.TransactionBlock;
-import pt.ulisboa.tecnico.hdsledger.communication.TransactionV1;
+import pt.ulisboa.tecnico.hdsledger.communication.Block;
+import pt.ulisboa.tecnico.hdsledger.communication.Transaction;
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestErrorResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestSucessResultMessage;
@@ -28,7 +28,6 @@ import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidClie
 import pt.ulisboa.tecnico.hdsledger.utilities.ByzantineBehavior;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
-import pt.ulisboa.tecnico.hdsledger.utilities.Pair;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.Utils;
 
@@ -42,17 +41,18 @@ public class CriptoService implements UDPService {
     // Link to communicate with nodes
     private final Link link;
   
-    private final ArrayList<Pair<UUID, Pair<String, TransactionV1>>> transferRequests;
     private final NodeService nodeService;
 
     private CriptoUtils criptoUtils;
 
     private final CryptocurrencyStorage storage;
 
-    String[] clientIds;
+    private String[] clientIds;
+    private String[] nodeIds;
 
     private final int FEE = 1;
-    
+
+    private LinkedList<Transaction> pendingTransactions = new LinkedList<Transaction>();
 
     public CriptoService(
         Link link,
@@ -69,10 +69,10 @@ public class CriptoService implements UDPService {
 
         clientIds = getClientIds(clientsConfig);
         String[] processIds = Utils.joinArray(nodeIds, clientIds);
+        this.nodeIds = nodeIds;
 
         this.storage = new CryptocurrencyStorage(processIds);
 
-        this.transferRequests = new ArrayList<>();
     }
 
     private static String[] getClientIds(ClientConfig[] clientsConfig) {
@@ -113,6 +113,14 @@ public class CriptoService implements UDPService {
         return false;
     }
 
+    private boolean isNode(String processId) {
+        for (int u = 0; u < nodeIds.length; u++) {
+            if (nodeIds[u].equals(processId))
+                return true;
+        }
+        return false;
+    }
+
     private int getClientBalance(String clientId) {
         if (isClient(clientId))
             return storage.getBalance(clientId);
@@ -143,15 +151,15 @@ public class CriptoService implements UDPService {
                 throw new InvalidAmmountException();
         }
 
-        TransactionV1 transaction = new TransactionV1(sourceClientId, destinationClientId, amount, requestUuid, valueSignature);
+        Transaction transaction = new Transaction(sourceClientId, destinationClientId, amount, requestUuid, valueSignature);
 
-        // Stores request so, after consensus is finished, is possible to locate original request
-        transferRequests.add(new Pair<UUID, Pair<String, TransactionV1>>(requestUuid, new Pair<String, TransactionV1>(requestSenderId, transaction)));
+        pendingTransactions.add(transaction);
 
-        List<TransactionV1> transactions = new LinkedList<>();
-        transactions.add(transaction);
-        
-        nodeService.startConsensus(transactions);
+        List<Transaction> transactionsToPropose = new LinkedList<>();
+        transactionsToPropose.addAll(pendingTransactions);
+        pendingTransactions.clear();
+
+        nodeService.startConsensus(transactionsToPropose);
     }
 
     private void sendTransactionReplyToClient(String clientId, UUID requestUuid) {
@@ -159,83 +167,88 @@ public class CriptoService implements UDPService {
         link.send(clientId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_SUCESS_RESULT, reply.tojson()));   
     }
 
-    private String getSenderIdOrNull(UUID requeUuid) {
-        // Iterate over the transferRequests ArrayList
-        for (Pair<UUID, Pair<String, TransactionV1>> pair : transferRequests) {
-            UUID uuid = pair.getKey();
-            Pair<String, TransactionV1> innerPair = pair.getValue();
-            String senderId = innerPair.getKey();
-
-            if (uuid.equals(requeUuid))
-                return senderId;
-        }
-        return null;
-    }
+  
 
     private class InvalidTransferRequest extends RuntimeException {}
+    
+    public boolean payFeeToNode(String sourceClientId, String destinationId) {
+        if (isClient(sourceClientId) && isNode(destinationId)) {
+
+            int sourceBalance = getClientBalance(sourceClientId);
+            
+            if (sourceBalance < FEE)
+                return false;
+
+            storage.transfer(sourceClientId, destinationId, FEE);
+            return true;
+        }
+        return false;
+    }
 
     /**
-     * Transfers units from [sourceClientId] to destinationClientId, and a fee to receiverId.
+     * Transfers units from [sourceClientId] to destinationClientId, for all transactions included [block].
      * If, meanwhile, [sourceClientId] has not a sufficient balance, the function sends an apropriate
      * reply to the client.
-     * @return true if transaction was successfull. Otherwise, retuns false
+     * If one transaction is not valid anymore, it wont be applied.
      */
-    public boolean applyTransaction(TransactionBlock transactionBlock) {
-        String sourceClientId = transactionV2.getSourceId();
-        String destinationClientId = transactionV2.getDestinationId();
-        String feeReceiverId = transactionV2.getReceiverId();
-        int amount = transactionV2.getAmount();
-        UUID requestUuid = transactionV2.getRequestUUID();
+    public boolean applyTransactions(Block block) {
+        int transactionAppliedCount = 0;
+        for (Transaction transactionV1 : block.getTransactions()) {
 
-        try {
-            boolean validateTransaction = config.getByzantineBehavior() != ByzantineBehavior.DONT_VALIDATE_TRANSACTION;
-        
-            if (validateTransaction) {
-                // checks balance again...
-                int sourceBalance = getClientBalance(sourceClientId);
-                if (sourceBalance < amount + FEE) {
+            String sourceClientId = transactionV1.getSourceId();
+            String destinationClientId = transactionV1.getDestinationId();
+            int amount = transactionV1.getAmount();
+            UUID requestUuid = transactionV1.getRequestUUID();
+
+            try {
+                boolean validateTransaction = config.getByzantineBehavior() != ByzantineBehavior.DONT_VALIDATE_TRANSACTION;
+            
+                if (validateTransaction) {
+                    // checks balance again...
+                    int sourceBalance = getClientBalance(sourceClientId);
+                    if (sourceBalance < amount + FEE) {
+                        LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction {1} could not be verified after end of consensus!", config.getId(), requestUuid));
+
+                        sendInvalidAmountReply(sourceClientId, requestUuid);
+                        continue;
+                    } else {
+                        LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction {1} verified after end of consensus!", config.getId(), requestUuid));
+                    }
+                } else {
+                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Node is Byzantine. Not verifying transaction {1} after end of consensus.", config.getId(), requestUuid));
+                }
+
+                try {
+                    storage.transfer(sourceClientId, destinationClientId, amount);
+                    boolean successfull = payFeeToNode(sourceClientId, block.getReceiverId()); // Should always be successfull
+                    transactionAppliedCount += 1;
+
+                    if (
+                        config.getByzantineBehavior() == ByzantineBehavior.DONT_VALIDATE_TRANSACTION
+                        &&
+                        !isClient(sourceClientId)
+                    ) {
+                        // Dont send reply
+                    } else 
+                        sendTransactionReplyToClient(sourceClientId, requestUuid);
+
+                    continue;
+                
+                } catch(InvalidAmmountException e) {
                     LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction {1} could not be verified after end of consensus!", config.getId(), requestUuid));
 
                     sendInvalidAmountReply(sourceClientId, requestUuid);
-                } else {
-                    LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction {1} verified after end of consensus!", config.getId(), requestUuid));
+                    continue;
                 }
-            } else {
-                LOGGER.log(Level.INFO, MessageFormat.format("{0} - Node is Byzantine. Not verifying transaction {1} after end of consensus.", config.getId(), requestUuid));
+            } catch(InvalidTransferRequest e) { // Happens when UUID cannot be retreived because transaction is unknown.
+                LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request rejected!", config.getId()));
+                continue;
+            } catch(InvalidAccountException e) {
+                LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request rejected!", config.getId(), requestUuid));
+                continue;
             }
-
-            try {
-                storage.transferTwoTimes(sourceClientId, destinationClientId, amount, feeReceiverId, FEE, validateTransaction);
-
-                if (
-                    config.getByzantineBehavior() == ByzantineBehavior.DONT_VALIDATE_TRANSACTION
-                    &&
-                    !isClient(sourceClientId)
-                ) {
-                    // Dont send reply
-                } else 
-                    sendTransactionReplyToClient(sourceClientId, requestUuid);
-
-                return true;
-            
-            } catch(InvalidAmmountException e) {
-                LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction {1} could not be verified after end of consensus!", config.getId(), requestUuid));
-
-                sendInvalidAmountReply(sourceClientId, requestUuid);
-                return false;
-            }
-        } catch(InvalidTransferRequest e) { // Happens when UUID cannot be retreived because transaction is unknown.
-            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request rejected!", config.getId()));
-            return false;
-        } catch(InvalidAccountException e) {
-            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request rejected!", config.getId(), requestUuid));
-            
-            String senderId = getSenderIdOrNull(requestUuid);
-            if (senderId != null) // could be null if the request is not registered locally
-                sendInvalidAccountReply(senderId, requestUuid);
-
-            return false;
         }
+        return transactionAppliedCount > 0;
     }
 
     /**

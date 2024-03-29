@@ -24,8 +24,8 @@ import pt.ulisboa.tecnico.hdsledger.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.communication.PrePrepareMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.PrepareMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.RoundChangeMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.TransactionBlock;
-import pt.ulisboa.tecnico.hdsledger.communication.TransactionV1;
+import pt.ulisboa.tecnico.hdsledger.communication.Block;
+import pt.ulisboa.tecnico.hdsledger.communication.Transaction;
 import pt.ulisboa.tecnico.hdsledger.communication.builder.ConsensusMessageBuilder;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.InstanceInfo;
@@ -37,6 +37,8 @@ import pt.ulisboa.tecnico.hdsledger.utilities.HDSSException;
 import pt.ulisboa.tecnico.hdsledger.utilities.Pair;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.Utils;
+import java.util.List;
+
 
 public class NodeService implements UDPService {
 
@@ -67,7 +69,7 @@ public class NodeService implements UDPService {
     private final AtomicInteger lastDecidedConsensusInstance = new AtomicInteger(0);
 
     // Ledger (for now, just a list of strings)
-    private ArrayList<TransactionBlock> ledger = new ArrayList<TransactionBlock>();
+    private ArrayList<Block> ledger = new ArrayList<Block>();
 
     private CriptoUtils criptoUtils;
 
@@ -101,7 +103,7 @@ public class NodeService implements UDPService {
         return this.consensusInstance.get();
     }
 
-    public ArrayList<TransactionBlock> getLedger() {
+    public ArrayList<Block> getLedger() {
         return this.ledger;
     }
 
@@ -117,7 +119,7 @@ public class NodeService implements UDPService {
         throw new HDSSException(ErrorMessage.ProgrammingError);
     }
 
-    private ConsensusMessage createConsensusMessageCommon(String senderId, TransactionBlock value, int instance, int round) {
+    private ConsensusMessage createConsensusMessageCommon(String senderId, Block value, int instance, int round) {
         PrePrepareMessage prePrepareMessage = new PrePrepareMessage(value);
         ConsensusMessage consensusMessage = new ConsensusMessageBuilder(senderId, Message.Type.PRE_PREPARE)
                 .setConsensusInstance(instance)
@@ -128,11 +130,11 @@ public class NodeService implements UDPService {
         return consensusMessage;
     }
  
-    public ConsensusMessage createConsensusMessage(TransactionBlock value, int instance, int round) {
+    public ConsensusMessage createConsensusMessage(Block value, int instance, int round) {
         return createConsensusMessageCommon(config.getId(), value, instance, round);
     }
 
-    public ConsensusMessage createConsensusMessage(String senderId, TransactionBlock value, int instance, int round) {   
+    public ConsensusMessage createConsensusMessage(String senderId, Block value, int instance, int round) {   
         return createConsensusMessageCommon(senderId, value, instance, round);
     }
 
@@ -179,6 +181,7 @@ public class NodeService implements UDPService {
      * Uses this node Private key to generate the signature.
      * @return the signature correspondent to the [transactionV2] value.
      */
+    /*
     private byte[] generateValueSignature(TransactionBlock transactionV2) 
         throws 
             InvalidKeyException, 
@@ -193,6 +196,7 @@ public class NodeService implements UDPService {
         );
         return criptoUtils.getMessageSignature(messageToSign, config.getId());
     }
+    */
 
     /**
      * @return the first instance where [nodeId] is leader.
@@ -223,7 +227,7 @@ public class NodeService implements UDPService {
      *
      * @param inputValue Value to value agreed upon
      */
-    public void startConsensus(List<TransactionV1> transactions) {
+    public void startConsensus(List<Transaction> transactions) {
     
         // Set initial consensus values
         int localConsensusInstance;
@@ -246,7 +250,7 @@ public class NodeService implements UDPService {
             leaderId = getLeaderId(localConsensusInstance);
         }
 
-        TransactionBlock value = new TransactionBlock(transactions, leaderId);
+        Block value = new Block(transactions, leaderId);
 
         InstanceInfo existingConsensus = this.instanceInfo.put(localConsensusInstance, new InstanceInfo(value, leaderId)); // should be putIfAbsent!!! WHat if he receives a PREPARE message first, and already creates a new InstanceInfo???
 
@@ -291,7 +295,8 @@ public class NodeService implements UDPService {
                 config.getByzantineBehavior() == ByzantineBehavior.BAD_LEADER_PROPOSE_WITH_ORIGINAL_SIGNATURE
             ) {
                 for (ServerConfig node : nodesConfig) {
-                    TransactionBlock randomValue = TransactionBlock.createRandom();
+                    Block randomValue = Block.createRandom();
+                    /*
                     try {
                         //byte[] signature;
                         if (config.getByzantineBehavior() == ByzantineBehavior.BAD_LEADER_PROPOSE_WITH_GENERATED_SIGNATURE)
@@ -299,10 +304,12 @@ public class NodeService implements UDPService {
                         else
                             signature = valueSignature;
 
-                        this.linkToNodes.send(node.getId(), this.createConsensusMessage(randomValue, localConsensusInstance, instance.getCurrentRound()));
                     } catch (Exception e) {
                         throw new HDSSException(ErrorMessage.ProgrammingError); // Should be improved later!
                     }
+                    */
+                    this.linkToNodes.send(node.getId(), this.createConsensusMessage(randomValue, localConsensusInstance, instance.getCurrentRound()));
+
                 }
                 return;
             } 
@@ -348,7 +355,7 @@ public class NodeService implements UDPService {
         }
     }
 
-    private InstanceInfo createInstanceInfo(int instaceId, TransactionBlock value) {
+    private InstanceInfo createInstanceInfo(int instaceId, Block value) {
         InstanceInfo instanceInfo;
         if (instaceId != 1)
             instanceInfo = new InstanceInfo(value, getNextLeader(getLeaderId(instaceId-1)));
@@ -361,7 +368,7 @@ public class NodeService implements UDPService {
     /**
      * Returns the bytes that were used to sign value message.
      */
-    private byte[] getOriginalValue(TransactionV1 transaction) {
+    private byte[] getOriginalValue(Transaction transaction) {
         return Utils.joinArray(
             transaction.getSourceId().getBytes(), 
             transaction.getDestinationId().getBytes(), 
@@ -384,7 +391,7 @@ public class NodeService implements UDPService {
 
         PrePrepareMessage prePrepareMessage = message.deserializePrePrepareMessage();
 
-        TransactionBlock value = prePrepareMessage.getValue();
+        Block value = prePrepareMessage.getValue();
         
         try {
             if (!verifyAllTransactionSignatures(value)) {
@@ -461,8 +468,8 @@ public class NodeService implements UDPService {
         this.linkToNodes.broadcast(consensusMessage);
     }
 
-    private boolean verifyAllTransactionSignatures(TransactionBlock transactionBlock) {
-        for (TransactionV1 transactionV1 : transactionBlock.getTransactions()) {
+    private boolean verifyAllTransactionSignatures(Block transactionBlock) {
+        for (Transaction transactionV1 : transactionBlock.getTransactions()) {
             byte[] originalMessage = getOriginalValue(transactionV1);
             byte[] valueSignature = transactionV1.getValueSignature();
             
@@ -489,7 +496,7 @@ public class NodeService implements UDPService {
 
         PrepareMessage prepareMessage = message.deserializePrepareMessage();
 
-        TransactionBlock value = prepareMessage.getValue();
+        Block value = prepareMessage.getValue();
 
         try {
             if (!verifyAllTransactionSignatures(value)) {
@@ -541,7 +548,7 @@ public class NodeService implements UDPService {
         }
 
         // Find value with valid quorum
-        Optional<TransactionBlock> preparedValue = prepareMessages.hasValidPrepareQuorum(config.getId(), consensusInstance, round);
+        Optional<Block> preparedValue = prepareMessages.hasValidPrepareQuorum(config.getId(), consensusInstance, round);
         if (preparedValue.isPresent() && instance.getPreparedRound() < round) {
             
             LOGGER.log(Level.INFO,
@@ -556,7 +563,7 @@ public class NodeService implements UDPService {
                 LOGGER.log(Level.INFO,
                     MessageFormat.format("{0} - Node is byzantine, setting a fake/random PREPARE VALUE after receiving quorum of PREPARE-MESSAGE's", config.getId()));
 
-                TransactionBlock randomValue = TransactionBlock.createRandom();
+                Block randomValue = Block.createRandom();
                 instance.setPreparedValue(randomValue);
             } else
                 instance.setPreparedValue(preparedValue.get());
@@ -619,7 +626,7 @@ public class NodeService implements UDPService {
             return;
         }
 
-        Optional<TransactionBlock> commitValue = commitMessages.hasValidCommitQuorum(config.getId(),
+        Optional<Block> commitValue = commitMessages.hasValidCommitQuorum(config.getId(),
                 consensusInstance, round);
                 
         if (commitValue.isPresent()) {
@@ -636,7 +643,7 @@ public class NodeService implements UDPService {
             instance = this.instanceInfo.get(consensusInstance);
             instance.setCommittedRound(round);
 
-            TransactionBlock value = commitValue.get();
+            Block value = commitValue.get();
 
             // Only proceeds appends to ledger if the last one was decided
             // We need to be sure that the previous value has been appended
@@ -660,7 +667,7 @@ public class NodeService implements UDPService {
         }
     }
 
-    private void appendToLedger(int consensusInstance, TransactionBlock value) {
+    private void appendToLedger(int consensusInstance, Block value) {
         // Append value to the ledger (must be synchronized to be thread-safe)
         synchronized(ledger) {
             // Increment size of ledger to accommodate current instance
@@ -675,8 +682,8 @@ public class NodeService implements UDPService {
     }
 
     // TODO: fix this...
-    private boolean existentInLedger(TransactionBlock transactionBlock) {
-        for (TransactionBlock transactionBlockAux : ledger) {
+    private boolean existentInLedger(Block transactionBlock) {
+        for (Block transactionBlockAux : ledger) {
             if (transactionBlock.equals(transactionBlockAux))
                 return true;
         }
@@ -686,23 +693,24 @@ public class NodeService implements UDPService {
     /**
      * Appends the value to the ledger if the transaction is validated, and increments [lastDecidedConsensusInstance]
      */
-    private void tryAppendValue(int consensusInstance, int round, TransactionBlock value) {
+    private void tryAppendValue(int consensusInstance, int round, Block value) {
 
         // The transaction could already be appended in a previous consensus instance, if two nodes have received the same request in diferent orders.
         // They will propose the same transaction in a diferent consensus instance.
         if(!existentInLedger(value)) {
 
-            // Applies transaction and warn client
-            // At this point, every node will decide the same transaction. Therefore, this transaction will be successfull or not for every node.
-            // For instance, T1 could invalidate T2, waiting for T1, because it removed every unit in the account.
-            boolean successfull = criptoService.applyTransaction(value);
+            // Applies transactions and warns clients
+            // At this point, every node will decide the same block. Therefore, this transactions will be successfull or not for every node.
+            // For instance, TB1 could invalidate TB2, waiting for TB1, because it contains transactions that remove every unit in the client account.
+            boolean successfull = criptoService.applyTransactions(value);
 
-            if (successfull)
+            if (successfull) {
                 appendToLedger(consensusInstance, value);
+            }
         } else {
             LOGGER.log(
-                Level.INFO, MessageFormat.format("{0} - Transaction {1} was already appended to ledger in a different previous consensus instance! Not appending...", 
-                    config.getId(), value.getRequestUUID()));
+                Level.INFO, MessageFormat.format("{0} - One of the transactions is not valid. Not appending block...", 
+                    config.getId()));
         }
 
         // Will be always incremented despite transaction is appended or not.
@@ -719,9 +727,9 @@ public class NodeService implements UDPService {
         if (roundChangeMessages.areAllRoundChangeMessagesNotPrepared(config.getId(), instance, round))
             return true;
 
-        Optional<Pair<Integer, TransactionBlock>> heighestPreparedRoundAndValue = roundChangeMessages.getHeighestPreparedRoundAndValueIfAny(config.getId(), instance, round);
+        Optional<Pair<Integer, Block>> heighestPreparedRoundAndValue = roundChangeMessages.getHeighestPreparedRoundAndValueIfAny(config.getId(), instance, round);
         int heighestPreparedRound = heighestPreparedRoundAndValue.get().getKey();
-        TransactionBlock heighestPreparedValue = heighestPreparedRoundAndValue.get().getValue();
+        Block heighestPreparedValue = heighestPreparedRoundAndValue.get().getValue();
         
         if (prepareMessages.checkRoundAndValue(config.getId(), instance, round, heighestPreparedRound, heighestPreparedValue))
             return true;
@@ -792,7 +800,7 @@ public class NodeService implements UDPService {
             config.getId().equals(roundChangeMsgInstance.getLeaderId()) && 
             justifyRoundChange(roundChangeMsgConsensusInstance, roundChangeMsgRound)
         ) {
-            Optional<Pair<Integer, TransactionBlock>> heighestPreparedRoundAndValue = roundChangeMessages.getHeighestPreparedRoundAndValueIfAny(config.getId(), roundChangeMsgConsensusInstance, roundChangeMsgRound);
+            Optional<Pair<Integer, Block>> heighestPreparedRoundAndValue = roundChangeMessages.getHeighestPreparedRoundAndValueIfAny(config.getId(), roundChangeMsgConsensusInstance, roundChangeMsgRound);
 
             LOGGER.log(Level.INFO,
                         MessageFormat.format("{0} - Received justified quorum of ROUND_CHANGE messages and Iam the leader",
@@ -804,12 +812,12 @@ public class NodeService implements UDPService {
                 LOGGER.log(Level.INFO,
                     MessageFormat.format("{0} - Node is byzantine, setting a fake/random VALUE in round change", config.getId()));
 
-                    TransactionBlock randomValue = TransactionBlock.createRandom();
+                    Block randomValue = Block.createRandom();
                 roundChangeMsgInstance.setInputValue(randomValue);
             } else {
                 
                 if (heighestPreparedRoundAndValue.isPresent()) {
-                    TransactionBlock newValue = heighestPreparedRoundAndValue.get().getValue();
+                    Block newValue = heighestPreparedRoundAndValue.get().getValue();
                     roundChangeMsgInstance.setInputValue(newValue);
                     LOGGER.log(Level.INFO,
                         MessageFormat.format("{0} - Received quorum of ROUND_CHANGE messages. Setting input value to {1}",
@@ -832,8 +840,7 @@ public class NodeService implements UDPService {
                 this.createConsensusMessage(
                     roundChangeMsgInstance.getInputValue(), 
                     roundChangeMsgConsensusInstance, 
-                    roundChangeMsgInstance.getCurrentRound(), 
-                    roundChangeMsgInstance.getValueSignature()
+                    roundChangeMsgInstance.getCurrentRound()
                 )
             );
         }

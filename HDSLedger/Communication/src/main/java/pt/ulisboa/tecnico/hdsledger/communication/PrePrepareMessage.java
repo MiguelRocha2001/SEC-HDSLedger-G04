@@ -5,13 +5,13 @@ import com.google.gson.Gson;
 public class PrePrepareMessage {
     
     // Value
-    private TransactionBlock value;
+    private Block value;
 
-    public PrePrepareMessage(TransactionBlock value) {
+    public PrePrepareMessage(Block value) {
         this.value = value;
     }
 
-    public TransactionBlock getValue() {
+    public Block getValue() {
         return value;
     }
 
