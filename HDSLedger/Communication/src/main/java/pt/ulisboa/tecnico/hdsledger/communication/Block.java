@@ -1,5 +1,11 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
+import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.SignatureException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -14,12 +20,31 @@ public class Block {
         this.receiverId = receiverId;
     }
 
-    public static Block createRandom() {
-        Transaction randomTransactionV1 = Transaction.createRandom();
+    /**
+     * Creates a block with one random transaction, signed by [privateKey].
+     */
+    public static Block createRandom(PrivateKey privateKey) throws InvalidKeyException, NoSuchAlgorithmException, SignatureException, InvalidKeySpecException, IOException {
+        Transaction randomTransactionV1 = Transaction.createRandom(privateKey);
         String randomReceiverId = RandomStringGenerator.generateRandomString(2);
 
         List<Transaction> transactions = new LinkedList<>();
         transactions.add(randomTransactionV1);
+
+        return new Block(transactions, randomReceiverId); // TODO: improve later!
+    }
+
+    /**
+     * Creates a Block with n random transactions, n given by the size of [signatures].
+     * Each random transaction is given the valueSignature as the correspondent index in [signatures].
+     */
+    public static Block createRandom(List<byte[]> signatures) {
+        String randomReceiverId = RandomStringGenerator.generateRandomString(2);
+
+        List<Transaction> transactions = new LinkedList<>();
+        for (byte[] signature : signatures) {
+            Transaction randomTransactionV1 = Transaction.createRandom(signature);
+            transactions.add(randomTransactionV1);
+        }
 
         return new Block(transactions, randomReceiverId); // TODO: improve later!
     }
@@ -30,6 +55,10 @@ public class Block {
 
     public String getReceiverId() {
         return receiverId;
+    }
+
+    public void removeTransactions(List<Transaction> transactionsToRemove) {
+        transactions.removeAll(transactionsToRemove);
     }
 
     @Override

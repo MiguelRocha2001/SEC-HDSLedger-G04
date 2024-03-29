@@ -162,7 +162,7 @@ public class CriptoUtils {
         return result;
     }
 
-    public byte[] addSignatureToDataAndEncode(byte[] buf, String nodeId) 
+    public byte[] addSignatureToDataAndEncode(byte[] buf) 
         throws 
                 IOException,
                 NoSuchAlgorithmException, 
@@ -170,11 +170,11 @@ public class CriptoUtils {
                 SignatureException,
                 InvalidKeySpecException
     {
-        byte[] buffSigned = addSignatureToData(buf, nodeId);
+        byte[] buffSigned = addSignatureToData(buf, this.privateKey);
         return Base64.getEncoder().encodeToString(buffSigned).getBytes(); // encodes to Base 64        
     }
 
-    public byte[] addSignatureToData(byte[] buf, String nodeId) 
+    public static byte[] addSignatureToData(byte[] buf, PrivateKey privateKey) 
         throws 
             IOException, 
             NoSuchAlgorithmException, 
@@ -190,7 +190,7 @@ public class CriptoUtils {
         return appendArrays(buf, signature);
     }
 
-    public byte[] getMessageSignature(byte[] message, String senderId) 
+    public static byte[] getMessageSignature(byte[] message, PrivateKey privateKey) 
         throws 
             IOException, 
             NoSuchAlgorithmException, 
@@ -198,9 +198,20 @@ public class CriptoUtils {
             SignatureException,
             InvalidKeySpecException
     {
-        byte[] msgWithSign = addSignatureToData(message, senderId);
+        byte[] msgWithSign = addSignatureToData(message, privateKey);
         byte[] signature = extractSignature(msgWithSign);
         return signature;
+    }
+
+    public byte[] getMessageSignature(byte[] message) 
+        throws 
+            IOException, 
+            NoSuchAlgorithmException, 
+            InvalidKeyException, 
+            SignatureException,
+            InvalidKeySpecException
+    {
+        return getMessageSignature(message, this.privateKey);
     }
 
     public static byte[] extractSignature(byte[] data) {
@@ -323,6 +334,10 @@ public class CriptoUtils {
         }
 
         throw new InvalidPublicKeyException();
+    }
+    
+    public PrivateKey getPrivateKey() {
+        return privateKey;
     }
 
     public PublicKey getPublicKey(String id) {

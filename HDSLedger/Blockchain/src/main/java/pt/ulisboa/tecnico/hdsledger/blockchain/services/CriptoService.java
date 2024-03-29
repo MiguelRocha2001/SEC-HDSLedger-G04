@@ -51,6 +51,7 @@ public class CriptoService implements UDPService {
     private String[] nodeIds;
 
     private final int FEE = 1;
+    private final int NUMBER_OF_TRANSACTIONS_PER_BLOCK = 1;
 
     private LinkedList<Transaction> pendingTransactions = new LinkedList<Transaction>();
 
@@ -154,6 +155,9 @@ public class CriptoService implements UDPService {
         Transaction transaction = new Transaction(sourceClientId, destinationClientId, amount, requestUuid, valueSignature);
 
         pendingTransactions.add(transaction);
+
+        if (pendingTransactions.size() < NUMBER_OF_TRANSACTIONS_PER_BLOCK)
+            return;
 
         List<Transaction> transactionsToPropose = new LinkedList<>();
         transactionsToPropose.addAll(pendingTransactions);

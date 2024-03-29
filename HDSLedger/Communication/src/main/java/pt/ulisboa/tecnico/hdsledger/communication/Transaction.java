@@ -1,11 +1,19 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
+import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.SignatureException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 import java.util.UUID;
 
+import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
 import pt.ulisboa.tecnico.hdsledger.utilities.RandomByteArrayGenerator;
 import pt.ulisboa.tecnico.hdsledger.utilities.RandomIntGenerator;
 import pt.ulisboa.tecnico.hdsledger.utilities.RandomStringGenerator;
+import pt.ulisboa.tecnico.hdsledger.utilities.Utils;
 
 public class Transaction {
     private String sourceId; 
@@ -22,14 +30,25 @@ public class Transaction {
         this.valueSignature = valueSignature;
     }
 
-    public static Transaction createRandom() {
+    public static Transaction createRandom(PrivateKey privateKey) throws InvalidKeyException, NoSuchAlgorithmException, SignatureException, InvalidKeySpecException, IOException {
         String randomSourceId = RandomStringGenerator.generateRandomString(2);
         String randomDestinationId = RandomStringGenerator.generateRandomString(2);
         int randomAmount = RandomIntGenerator.generateRandomInt(1, 100);
         UUID randomRequestUUID = UUID.randomUUID();
-        byte[] randomSignature = RandomByteArrayGenerator.generateRandomByteArray(256);
 
-        return new Transaction(randomSourceId, randomDestinationId, randomAmount, randomRequestUUID, randomSignature);
+        byte[] messageToSign = Utils.joinArray(randomSourceId.getBytes(), randomDestinationId.getBytes(), Integer.toString(randomAmount).getBytes());
+        byte[] requestSignature = CriptoUtils.getMessageSignature(messageToSign, privateKey);
+
+        return new Transaction(randomSourceId, randomDestinationId, randomAmount, randomRequestUUID, requestSignature);
+    }
+
+    public static Transaction createRandom(byte[] signature) {
+        String randomSourceId = RandomStringGenerator.generateRandomString(2);
+        String randomDestinationId = RandomStringGenerator.generateRandomString(2);
+        int randomAmount = RandomIntGenerator.generateRandomInt(1, 100);
+        UUID randomRequestUUID = UUID.randomUUID();
+
+        return new Transaction(randomSourceId, randomDestinationId, randomAmount, randomRequestUUID, signature);
     }
 
     public String getSourceId() {

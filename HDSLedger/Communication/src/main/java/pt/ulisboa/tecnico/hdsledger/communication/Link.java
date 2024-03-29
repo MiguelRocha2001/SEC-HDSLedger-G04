@@ -173,7 +173,7 @@ public class Link {
         new Thread(() -> {
             try {
                 byte[] buf = new Gson().toJson(data).getBytes();
-                byte[] buffSignedEncoded = cripto.addSignatureToDataAndEncode(buf, config.getId()); // encodes to Base 64
+                byte[] buffSignedEncoded = cripto.addSignatureToDataAndEncode(buf); // encodes to Base 64
                 
                 DatagramPacket packet = new DatagramPacket(buffSignedEncoded, buffSignedEncoded.length, hostname, port);
 
