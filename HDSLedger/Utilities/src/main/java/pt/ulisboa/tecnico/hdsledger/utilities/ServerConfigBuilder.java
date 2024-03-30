@@ -14,7 +14,6 @@ public class ServerConfigBuilder {
     private final ServerConfig instance = new ServerConfig();
 
     public ServerConfig[] fromFile(String path) {
-        System.out.println(path);
         try (BufferedInputStream is = new BufferedInputStream(new FileInputStream(path))) {
             String input = new String(is.readAllBytes(), StandardCharsets.UTF_8);
             Gson gson = new Gson();

@@ -64,11 +64,11 @@ public class Node {
             nodeService.setCriptoService(criptoService);
             
             nodeService.listen();
-            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Process is listenning on port host and port {1}:{2}",
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Process is listenning on host and port {1}:{2}",
                     nodeConfig.getId(), nodeConfig.getHostname(), nodeConfig.getPort()));
                     
             criptoService.listen();
-            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Process is listenning on port host and port {1}:{2}",
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Process is listenning on host and port {1}:{2}",
                     nodeConfig.getId(), nodeConfig.getHostname(), nodeConfigAux.getClientPort()));
 
         } catch (Exception e) {

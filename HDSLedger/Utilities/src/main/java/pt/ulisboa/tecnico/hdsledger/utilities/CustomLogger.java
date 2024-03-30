@@ -26,6 +26,10 @@ public class CustomLogger {
         LOGGER.log(level, message);
     }
 
+    public void shutdown() {
+        LOGGER.setLevel(Level.OFF);
+    }
+
 }
 
 class CustomLog extends Formatter {

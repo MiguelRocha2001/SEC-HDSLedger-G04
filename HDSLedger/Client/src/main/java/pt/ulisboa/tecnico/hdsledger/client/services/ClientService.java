@@ -3,6 +3,11 @@ package pt.ulisboa.tecnico.hdsledger.client.services;
 import java.io.IOException;
 import java.security.PublicKey;
 import java.text.MessageFormat;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 import java.util.logging.Level;
 
 import pt.ulisboa.tecnico.hdsledger.client.models.ClientMessageBucket;
@@ -35,6 +40,8 @@ public class ClientService implements UDPService {
 
     private final ClientMessageBucket bucket;
 
+     private final Set<UUID> displayedReplies = Collections.synchronizedSet(new HashSet<UUID>());
+
     public ClientService(
         Link link, 
         ProcessConfig config,
@@ -45,6 +52,8 @@ public class ClientService implements UDPService {
         this.config = config;
         this.criptoUtils = criptoUtils;
         this.bucket = new ClientMessageBucket(nodeCount);
+
+        LOGGER.shutdown();
     }
 
     public ProcessConfig getConfig() {
@@ -87,8 +96,14 @@ public class ClientService implements UDPService {
         try {
             bucket.addAccountBalanceSuccessResponseMsg(response);
 
-            if (bucket.hasAccountBalanceSucessQuorum(response))
-                LOGGER.log(Level.INFO, MessageFormat.format("Balance: {0} units", response.getBalance()));
+            if (
+                bucket.hasAccountBalanceSucessQuorum(response)
+                &&
+                !displayedReplies.contains(response.getUuid())
+            ) {
+                displayedReplies.add(response.getUuid());
+                formatReply(MessageFormat.format("Balance: {0} units", response.getBalance()));
+            }
 
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, 
@@ -104,8 +119,13 @@ public class ClientService implements UDPService {
         try {
             bucket.addAccountBalanceErrorResponseMsg(response);
 
-            if (bucket.hasAccountBalanceErrorQuorum(response)) {
-                LOGGER.log(Level.INFO, 
+            if (
+                bucket.hasAccountBalanceErrorQuorum(response)
+                &&
+                !displayedReplies.contains(response.getUuid())
+            ) {
+                displayedReplies.add(response.getUuid());
+                formatReply(
                     MessageFormat.format("Error from the server: {0}", response.getErrorMessage())
                 );
             }
@@ -160,8 +180,14 @@ public class ClientService implements UDPService {
         try {
             bucket.addAccountTransferSuccessResponseMsg(response);
 
-            if (bucket.hasAccountTransferSucessQuorum(response))
-                LOGGER.log(Level.INFO, MessageFormat.format("Transfer operation with id {0}, concluded!", response.getUuid()));
+            if (
+                bucket.hasAccountTransferSucessQuorum(response)
+                &&
+                !displayedReplies.contains(response.getUuid())
+            ) {
+                displayedReplies.add(response.getUuid());
+                formatReply(MessageFormat.format("Transfer operation with id {0}, concluded!", response.getUuid()));
+            }
 
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, 
@@ -177,8 +203,13 @@ public class ClientService implements UDPService {
         try {
             bucket.addAccountTransferErrorResponseMsg(response);
 
-            if (bucket.hasAccountTransferErrorQuorum(response)) {
-                LOGGER.log(Level.INFO, 
+            if (
+                bucket.hasAccountTransferErrorQuorum(response)
+                &&
+                !displayedReplies.contains(response.getUuid())
+            ) {
+                displayedReplies.add(response.getUuid());
+                formatReply(
                     MessageFormat.format("Error from the server: {0}", response.getError())
                 );
             }
@@ -187,6 +218,12 @@ public class ClientService implements UDPService {
                 MessageFormat.format("Error after receiving transfer error result. \n{0}", e.getMessage())
             );
         }
+    }
+
+    private void formatReply(String msg) {
+        System.out.println("\n\n-----------------------------------");
+        System.out.println(msg);
+        System.out.println("-----------------------------------\n\n");
     }
 
     @Override

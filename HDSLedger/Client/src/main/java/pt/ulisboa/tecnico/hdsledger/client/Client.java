@@ -53,7 +53,7 @@ public class Client {
             ClientService clientService = new ClientService(linkToNodes, nodeConfig, criptoUtils, nodeCount);
 
             clientService.listen();
-            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Process is listenning on port host and port {1}:{2}",
+            System.out.println(MessageFormat.format("{0} - Process is listenning on host and port {1}:{2}",
                     nodeConfig.getId(), nodeConfig.getHostname(), nodeConfig.getPort()));
 
             boolean isByzantine = clientConfigAux.getByzantineBehavior() == ByzantineBehavior.IS_BYZANTINE;

@@ -86,12 +86,12 @@ public class CriptoService implements UDPService {
     }
 
     /**
-     * @param key account user Public key
-     * @return the balance or null if the user does not exist
+     * @param clientPublicKey account user Public key
+     * @return the balance or null if the client does not exist
      */
-    private Integer getClientBalanceOrNull(PublicKey key) {
-        if (criptoUtils.isAcossiatedWithClient(key)) {
-            String clientId = criptoUtils.getClientId(key);
+    private Integer getClientBalanceOrNull(PublicKey clientPublicKey) {
+        if (criptoUtils.isAcossiatedWithClient(clientPublicKey)) {
+            String clientId = criptoUtils.getClientId(clientPublicKey);
             return storage.getBalance(clientId);
         } else {
             return null;
@@ -275,8 +275,10 @@ public class CriptoService implements UDPService {
 
             Integer balance = getClientBalanceOrNull(clientPublicKey); // null if [clientPublicKey] is unknown
             if (balance != null) {
+                LOGGER.log(Level.INFO, MessageFormat.format("{0} - Replying with a successfull Get Balance reply!", config.getId(), senderId));
                 link.send(senderId, buildGetBalanceRequestSuccessResult(balance, requestUuid));
             } else {
+                LOGGER.log(Level.INFO, MessageFormat.format("{0} - Replying with an invalid Get Balance reply!", config.getId(), senderId));
                 link.send(senderId, buildGetBalanceRequestErrorResult(GetBalanceErrroResultType.INVALID_ACCOUNT, requestUuid));
             }
         } catch (Exception e) {

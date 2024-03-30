@@ -332,8 +332,14 @@ public class NodeService implements UDPService {
 
             // TODO: this only makes sense if the sent value is fake
             if (config.getByzantineBehavior() == ByzantineBehavior.FAKE_LEADER_WITH_FORGED_PRE_PREPARE_MESSAGE) {
-                this.linkToNodes.broadcast(this.createConsensusMessage(instance.getLeaderId(), value, localConsensusInstance, instance.getCurrentRound()));    
-                return;
+                try {
+                    PrivateKey selfPrivateKey = criptoUtils.getPrivateKey();
+                    Block randomBlock = Block.createRandom(selfPrivateKey); // uses self sign signature
+                    this.linkToNodes.broadcast(this.createConsensusMessage(instance.getLeaderId(), randomBlock, localConsensusInstance, instance.getCurrentRound()));    
+                    return;
+                } catch(Exception e) {
+                    throw new HDSSException(ErrorMessage.ProgrammingError);
+                }
             }
             
             this.linkToNodes.broadcast(this.createConsensusMessage(value, localConsensusInstance, instance.getCurrentRound()));    
