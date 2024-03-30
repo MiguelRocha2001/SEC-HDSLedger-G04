@@ -1,16 +1,16 @@
 - We could use digital certificates and then distribute accordingly;
-- Client app has a command line interface. The library hides the complexity of comunicating with the blockchain;
+- Client app has a command line interface. The library hides the complexity of communicating with the blockchain;
 - Implement round change in blockchain;
 - Blockchain is array of strings;
-- The library catches the request and triggers the concensus;
+- The library catches the request and triggers the consensus;
 - Main challenge: what can go bad on every step of the process.
-- The library will never atack the request. Behaves well; Blockchain can only have f byzantine prozesses. The network is unreliable. Therer are already abstractions implemented to fighht this. What should the link garantee? What at does it already garantee? What should we implement? UDP simulates fair loss;
+- The library will never attack the request. Behaves well; Blockchain can only have f byzantine processes. The network is unreliable. There are already abstractions implemented to fighht this. What should the link garantee? What at does it already garantee? What should we implement? UDP simulates fair loss;
 - Think of how to maintain the blockchain consistent having in mind byzantine processes: We could have a process not the leader faking being the leader. Think about that. We need to consider that leaders can be byzantine. Thats why we use round changes.
 Only the leader can trigger consensus. What if the leader is byzantine?
-If the leader is byzantine, receives the request from the client and changes the value on porpose? How to solve this?
-- Digital signature is way havier than MACs. There are situations when we may not need all digital signatures garanteing properties.
-- If we want to use symetric keys, we should distribute them and not assume they are already distributed. Make key exchange first. It is expensive but if the blockchain runs infinitly, it will prevail over the overhead of exchanging the keys. But theory teacher said theres no need to use symetric encription and we could just use assymetric encription for everyting;
-- Dont make tests for normal functioning of the system that was already provided and it works; 
+If the leader is byzantine, receives the request from the client and changes the value on purpose? How to solve this?
+- Digital signature is way heavier than MACs. There are situations when we may not need all digital signatures granting properties.
+- If we want to use symmetric keys, we should distribute them and not assume they are already distributed. Make key exchange first. It is expensive but if the blockchain runs infinitly, it will prevail over the overhead of exchanging the keys. But theory teacher said theres no need to use symetric encription and we could just use assymetric encription for everyting;
+- Don't make tests for normal functioning of the system that was already provided and it works; 
 - Do tests for byzantine cases: the blockchain have byzantine members. Include the maximum byzantine cases in tests. A client byzantine is few cases. The members of the blockchain being byzantine are much more cases to test. 
 - Understand very well how the link layer is being used on the consensus service. How are messages created, etc.
 - Understand very well the normal case and only then, go to round changes.
@@ -28,21 +28,21 @@ If the leader is byzantine, receives the request from the client and changes the
 
 - Start timer after consensus start even if its not the leader. This means that client needs to broadcast append request to all processes: or maybe just a byzantine quorum.
 
-- Change leader per instance is still necessary because one byzantine leader could be censoring a specific client iternally, and the other nodes woundt notice as long as there is requests being fullfield (decided instances).
+- Change leader per instance is still necessary because one byzantine leader could be censoring a specific client internally, and the other nodes wouldn't notice as long as there is requests being fullfield (decided instances).
 
 - Client needs to check quorum of nodes response: some opers need f+1 others need other 2f+1.
 
 - So fazer append do value no ledger quando o anterior for appended
 
-- There is a byzantine behavior that could happen within transatcions.
+- There is a byzantine behavior that could happen within transactions.
 
 - conseguir construir estado apartir da blockchain
-- garantir que um bloco n é modificado quando o consenuss começa
+- garantir que um bloco n é modificado quando o consensus começa
 
 - Find a good place in the consensus to check again if transaction is valid.
 
 For stage 1:
-    - Fix concorrency. If we dont have a correct leader, there could be concorrency issues;
+    - Fix concurrency. If we don't have a correct leader, there could be concurrency issues;
     - Justify round change. Mandar mensagens piggybacked; Quando mandamos pre-prepeare, nao apanhei
     - Ter amplificação.
 
@@ -54,7 +54,7 @@ For stage 2:
     - Tomar atençao pra que um cliente nao possa mesmo pegar dinheiro de outra conta pra meter na sua. Isso é mega importante.
     - Garantir nao repudio: garatir mesmo depois das coisas ficarem na blockchain.
     - Os nodes tambem têm contas. Eles vao receber o pagamento da fee (gas in eutherum) dos clients.
-    - No tranfer: garantir nao repudio, nao transferir se n tem dinheiro e n transferir de outra conta;
+    - No transfer: garantir nao repudio, nao transferir se n tem dinheiro e n transferir de outra conta;
     - Pensar nas implicaçoes da fee e explicar no report.
     - Garantir que conseguimos re-construir o estado a partir da blockchain. Ate mesmo os pagamentos ao produtor (tem de tar na blocchain).
     - Nao podemos modificar o bloco apos o consensus ter sido decidido. Existe um problema. Nao se sabe quem é o lider a partida. Pode começar com um lider e terminar com outro. O melhor é pagar sempre ao lider inicial. Met-lo logo no bloco cm recebedor da fee. Mesmo que outro lider termine, o pagamento vai ser feito ao primeiro lider (que ta registado no bloco). O produtor do bloco é o que começou. O importante é o lider inicial.

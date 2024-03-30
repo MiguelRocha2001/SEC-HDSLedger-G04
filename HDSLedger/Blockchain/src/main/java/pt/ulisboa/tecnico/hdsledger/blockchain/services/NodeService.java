@@ -368,19 +368,19 @@ public class NodeService implements UDPService {
         }
     }
 
-    private String getLeaderId(int instaceId) {
+    private String getLeaderId(int instanceId) {
         String currentLeaderId = nodesConfig[0].getId();
         for (int currentInstanceCounter = 1; true; currentInstanceCounter++) {
-            if (currentInstanceCounter == instaceId)
+            if (currentInstanceCounter == instanceId)
                 return currentLeaderId;
             currentLeaderId = getNextLeader(currentLeaderId);
         }
     }
 
-    private InstanceInfo createInstanceInfo(int instaceId, Block value) {
+    private InstanceInfo createInstanceInfo(int instanceId, Block value) {
         InstanceInfo instanceInfo;
-        if (instaceId != 1)
-            instanceInfo = new InstanceInfo(value, getNextLeader(getLeaderId(instaceId-1)));
+        if (instanceId != 1)
+            instanceInfo = new InstanceInfo(value, getNextLeader(getLeaderId(instanceId-1)));
         else
             instanceInfo = new InstanceInfo(value, nodesConfig[0].getId());
 
@@ -621,11 +621,11 @@ public class NodeService implements UDPService {
         if (roundChangeMessages.areAllRoundChangeMessagesNotPrepared(config.getId(), instance, round))
             return true;
 
-        Optional<Pair<Integer, Block>> heighestPreparedRoundAndValue = roundChangeMessages.getHeighestPreparedRoundAndValueIfAny(config.getId(), instance, round);
-        int heighestPreparedRound = heighestPreparedRoundAndValue.get().getKey();
-        Block heighestPreparedValue = heighestPreparedRoundAndValue.get().getValue();
+        Optional<Pair<Integer, Block>> highestPreparedRoundAndValue = roundChangeMessages.getHighestPreparedRoundAndValueIfAny(config.getId(), instance, round);
+        int highestPreparedRound = highestPreparedRoundAndValue.get().getKey();
+        Block highestPreparedValue = highestPreparedRoundAndValue.get().getValue();
         
-        if (prepareMessages.checkRoundAndValue(config.getId(), instance, round, heighestPreparedRound, heighestPreparedValue))
+        if (prepareMessages.checkRoundAndValue(config.getId(), instance, round, highestPreparedRound, highestPreparedValue))
             return true;
 
         return false;
@@ -642,7 +642,7 @@ public class NodeService implements UDPService {
         return smallerRound;
     }
 
-    // TODO: log next leader for debug porposes
+    // TODO: log next leader for debug purposes
     public void uponRoundChange(ConsensusMessage message) {
         int roundChangeMsgConsensusInstance = message.getConsensusInstance();
         int roundChangeMsgRound = message.getRound();
@@ -660,8 +660,8 @@ public class NodeService implements UDPService {
                 MessageFormat.format("{0} - Received ROUND_CHANGE message from {1}: Consensus Instance {2}, Round {3}. Consensus instance was already decided. Broadcasting commit messages to sender...",
                     config.getId(), message.getSenderId(), roundChangeMsgConsensusInstance, roundChangeMsgRound));
 
-            int commitedRound = this.instanceInfo.get(roundChangeMsgConsensusInstance).getCommittedRound();
-            Collection<ConsensusMessage> receivedCommitMessages = commitMessages.getMessages(roundChangeMsgConsensusInstance, commitedRound)
+            int committedRound = this.instanceInfo.get(roundChangeMsgConsensusInstance).getCommittedRound();
+            Collection<ConsensusMessage> receivedCommitMessages = commitMessages.getMessages(roundChangeMsgConsensusInstance, committedRound)
                     .values();
 
             // sends the whole quorum
@@ -694,7 +694,7 @@ public class NodeService implements UDPService {
             config.getId().equals(roundChangeMsgInstance.getLeaderId()) && 
             justifyRoundChange(roundChangeMsgConsensusInstance, roundChangeMsgRound)
         ) {
-            Optional<Pair<Integer, Block>> heighestPreparedRoundAndValue = roundChangeMessages.getHeighestPreparedRoundAndValueIfAny(config.getId(), roundChangeMsgConsensusInstance, roundChangeMsgRound);
+            Optional<Pair<Integer, Block>> highestPreparedRoundAndValue = roundChangeMessages.getHighestPreparedRoundAndValueIfAny(config.getId(), roundChangeMsgConsensusInstance, roundChangeMsgRound);
 
             LOGGER.log(Level.INFO,
                         MessageFormat.format("{0} - Received justified quorum of ROUND_CHANGE messages and Iam the leader",
@@ -717,8 +717,8 @@ public class NodeService implements UDPService {
                 roundChangeMsgInstance.setInputValue(randomValue);
             } else {
                 
-                if (heighestPreparedRoundAndValue.isPresent()) {
-                    Block newValue = heighestPreparedRoundAndValue.get().getValue();
+                if (highestPreparedRoundAndValue.isPresent()) {
+                    Block newValue = highestPreparedRoundAndValue.get().getValue();
                     roundChangeMsgInstance.setInputValue(newValue);
                     LOGGER.log(Level.INFO,
                         MessageFormat.format("{0} - Received quorum of ROUND_CHANGE messages. Setting input value to {1}",
@@ -729,7 +729,7 @@ public class NodeService implements UDPService {
                             config.getId()));
                 }
 
-                // othewrise, value stays the same
+                // otherwise, value stays the same
             }
 
             LOGGER.log(Level.INFO,
@@ -863,15 +863,15 @@ public class NodeService implements UDPService {
      */
     private void tryAppendValue(int consensusInstance, int round, Block block) {
 
-        // The transaction could already be appended in a previous consensus instance, if two nodes have received the same request in diferent orders,
+        // The transaction could already be appended in a previous consensus instance, if two nodes have received the same request in different orders,
         // or if a Byzantine node decides to include, in the block he's going to propose, a previous, already appended/executed client transaction.
         removeAlreadyAppendedTransactions(block);
 
         // Applies transactions and warns clients
-        // At this point, every node will decide the same block. Therefore, this transactions will be successfull or not for every node.
+        // At this point, every node will decide the same block. Therefore, this transactions will be successful or not for every node.
         // For instance, TB1 could invalidate TB2, waiting for TB1, because it contains transactions that remove every unit in the client account.
-        boolean successfull = criptoService.applyTransactions(block);
-        if (successfull) {
+        boolean successful = criptoService.applyTransactions(block);
+        if (successful) {
             appendToLedger(consensusInstance, block);
         }
 

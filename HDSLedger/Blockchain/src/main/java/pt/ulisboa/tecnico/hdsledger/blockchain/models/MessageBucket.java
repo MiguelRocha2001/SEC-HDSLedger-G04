@@ -105,27 +105,27 @@ public class MessageBucket {
     }
 
     /**
-     * Assuming that there is a quorum, returns an Optional with the heighest prepared value,
+     * Assuming that there is a quorum, returns an Optional with the highest prepared value,
      * or an empty Optional if there isn't any.
      */
-    public Optional<Pair<Integer, Block>> getHeighestPreparedRoundAndValueIfAny(String nodeId, int instance, int round) {
+    public Optional<Pair<Integer, Block>> getHighestPreparedRoundAndValueIfAny(String nodeId, int instance, int round) {
         
-        int heighestPreparedRound = -1; // TODO: check if this is safe
-        Block heighestPreparedValue = null;
+        int highestPreparedRound = -1; // TODO: check if this is safe
+        Block highestPreparedValue = null;
 
         for (Map.Entry<String, ConsensusMessage> entry : bucket.get(instance).get(round).entrySet()) {
             
             RoundChangeMessage roundChangeMessage = entry.getValue().deserializeRoundChangeMessage();
             
             int preparedRound = roundChangeMessage.getPreparedRound();
-            if (preparedRound > heighestPreparedRound) {
-                heighestPreparedValue = roundChangeMessage.getPreparedValue();
+            if (preparedRound > highestPreparedRound) {
+                highestPreparedValue = roundChangeMessage.getPreparedValue();
             }
         }
-        if (heighestPreparedValue == null)
+        if (highestPreparedValue == null)
             return Optional.empty();
 
-        return Optional.of(new Pair<Integer, Block>(heighestPreparedRound, heighestPreparedValue));
+        return Optional.of(new Pair<Integer, Block>(highestPreparedRound, highestPreparedValue));
     }
 
     /**

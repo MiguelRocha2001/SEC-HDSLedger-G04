@@ -11,18 +11,18 @@ import java.util.logging.Level;
 
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.CryptocurrencyStorage;
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.CryptocurrencyStorage.InvalidAccountException;
-import pt.ulisboa.tecnico.hdsledger.blockchain.models.CryptocurrencyStorage.InvalidAmmountException;
+import pt.ulisboa.tecnico.hdsledger.blockchain.models.CryptocurrencyStorage.InvalidAmountException;
 import pt.ulisboa.tecnico.hdsledger.communication.BlockchainRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestErrorResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestSucessResultMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestSuccessResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.communication.Block;
 import pt.ulisboa.tecnico.hdsledger.communication.Transaction;
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestErrorResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestSucessResultMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestSuccessResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidClientPublicKeyException;
 import pt.ulisboa.tecnico.hdsledger.utilities.ByzantineBehavior;
@@ -86,12 +86,12 @@ public class CriptoService implements UDPService {
     }
 
     /**
-     * @param clientPublicKey account user Public key
-     * @return the balance or null if the client does not exist
+     * @param key account user Public key
+     * @return the balance or null if the user does not exist
      */
-    private Integer getClientBalanceOrNull(PublicKey clientPublicKey) {
-        if (criptoUtils.isAcossiatedWithClient(clientPublicKey)) {
-            String clientId = criptoUtils.getClientId(clientPublicKey);
+    private Integer getClientBalanceOrNull(PublicKey key) {
+        if (criptoUtils.isAcossiatedWithClient(key)) {
+            String clientId = criptoUtils.getClientId(key);
             return storage.getBalance(clientId);
         } else {
             return null;
@@ -149,7 +149,7 @@ public class CriptoService implements UDPService {
             destinationClientId = criptoUtils.getClientId(destination);
 
             if (sourceBalance < amount + FEE)
-                throw new InvalidAmmountException();
+                throw new InvalidAmountException();
         }
 
         Transaction transaction = new Transaction(sourceClientId, destinationClientId, amount, requestUuid, valueSignature);
@@ -167,8 +167,8 @@ public class CriptoService implements UDPService {
     }
 
     private void sendTransactionReplyToClient(String clientId, UUID requestUuid) {
-        TransferRequestSucessResultMessage reply = new TransferRequestSucessResultMessage(config.getId(), requestUuid);
-        link.send(clientId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_SUCESS_RESULT, reply.tojson()));   
+        TransferRequestSuccessResultMessage reply = new TransferRequestSuccessResultMessage(config.getId(), requestUuid);
+        link.send(clientId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_SUCCESS_RESULT, reply.tojson()));   
     }
 
   
@@ -224,7 +224,7 @@ public class CriptoService implements UDPService {
 
                 try {
                     storage.transfer(sourceClientId, destinationClientId, amount);
-                    boolean successfull = payFeeToNode(sourceClientId, block.getReceiverId()); // Should always be successfull
+                    boolean successful = payFeeToNode(sourceClientId, block.getReceiverId()); // Should always be successful
                     transactionAppliedCount += 1;
 
                     if (
@@ -232,13 +232,13 @@ public class CriptoService implements UDPService {
                         &&
                         !isClient(sourceClientId)
                     ) {
-                        // Dont send reply
+                        // Don't send reply
                     } else 
                         sendTransactionReplyToClient(sourceClientId, requestUuid);
 
                     continue;
                 
-                } catch(InvalidAmmountException e) {
+                } catch(InvalidAmountException e) {
                     LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction {1} could not be verified after end of consensus!", config.getId(), requestUuid));
 
                     sendInvalidAmountReply(sourceClientId, requestUuid);
@@ -256,7 +256,7 @@ public class CriptoService implements UDPService {
     }
 
     /**
-     * The resquest is fullfiled based on the senderId of the request, which, is already authenticated by the Link layer.
+     * The request is fulfilled based on the senderId of the request, which, is already authenticated by the Link layer.
      * So, if the request contains a public key of another process, it doesn't do anything since it is not used.
      */
     private void getBalanceRequest(BlockchainRequestMessage message) {
@@ -275,11 +275,9 @@ public class CriptoService implements UDPService {
 
             Integer balance = getClientBalanceOrNull(clientPublicKey); // null if [clientPublicKey] is unknown
             if (balance != null) {
-                LOGGER.log(Level.INFO, MessageFormat.format("{0} - Replying with a successfull Get Balance reply!", config.getId(), senderId));
                 link.send(senderId, buildGetBalanceRequestSuccessResult(balance, requestUuid));
             } else {
-                LOGGER.log(Level.INFO, MessageFormat.format("{0} - Replying with an invalid Get Balance reply!", config.getId(), senderId));
-                link.send(senderId, buildGetBalanceRequestErrorResult(GetBalanceErrroResultType.INVALID_ACCOUNT, requestUuid));
+                link.send(senderId, buildGetBalanceRequestErrorResult(GetBalanceErrorResultType.INVALID_ACCOUNT, requestUuid));
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error: {1}", config.getId(), e.getMessage()));
@@ -287,11 +285,11 @@ public class CriptoService implements UDPService {
     }
 
     
-    private enum GetBalanceErrroResultType { NOT_AUTHORIZED, INVALID_ACCOUNT }
+    private enum GetBalanceErrorResultType { NOT_AUTHORIZED, INVALID_ACCOUNT }
 
-    private BlockchainRequestMessage buildGetBalanceRequestErrorResult(GetBalanceErrroResultType type, UUID requestUuid) {
+    private BlockchainRequestMessage buildGetBalanceRequestErrorResult(GetBalanceErrorResultType type, UUID requestUuid) {
         String message;
-        if (type == GetBalanceErrroResultType.INVALID_ACCOUNT)
+        if (type == GetBalanceErrorResultType.INVALID_ACCOUNT)
             message = "Invalid Account";
         else
             message = "Not authorized";
@@ -300,16 +298,16 @@ public class CriptoService implements UDPService {
     }
 
     private BlockchainRequestMessage buildGetBalanceRequestSuccessResult(int balance, UUID requestUuid) {
-        GetBalanceRequestSucessResultMessage reply = new GetBalanceRequestSucessResultMessage(config.getId(), balance, requestUuid);
-        return new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE_SUCESS_RESULT, reply.tojson());
+        GetBalanceRequestSuccessResultMessage reply = new GetBalanceRequestSuccessResultMessage(config.getId(), balance, requestUuid);
+        return new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE_SUCCESS_RESULT, reply.tojson());
     }
 
-    private void tranferRequest(BlockchainRequestMessage message) {
+    private void transferRequest(BlockchainRequestMessage message) {
         String senderId = message.getSenderId();
 
         LOGGER.log(Level.INFO,
             MessageFormat.format(
-                "{0} - Received TRANFER-REQUEST message from {1}",
+                "{0} - Received TRANSFER-REQUEST message from {1}",
                     config.getId(), senderId));
 
         TransferRequestMessage request = message.deserializeTransferRequest();
@@ -320,20 +318,20 @@ public class CriptoService implements UDPService {
 
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request validated", config.getId(), requestUuid));
 
-            // Dont send reply because it has to wait for consensus...
+            // Don't send reply because it has to wait for consensus...
 
         } catch(InvalidAccountException e) {
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request rejected!", config.getId(), requestUuid));
             sendInvalidAccountReply(senderId, requestUuid);
 
-        } catch (InvalidAmmountException e) {
+        } catch (InvalidAmountException e) {
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request rejected duo to not enough funds!", config.getId(), requestUuid));
             sendInvalidAmountReply(senderId, requestUuid);
 
         } catch (InvalidClientPublicKeyException e) {
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request rejected duo to an invalid client Public key!!", config.getId(), requestUuid));
             sendInvalidCLientPublicKey(senderId, requestUuid);
-        } catch (InvalidTransferRequest e) { // Happens when UUID cannot be retreived because transaction is unknown.
+        } catch (InvalidTransferRequest e) { // Happens when UUID cannot be retrieved because transaction is unknown.
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction request rejected!", config.getId()));
             sendInvalidCLientPublicKey(senderId, requestUuid);
         } catch (Exception e) {
@@ -385,7 +383,7 @@ public class CriptoService implements UDPService {
                                         getBalanceRequest((BlockchainRequestMessage) message);
 
                                     case TRANSFER ->
-                                        tranferRequest((BlockchainRequestMessage) message);
+                                        transferRequest((BlockchainRequestMessage) message);
 
                                     case ACK ->
                                         LOGGER.log(Level.INFO, MessageFormat.format("{0} - Received ACK message from {1}",

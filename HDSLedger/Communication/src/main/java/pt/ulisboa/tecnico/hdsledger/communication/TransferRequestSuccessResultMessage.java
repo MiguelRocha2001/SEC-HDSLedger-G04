@@ -9,18 +9,14 @@ import com.google.gson.Gson;
 
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.RSAKeyGenerator;
 
-public class GetBalanceRequestSucessResultMessage extends Message {
+public class TransferRequestSuccessResultMessage extends Message {
 
-    private int balance;
     private UUID uuid;
 
-    public GetBalanceRequestSucessResultMessage(String senderId, int balance, UUID uuid) {
-        super(senderId, Type.APPEND_REQUEST_RESULT);
-        this.balance = balance;
+    public TransferRequestSuccessResultMessage(String senderId, UUID uuid) {
+        super(senderId, Type.TRANSFER_SUCCESS_RESULT);
         this.uuid = uuid;
     }
-
-    public int getBalance() { return balance; }
     
     public String tojson() {
         return new Gson().toJson(this);

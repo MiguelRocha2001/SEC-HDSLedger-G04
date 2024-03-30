@@ -15,12 +15,12 @@ import pt.ulisboa.tecnico.hdsledger.communication.BlockchainRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.BlockchainResponseMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestErrorResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestSucessResultMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestSuccessResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.Link;
 import pt.ulisboa.tecnico.hdsledger.communication.Message;
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestErrorResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestSucessResultMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestSuccessResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidClientIdException;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidIdException;
@@ -89,15 +89,15 @@ public class ClientService implements UDPService {
     }
 
     private void getBalanceSuccessResultReceived(BlockchainResponseMessage message) {
-        LOGGER.log(Level.INFO, MessageFormat.format("Received get-balance sucess Result message from process {0}", message.getSenderId()));
+        LOGGER.log(Level.INFO, MessageFormat.format("Received get-balance success Result message from process {0}", message.getSenderId()));
 
-        GetBalanceRequestSucessResultMessage response = message.deserializeGetBalanceSucessResultMessage();
+        GetBalanceRequestSuccessResultMessage response = message.deserializeGetBalanceSuccessResultMessage();
 
         try {
             bucket.addAccountBalanceSuccessResponseMsg(response);
 
             if (
-                bucket.hasAccountBalanceSucessQuorum(response)
+                bucket.hasAccountBalanceSuccessQuorum(response)
                 &&
                 !displayedReplies.contains(response.getUuid())
             ) {
@@ -174,14 +174,14 @@ public class ClientService implements UDPService {
     }
 
     private void onTransferSuccess(BlockchainResponseMessage message) {
-        LOGGER.log(Level.INFO, MessageFormat.format("Received transfer sucess result message from process {0}", message.getSenderId()));
+        LOGGER.log(Level.INFO, MessageFormat.format("Received transfer success result message from process {0}", message.getSenderId()));
 
-        TransferRequestSucessResultMessage response = message.deserializeTranferSucessResultMessage();
+        TransferRequestSuccessResultMessage response = message.deserializeTransferSuccessResultMessage();
         try {
             bucket.addAccountTransferSuccessResponseMsg(response);
 
             if (
-                bucket.hasAccountTransferSucessQuorum(response)
+                bucket.hasAccountTransferSuccessQuorum(response)
                 &&
                 !displayedReplies.contains(response.getUuid())
             ) {
@@ -197,7 +197,7 @@ public class ClientService implements UDPService {
     }
 
     private void onTransferError(BlockchainResponseMessage message) {
-        LOGGER.log(Level.INFO, MessageFormat.format("Received tranfer error result message from process {0}", message.getSenderId()));
+        LOGGER.log(Level.INFO, MessageFormat.format("Received transfer error result message from process {0}", message.getSenderId()));
 
         TransferRequestErrorResultMessage response = message.deserializeTransferErrorResultMessage();
         try {
@@ -245,13 +245,13 @@ public class ClientService implements UDPService {
                                     appendValueResultReceived((BlockchainResponseMessage) message);
                                 */
 
-                                case GET_BALANCE_SUCESS_RESULT ->
+                                case GET_BALANCE_SUCCESS_RESULT ->
                                     getBalanceSuccessResultReceived((BlockchainResponseMessage) message);
 
                                 case GET_BALANCE_ERROR_RESULT ->
                                     getBalanceErrorResultReceived((BlockchainResponseMessage) message);
 
-                                case TRANSFER_SUCESS_RESULT ->
+                                case TRANSFER_SUCCESS_RESULT ->
                                     onTransferSuccess((BlockchainResponseMessage) message);
 
                                 case TRANSFER_ERROR_RESULT ->

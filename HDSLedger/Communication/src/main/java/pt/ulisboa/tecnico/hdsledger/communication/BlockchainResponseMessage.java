@@ -16,12 +16,12 @@ public class BlockchainResponseMessage extends Message {
         return new Gson().fromJson(message, AppendRequestResultMessage.class);
     }
 
-    public GetBalanceRequestSucessResultMessage deserializeGetBalanceSucessResultMessage() {
-        return new Gson().fromJson(message, GetBalanceRequestSucessResultMessage.class);
+    public GetBalanceRequestSuccessResultMessage deserializeGetBalanceSuccessResultMessage() {
+        return new Gson().fromJson(message, GetBalanceRequestSuccessResultMessage.class);
     }
 
-    public TransferRequestSucessResultMessage deserializeTranferSucessResultMessage() {
-        return new Gson().fromJson(message, TransferRequestSucessResultMessage.class);
+    public TransferRequestSuccessResultMessage deserializeTransferSuccessResultMessage() {
+        return new Gson().fromJson(message, TransferRequestSuccessResultMessage.class);
     }
 
     public GetBalanceRequestErrorResultMessage deserializeGetBalanceErrorResultMessage() {

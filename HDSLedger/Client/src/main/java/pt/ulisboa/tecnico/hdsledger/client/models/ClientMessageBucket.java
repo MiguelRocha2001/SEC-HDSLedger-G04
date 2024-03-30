@@ -8,8 +8,8 @@ import java.util.HashSet;
 import java.util.UUID;
 
 import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestErrorResultMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestSucessResultMessage;
-import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestSucessResultMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestSuccessResultMessage;
+import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestSuccessResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestErrorResultMessage;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 
@@ -20,10 +20,10 @@ public class ClientMessageBucket {
     private final int byzantineQuorumSize;
     private final int shortQuorumSize;
 
-    private final HashMap<UUID, HashSet<GetBalanceRequestSucessResultMessage>> accounBalanceSuccessResponses = new HashMap<>();
+    private final HashMap<UUID, HashSet<GetBalanceRequestSuccessResultMessage>> accounBalanceSuccessResponses = new HashMap<>();
     private final HashMap<UUID, HashSet<GetBalanceRequestErrorResultMessage>> accounBalanceErrorResponses = new HashMap<>();
 
-    private final HashMap<UUID, HashSet<TransferRequestSucessResultMessage>> transferSuccessResponses = new HashMap<>();
+    private final HashMap<UUID, HashSet<TransferRequestSuccessResultMessage>> transferSuccessResponses = new HashMap<>();
     private final HashMap<UUID, HashSet<TransferRequestErrorResultMessage>> transferErrorResponses = new HashMap<>();
 
     public ClientMessageBucket(int nodeCount) {
@@ -32,10 +32,10 @@ public class ClientMessageBucket {
         shortQuorumSize = f + 1;
     }
 
-    public void addAccountBalanceSuccessResponseMsg(GetBalanceRequestSucessResultMessage message) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    public void addAccountBalanceSuccessResponseMsg(GetBalanceRequestSuccessResultMessage message) throws NoSuchAlgorithmException, InvalidKeySpecException {
         UUID uuid = message.getUuid();
         
-        HashSet<GetBalanceRequestSucessResultMessage> msgs = accounBalanceSuccessResponses.putIfAbsent(uuid, new HashSet<>());
+        HashSet<GetBalanceRequestSuccessResultMessage> msgs = accounBalanceSuccessResponses.putIfAbsent(uuid, new HashSet<>());
         if (msgs == null)
             msgs = accounBalanceSuccessResponses.get(uuid);
 
@@ -52,15 +52,15 @@ public class ClientMessageBucket {
         msgs.add(message);
     }
 
-    public boolean hasAccountBalanceSucessQuorum(GetBalanceRequestSucessResultMessage message) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        HashSet<GetBalanceRequestSucessResultMessage> responses = accounBalanceSuccessResponses.get(message.getUuid());
+    public boolean hasAccountBalanceSuccessQuorum(GetBalanceRequestSuccessResultMessage message) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        HashSet<GetBalanceRequestSuccessResultMessage> responses = accounBalanceSuccessResponses.get(message.getUuid());
         int count = 0;
 
         if (responses == null) {
             return false; // No responses for this account owner ID
         }
 
-        for (GetBalanceRequestSucessResultMessage response : responses) {
+        for (GetBalanceRequestSuccessResultMessage response : responses) {
             if (response.getUuid().equals(message.getUuid())) {
                 count++;
             }
@@ -87,10 +87,10 @@ public class ClientMessageBucket {
 
 
 
-    public void addAccountTransferSuccessResponseMsg(TransferRequestSucessResultMessage message) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    public void addAccountTransferSuccessResponseMsg(TransferRequestSuccessResultMessage message) throws NoSuchAlgorithmException, InvalidKeySpecException {
         UUID uuid = message.getUuid();
 
-        HashSet<TransferRequestSucessResultMessage> msgs = transferSuccessResponses.putIfAbsent(uuid, new HashSet<>());
+        HashSet<TransferRequestSuccessResultMessage> msgs = transferSuccessResponses.putIfAbsent(uuid, new HashSet<>());
         if (msgs == null)
             msgs = transferSuccessResponses.get(uuid);
 
@@ -107,15 +107,15 @@ public class ClientMessageBucket {
         msgs.add(message);
     }
 
-    public boolean hasAccountTransferSucessQuorum(TransferRequestSucessResultMessage message) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        HashSet<TransferRequestSucessResultMessage> responses = transferSuccessResponses.get(message.getUuid());
+    public boolean hasAccountTransferSuccessQuorum(TransferRequestSuccessResultMessage message) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        HashSet<TransferRequestSuccessResultMessage> responses = transferSuccessResponses.get(message.getUuid());
         int count = 0;
 
         if (responses == null) {
             return false; // No responses for this account owner ID
         }
 
-        for (TransferRequestSucessResultMessage response : responses) {
+        for (TransferRequestSuccessResultMessage response : responses) {
             if (response.getUuid().equals(message.getUuid())) {
                 count++;
             }

@@ -10,7 +10,7 @@ public class CryptocurrencyStorage {
     private Lock lock = new ReentrantLock();
 
     public static class InvalidAccountException extends RuntimeException {}
-    public static class InvalidAmmountException extends RuntimeException {}
+    public static class InvalidAmountException extends RuntimeException {}
 
     /**
      * Initiates all account balances with 10 units.
@@ -51,7 +51,7 @@ public class CryptocurrencyStorage {
             lock.unlock();
         } else {
             lock.unlock();
-            throw new InvalidAmmountException();
+            throw new InvalidAmountException();
         }
     }
 
@@ -70,7 +70,7 @@ public class CryptocurrencyStorage {
         int sourceBalance = getBalance(sourceId);
         if (checkAmount && sourceBalance < amount1 + amount2) {
             lock.unlock();
-            throw new InvalidAmmountException();
+            throw new InvalidAmountException();
         
         } else {
             int newSourceBalance = sourceBalance - amount1;
