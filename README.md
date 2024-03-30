@@ -2,16 +2,17 @@
 
 ## Introduction
 
-HDSLedger is a simplified permissioned (closed membership) blockchain system with high dependability
+HDS Serenity Ledger is a simplified permissioned (closed membership) blockchain system with high dependability
 guarantees. It uses the Istanbul BFT consensus algorithm to ensure that all nodes run commands
 in the same order, achieving State Machine Replication (SMR) and guarantees that all nodes
-have the same state.
+have the same state. 
+Overall, the system allows the clients to perform crypto exchanges, as well as consulting their current account balance.
 
 ## Requirements
 
 - [Java 17](https://www.oracle.com/java/technologies/javase-jdk17-downloads.html) - Programming language;
 
-- [Maven 3.8](https://maven.apache.org/) - Build and dependency management tool;
+- [Maven 3.6](https://maven.apache.org/) - Build and dependency management tool;
 
 - [Python 3](https://www.python.org/downloads/) - Programming language;
 
@@ -23,6 +24,7 @@ have the same state.
 
 Can be found inside the `resources/` folder.
 
+Node:
 ```json
 {
     "id": <NODE_ID>,
@@ -33,7 +35,17 @@ Can be found inside the `resources/` folder.
 }
 ```
 
-At this stage, there is a set of possible node configurations, but only one for the client: **correctConfig.json**.
+Client:
+```json
+{
+    "id": <NODE_ID>,
+    "hostname": "localhost",
+    "port": <NODE_PORT>,
+    "byzantineBehavior": <BYZANTINE_BEHAVIOR>
+}
+```
+
+There is a set of possible node configurations, and only one for the client: **clientConfig.json**.
 
 Note: the configuration can be changed in the **puppet-master.py** file.
 
@@ -55,12 +67,13 @@ This should install the following dependencies:
 
 For each process that is specified in the json configuration files, there should exist a pair of public - private keys, in the form of public<ID>.key and private<ID>.key, <ID> being the id of the respective process. This keys should stay in [keys](HDSLedger/resources/keys) folder.
 
+Also, if the client wishes to use a key that is not loaded/known by the replicas/nodes, there is a pair of Public/Private keys inside the (HDSLedger/resources/unregistered) folder.
+
 The keys could be generated with the ***RSAKeyGenerator.java*** class, available in the [RSAKeyGenerator](HDSLedger/Communication/src/main/java/pt/ulisboa/tecnico/hdsledger/communication/cripto/RSAKeyGenerator.java)
 
 ## Puppet Master
 
-The puppet master is a python script `puppet-master.py` which is responsible for starting the nodes
-of the blockchain.
+The puppet master is a python script `puppet-master.py` which is responsible for starting the nodes and clients of the blockchain.
 The script runs with `kitty` terminal emulator by default since it's installed on the RNL labs.
 
 To run the script you need to have `python3` installed.
@@ -112,9 +125,14 @@ Index | Test
 -----|-----
 0 | Correct Configurations
 1 | Ignore Requests Configurations
-2 | Bad Leader Propose Configurations
-3 | Upon Prepare Quorum Wrong Value Configurations
-4 | Upon Round Change Quorum Wrong Value Configurations
+2 | Bad Leader Propose With Generated Signature
+3 | Bad Leader Propose With Original Signature
+3 | Upon Prepare Quorum Wrong Value
+4 | Upon Round Change Quorum Wrong Value
+5 | Fake Leader With Forged Pre-Prepare
+6 | Dont Validate Transaction
+7 | Fake Consensus Instance
+8 | Force Round Change
 
 ---
 This codebase was adapted from last year's project solution, which was kindly provided by the following group: [David Belchior](https://github.com/DavidAkaFunky), [Diogo Santos](https://github.com/DiogoSantoss), [Vasco Correia](https://github.com/Vaascoo). We thank all the group members for sharing their code.

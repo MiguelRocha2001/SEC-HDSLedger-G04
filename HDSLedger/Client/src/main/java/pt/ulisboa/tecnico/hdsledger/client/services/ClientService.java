@@ -131,7 +131,7 @@ public class ClientService implements UDPService {
 
             // [messageToSign] represents a transaction
             byte[] messageToSign = Utils.joinArray(clientSourceId.getBytes(), clientDestinationId.getBytes(), Integer.toString(amount).getBytes());
-            byte[] requestSignature = criptoUtils.getMessageSignature(messageToSign, config.getId());
+            byte[] requestSignature = criptoUtils.getMessageSignature(messageToSign);
 
             TransferRequestMessage request = new TransferRequestMessage(config.getId(), sourcePublicKey, destPublicKey, amount, requestSignature);
             String requestStr = request.tojson();
