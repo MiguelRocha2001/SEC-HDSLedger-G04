@@ -305,8 +305,7 @@ public class NodeService implements UDPService {
                     MessageFormat.format("{0} - Node is byzanine leader (BAD_LEADER_PROPOSE_WITH_ORIGINAL_SIGNATURE). Proposing random Block with original transaction's signatures.", config.getId()));
             
 
-            // Proposes random generated value to all nodes.
-            // Uses self Private Key to generate signature.
+            // Proposes random generated Block to all nodes
             if (
                 config.getByzantineBehavior() == ByzantineBehavior.BAD_LEADER_PROPOSE_WITH_GENERATED_SIGNATURE
                 ||
@@ -317,14 +316,13 @@ public class NodeService implements UDPService {
                     if (config.getByzantineBehavior() == ByzantineBehavior.BAD_LEADER_PROPOSE_WITH_GENERATED_SIGNATURE) {
                         try {
                             PrivateKey selfPrivateKey = criptoUtils.getPrivateKey();
-                            randomBlock = Block.createRandom(selfPrivateKey);
+                            randomBlock = Block.createRandom(selfPrivateKey); // uses self sign signature
                         } catch(Exception e) {
                             throw new HDSSException(ErrorMessage.ProgrammingError);
                         }
-                    } 
+                    }
                     else {
-                        // TODO: use signatures of original transactions
-                        List<byte[]> transactionSignatures = extractSignatures(transactions);
+                        List<byte[]> transactionSignatures = extractSignatures(transactions); // uses signature of original transactions
                         randomBlock = Block.createRandom(transactionSignatures);
                     }
                     this.linkToNodes.send(node.getId(), this.createConsensusMessage(randomBlock, localConsensusInstance, instance.getCurrentRound()));
