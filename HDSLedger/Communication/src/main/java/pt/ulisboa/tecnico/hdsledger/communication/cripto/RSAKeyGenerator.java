@@ -1,7 +1,5 @@
 package pt.ulisboa.tecnico.hdsledger.communication.cripto;
 
-import javax.crypto.spec.SecretKeySpec;
-
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -43,7 +41,7 @@ public class RSAKeyGenerator {
         keyGen.initialize(4096);
         KeyPair keys = keyGen.generateKeyPair();
         System.out.println("Finish generating RSA keys");
-        
+
         System.out.println("Private Key:");
         PrivateKey privKey = keys.getPrivate();
         byte[] privKeyEncoded = privKey.getEncoded();

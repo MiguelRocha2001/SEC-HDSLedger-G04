@@ -1,8 +1,5 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
-import java.security.spec.InvalidKeySpecException;
 import java.util.UUID;
 
 import com.google.gson.Gson;

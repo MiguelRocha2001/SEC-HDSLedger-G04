@@ -1,7 +1,6 @@
 package pt.ulisboa.tecnico.hdsledger.client.models;
 
 import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,7 +33,7 @@ public class ClientMessageBucket {
 
     public void addAccountBalanceSuccessResponseMsg(GetBalanceRequestSuccessResultMessage message) throws NoSuchAlgorithmException, InvalidKeySpecException {
         UUID uuid = message.getUuid();
-        
+
         HashSet<GetBalanceRequestSuccessResultMessage> msgs = accounBalanceSuccessResponses.putIfAbsent(uuid, new HashSet<>());
         if (msgs == null)
             msgs = accounBalanceSuccessResponses.get(uuid);

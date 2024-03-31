@@ -3,7 +3,6 @@ package pt.ulisboa.tecnico.hdsledger.client;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Scanner;
-import java.util.logging.Level;
 
 import pt.ulisboa.tecnico.hdsledger.client.services.ClientService;
 import pt.ulisboa.tecnico.hdsledger.communication.BlockchainResponseMessage;
@@ -94,7 +93,7 @@ public class Client {
     }
 
     private static abstract class Operation {}
-    
+
     private static class Balance extends Operation {}
     private static class ByzantineBalance extends Operation {
         private String clientId;

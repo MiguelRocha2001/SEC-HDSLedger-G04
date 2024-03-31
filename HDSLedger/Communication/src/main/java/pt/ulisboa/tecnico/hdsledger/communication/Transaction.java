@@ -10,13 +10,12 @@ import java.util.Arrays;
 import java.util.UUID;
 
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
-import pt.ulisboa.tecnico.hdsledger.utilities.RandomByteArrayGenerator;
 import pt.ulisboa.tecnico.hdsledger.utilities.RandomIntGenerator;
 import pt.ulisboa.tecnico.hdsledger.utilities.RandomStringGenerator;
 import pt.ulisboa.tecnico.hdsledger.utilities.Utils;
 
 public class Transaction {
-    private String sourceId; 
+    private String sourceId;
     private String destinationId;
     private int amount;
     private UUID requestUUID;

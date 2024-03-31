@@ -1,6 +1,5 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
-import com.google.gson.Gson;
 
 public class AppendRequestResultMessage extends Message {
 
@@ -15,5 +14,5 @@ public class AppendRequestResultMessage extends Message {
 
     public String getAppendedValue() { return appendedValue; }
     public int getBlockIndex() { return blockIndex; }
-    
+
 }

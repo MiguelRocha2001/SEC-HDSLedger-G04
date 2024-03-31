@@ -1,8 +1,5 @@
 package pt.ulisboa.tecnico.hdsledger.communication;
 
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
-import java.security.spec.InvalidKeySpecException;
 import java.util.UUID;
 
 import com.google.gson.Gson;
@@ -13,7 +10,7 @@ public class GetBalanceRequestErrorResultMessage extends Message {
 
     private String errorMessage;
     private UUID uuid;
-    
+
     public GetBalanceRequestErrorResultMessage(String senderId, String errorMessage, UUID uuid) {
         super(senderId, Type.APPEND_REQUEST_RESULT);
         this.errorMessage = errorMessage;

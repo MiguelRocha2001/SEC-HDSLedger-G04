@@ -3,7 +3,6 @@ package pt.ulisboa.tecnico.hdsledger.blockchain.services;
 import java.io.IOException;
 import java.security.PublicKey;
 import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -40,7 +39,7 @@ public class CriptoService implements UDPService {
 
     // Link to communicate with nodes
     private final Link link;
-  
+
     private final NodeService nodeService;
 
     private CriptoUtils criptoUtils;
@@ -57,9 +56,9 @@ public class CriptoService implements UDPService {
 
     public CriptoService(
         Link link,
-        ServerConfig config, 
+        ServerConfig config,
         ClientConfig[] clientsConfig,
-        NodeService nodeService, 
+        NodeService nodeService,
         String[] nodeIds,
         CriptoUtils criptoUtils
     ) {
@@ -128,7 +127,7 @@ public class CriptoService implements UDPService {
         throw new InvalidAccountException();
     }
 
-    private void transfer(UUID requestUuid, PublicKey source, PublicKey destination, int amount, byte[] valueSignature, String requestSenderId) {        
+    private void transfer(UUID requestUuid, PublicKey source, PublicKey destination, int amount, byte[] valueSignature, String requestSenderId) {
         String sourceClientId;
         String destinationClientId;
 
@@ -142,9 +141,9 @@ public class CriptoService implements UDPService {
             if (!criptoUtils.isOwnerOfKey(source, requestSenderId)) {
                 throw new InvalidTransferRequest();
             }
-            
+
             int sourceBalance = getClientBalance(source);
-            
+
             sourceClientId = criptoUtils.getClientId(source);
             destinationClientId = criptoUtils.getClientId(destination);
 
@@ -168,18 +167,18 @@ public class CriptoService implements UDPService {
 
     private void sendTransactionReplyToClient(String clientId, UUID requestUuid) {
         TransferRequestSuccessResultMessage reply = new TransferRequestSuccessResultMessage(config.getId(), requestUuid);
-        link.send(clientId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_SUCCESS_RESULT, reply.tojson()));   
+        link.send(clientId, new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER_SUCCESS_RESULT, reply.tojson()));
     }
 
-  
+
 
     private class InvalidTransferRequest extends RuntimeException {}
-    
+
     public boolean payFeeToNode(String sourceClientId, String destinationId) {
         if (isClient(sourceClientId) && isNode(destinationId)) {
 
             int sourceBalance = getClientBalance(sourceClientId);
-            
+
             if (sourceBalance < FEE)
                 return false;
 
@@ -206,7 +205,7 @@ public class CriptoService implements UDPService {
 
             try {
                 boolean validateTransaction = config.getByzantineBehavior() != ByzantineBehavior.DONT_VALIDATE_TRANSACTION;
-            
+
                 if (validateTransaction) {
                     // checks balance again...
                     int sourceBalance = getClientBalance(sourceClientId);
@@ -233,11 +232,11 @@ public class CriptoService implements UDPService {
                         !isClient(sourceClientId)
                     ) {
                         // Don't send reply
-                    } else 
+                    } else
                         sendTransactionReplyToClient(sourceClientId, requestUuid);
 
                     continue;
-                
+
                 } catch(InvalidAmountException e) {
                     LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction {1} could not be verified after end of consensus!", config.getId(), requestUuid));
 
@@ -284,7 +283,7 @@ public class CriptoService implements UDPService {
         }
     }
 
-    
+
     private enum GetBalanceErrorResultType { NOT_AUTHORIZED, INVALID_ACCOUNT }
 
     private BlockchainRequestMessage buildGetBalanceRequestErrorResult(GetBalanceErrorResultType type, UUID requestUuid) {
@@ -367,7 +366,7 @@ public class CriptoService implements UDPService {
                         new Thread(() -> {
 
                             if (config.getByzantineBehavior() == ByzantineBehavior.IGNORE_REQUESTS) { // byzantine node
-                                
+
                                 LOGGER.log(Level.INFO,
                                 MessageFormat.format("{0} - Byzantine node ignoring requests...",
                                         config.getId()));

@@ -9,16 +9,11 @@ import pt.ulisboa.tecnico.hdsledger.blockchain.services.NodeService;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfigBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
-import pt.ulisboa.tecnico.hdsledger.utilities.Pair;
 import pt.ulisboa.tecnico.hdsledger.utilities.ProcessConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfig;
 import pt.ulisboa.tecnico.hdsledger.utilities.ServerConfigBuilder;
 import pt.ulisboa.tecnico.hdsledger.utilities.Utils;
-
-import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.logging.Level;
 
@@ -40,7 +35,7 @@ public class Node {
             // Create configuration instances
             ServerConfig[] nodesConfigAUx = new ServerConfigBuilder().fromFile(PROCESSE_CONFIG_PATH + nodesConfigArg);
             ClientConfig[] clientConfigsAux = new ClientConfigBuilder().fromFile(PROCESSE_CONFIG_PATH + clientsConfigArg);
-            
+
             // Removes clients with ID equal to "null"
             clientConfigsAux = new ClientConfigBuilder().removeUnknownClients(clientConfigsAux);
 
@@ -62,11 +57,11 @@ public class Node {
             CriptoService criptoService = new CriptoService(linkToClients, nodeConfigAux, clientConfigsAux, nodeService, nodeIds, criptoUtils);
 
             nodeService.setCriptoService(criptoService);
-            
+
             nodeService.listen();
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Process is listenning on host and port {1}:{2}",
                     nodeConfig.getId(), nodeConfig.getHostname(), nodeConfig.getPort()));
-                    
+
             criptoService.listen();
             LOGGER.log(Level.INFO, MessageFormat.format("{0} - Process is listenning on host and port {1}:{2}",
                     nodeConfig.getId(), nodeConfig.getHostname(), nodeConfigAux.getClientPort()));

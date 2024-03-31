@@ -1,4 +1,10 @@
-pt/ulisboa/tecnico/hdsledger/client/services/ClientService.class
-pt/ulisboa/tecnico/hdsledger/client/services/UDPService.class
 pt/ulisboa/tecnico/hdsledger/client/Client.class
+pt/ulisboa/tecnico/hdsledger/client/Client$Balance.class
 pt/ulisboa/tecnico/hdsledger/client/services/ClientService$1.class
+pt/ulisboa/tecnico/hdsledger/client/services/ClientService.class
+pt/ulisboa/tecnico/hdsledger/client/models/ClientMessageBucket.class
+pt/ulisboa/tecnico/hdsledger/client/Client$Transfer.class
+pt/ulisboa/tecnico/hdsledger/client/services/UDPService.class
+pt/ulisboa/tecnico/hdsledger/client/Client$ByzantineTransfer.class
+pt/ulisboa/tecnico/hdsledger/client/Client$Operation.class
+pt/ulisboa/tecnico/hdsledger/client/Client$ByzantineBalance.class

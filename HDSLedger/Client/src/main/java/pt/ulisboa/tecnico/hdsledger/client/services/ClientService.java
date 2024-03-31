@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.security.PublicKey;
 import java.text.MessageFormat;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -43,7 +42,7 @@ public class ClientService implements UDPService {
      private final Set<UUID> displayedReplies = Collections.synchronizedSet(new HashSet<UUID>());
 
     public ClientService(
-        Link link, 
+        Link link,
         ProcessConfig config,
         CriptoUtils criptoUtils,
         int nodeCount
@@ -77,12 +76,12 @@ public class ClientService implements UDPService {
 
             GetBalanceRequestMessage request = new GetBalanceRequestMessage(config.getId(), clientPublicKey);
             String requestStr = request.tojson();
-            
+
             link.broadcast(new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE, requestStr));
         } catch (InvalidClientIdException e) { // [clientId] is unknown
             LOGGER.log(Level.INFO, "Invalid client ID");
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, 
+            LOGGER.log(Level.SEVERE,
                 MessageFormat.format("Error while trying to request balance for client id: {0}. \n{1}", processId, e.getMessage())
             );
         }
@@ -106,15 +105,15 @@ public class ClientService implements UDPService {
             }
 
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, 
+            LOGGER.log(Level.SEVERE,
                 MessageFormat.format("Error after receiving getBalance success result. \n{0}", e.getMessage())
             );
         }
     }
 
-    private void getBalanceErrorResultReceived(BlockchainResponseMessage message) {        
+    private void getBalanceErrorResultReceived(BlockchainResponseMessage message) {
         LOGGER.log(Level.INFO, MessageFormat.format("Received get-balance error result message from process {0}", message.getSenderId()));
-        
+
         GetBalanceRequestErrorResultMessage response = message.deserializeGetBalanceErrorResultMessage();
         try {
             bucket.addAccountBalanceErrorResponseMsg(response);
@@ -130,7 +129,7 @@ public class ClientService implements UDPService {
                 );
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, 
+            LOGGER.log(Level.SEVERE,
                 MessageFormat.format("Error after receiving getBalance error result. \n{0}", e.getMessage())
             );
         }
@@ -155,7 +154,7 @@ public class ClientService implements UDPService {
 
             TransferRequestMessage request = new TransferRequestMessage(config.getId(), sourcePublicKey, destPublicKey, amount, requestSignature);
             String requestStr = request.tojson();
-            
+
             link.broadcast(new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER, requestStr));
 
         } catch (InvalidClientIdException e) { // [clientDestinationId] is unknown
@@ -163,7 +162,7 @@ public class ClientService implements UDPService {
         } catch (InvalidIdException e) { // [clientDestinationId] is unknown
             LOGGER.log(Level.INFO, "Invalid ID!");
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, 
+            LOGGER.log(Level.SEVERE,
                 MessageFormat.format("Error while trying to request transfer to client id: {0}. \n{1}", clientDestinationId, e.getMessage())
             );
         }
@@ -190,7 +189,7 @@ public class ClientService implements UDPService {
             }
 
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, 
+            LOGGER.log(Level.SEVERE,
                 MessageFormat.format("Error after receiving getBalance success result. \n{0}", e.getMessage())
             );
         }
@@ -214,7 +213,7 @@ public class ClientService implements UDPService {
                 );
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, 
+            LOGGER.log(Level.SEVERE,
                 MessageFormat.format("Error after receiving transfer error result. \n{0}", e.getMessage())
             );
         }
