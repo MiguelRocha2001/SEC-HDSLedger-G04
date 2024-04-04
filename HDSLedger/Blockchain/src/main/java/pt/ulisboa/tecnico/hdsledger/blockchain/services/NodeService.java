@@ -230,11 +230,9 @@ public class NodeService implements UDPService {
     }
 
     /*
-     * Start an instance of consensus for a value
-     * Only the current leader will start a consensus instance
+     * Start an instance of consensus for a value (list of transactions)
+     * In non Byzantine coditions, only the current leader will start a consensus instance
      * the remaining nodes only update values.
-     *
-     * @param inputValue Value to value agreed upon
      */
     public void startConsensus(List<Transaction> transactions) {
 
@@ -261,7 +259,7 @@ public class NodeService implements UDPService {
 
         Block value = new Block(transactions, leaderId);
 
-        InstanceInfo existingConsensus = this.instanceInfo.put(localConsensusInstance, new InstanceInfo(value, leaderId)); // should be putIfAbsent!!! WHat if he receives a PREPARE message first, and already creates a new InstanceInfo???
+        InstanceInfo existingConsensus = this.instanceInfo.put(localConsensusInstance, new InstanceInfo(value, leaderId)); // should be putIfAbsent!!! What if he receives a PREPARE message first, and already creates a new InstanceInfo???
 
         InstanceInfo instance = this.instanceInfo.get(localConsensusInstance);
 
@@ -652,7 +650,7 @@ public class NodeService implements UDPService {
 
         roundChangeMessages.addMessage(message);
 
-        // if CHANGE-ROUND consensus instance was already decided
+        // if ROUND-CHANGE message consensus instance was already decided
         if (lastDecidedConsensusInstance.get() >= roundChangeMsgConsensusInstance) {
 
             LOGGER.log(Level.INFO,
@@ -666,6 +664,8 @@ public class NodeService implements UDPService {
             // sends the whole quorum
             for (ConsensusMessage msg : receivedCommitMessages)
                 linkToNodes.send(message.getSenderId(), msg);
+
+            return;
         }
 
         InstanceInfo roundChangeMsgInstance = this.instanceInfo.get(roundChangeMsgConsensusInstance);
@@ -678,6 +678,7 @@ public class NodeService implements UDPService {
             return;
         }
 
+        // TODO: maybe, it should be current round and not [roundChangeMsgRound]
         // null if there isn't a set
         ConsensusMessage[] msgs = roundChangeMessages.getQuorumWithRoundGreaterThan(config.getId(), roundChangeMsgConsensusInstance, roundChangeMsgRound);
 
@@ -707,15 +708,15 @@ public class NodeService implements UDPService {
 
                     Block randomValue;
                     try {
-                        randomValue = Block.createRandom(criptoUtils.getPrivateKey());
+                        randomValue = Block.createRandom(criptoUtils.getPrivateKey()); // signs with self Private key
                     } catch (InvalidKeyException | NoSuchAlgorithmException | SignatureException
                             | InvalidKeySpecException | IOException e) {
                         e.printStackTrace();
                         throw new HDSSException(ErrorMessage.ProgrammingError);
                     }
                 roundChangeMsgInstance.setInputValue(randomValue);
-            } else {
-
+            } 
+            else {
                 if (highestPreparedRoundAndValue.isPresent()) {
                     Block newValue = highestPreparedRoundAndValue.get().getValue();
                     roundChangeMsgInstance.setInputValue(newValue);
@@ -756,10 +757,23 @@ public class NodeService implements UDPService {
 
         int consensusInstance = message.getConsensusInstance();
         int round = message.getRound();
+        String senderId = message.getSenderId();
 
         LOGGER.log(Level.INFO,
                 MessageFormat.format("{0} - Received COMMIT message from {1}: Consensus Instance {2}, Round {3}",
                         config.getId(), message.getSenderId(), consensusInstance, round));
+
+        Block messageValue = message.deserializeCommitMessage().getValue();
+
+        // This is not really needed since, if every Byzantine node send the same invalid Block in the commit message,
+        // there wouldn't be enough to fullfill a Byzantine quorum. This is just not to be storing invalid commit messages.
+        if (!verifyAllTransactionSignatures(messageValue)) {
+            LOGGER.log(Level.INFO,
+                MessageFormat.format(
+                        "{0} - Received COMMIT message from {1} Consensus Instance {2}, Round {3}, but the value could not be verified",
+                        config.getId(), senderId, consensusInstance, round));
+            return;
+        }
 
         commitMessages.addMessage(message);
 
@@ -788,8 +802,8 @@ public class NodeService implements UDPService {
 
         if (commitValue.isPresent()) {
             LOGGER.log(Level.INFO,
-                MessageFormat.format("{0} - Received quorum of COMMIT messages for instance {1}",
-                    config.getId(), consensusInstance));
+                MessageFormat.format("{0} - Received quorum of COMMIT messages for instance {1}, and round {2}",
+                    config.getId(), consensusInstance, round));
         }
 
         if (commitValue.isPresent() && instance.getCommittedRound() < round) {
@@ -838,7 +852,7 @@ public class NodeService implements UDPService {
         }
     }
 
-    private boolean isTransactionAlreadyInBloch(Block block, Transaction transaction) {
+    private boolean isTransactionAlreadyInBlock(Block block, Transaction transaction) {
         for (Transaction tr : block.getTransactions()) {
             if (tr.getRequestUUID().equals(transaction.getRequestUUID()))
                     return true;
@@ -850,7 +864,7 @@ public class NodeService implements UDPService {
         LinkedList<Transaction> transactionsToRemove = new LinkedList<>();
         for (Transaction transactionToCheck : block.getTransactions()) {
             for (Block blockchainBlock : ledger) {
-                if (isTransactionAlreadyInBloch(blockchainBlock, transactionToCheck))
+                if (isTransactionAlreadyInBlock(blockchainBlock, transactionToCheck))
                     transactionsToRemove.add(transactionToCheck);
             }
         }

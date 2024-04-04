@@ -129,7 +129,7 @@ public class MessageBucket {
     }
 
     /**
-     * Checks if all PREPARE messages have the round and value equal to [preparedRound] and [preparedValue].
+     * Checks if there is a quorum of PREPARE messages that have the round and value equal to [preparedRound] and [preparedValue].
      */
     public boolean checkRoundAndValue(String nodeId, int instance, int round, int preparedRound, Block preparedValue) {
         int count = 0;

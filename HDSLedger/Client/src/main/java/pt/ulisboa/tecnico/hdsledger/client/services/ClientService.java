@@ -39,7 +39,7 @@ public class ClientService implements UDPService {
 
     private final ClientMessageBucket bucket;
 
-     private final Set<UUID> displayedReplies = Collections.synchronizedSet(new HashSet<UUID>());
+     private final Set<UUID> processedReplies = Collections.synchronizedSet(new HashSet<UUID>());
 
     public ClientService(
         Link link,
@@ -72,9 +72,9 @@ public class ClientService implements UDPService {
      */
     public void getBalance(String processId) {
         try {
-            PublicKey clientPublicKey = criptoUtils.getPublicKey(processId);
+            PublicKey processPublicKey = criptoUtils.getPublicKey(processId);
 
-            GetBalanceRequestMessage request = new GetBalanceRequestMessage(config.getId(), clientPublicKey);
+            GetBalanceRequestMessage request = new GetBalanceRequestMessage(config.getId(), processPublicKey);
             String requestStr = request.tojson();
 
             link.broadcast(new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE, requestStr));
@@ -88,7 +88,7 @@ public class ClientService implements UDPService {
     }
 
     private void getBalanceSuccessResultReceived(BlockchainResponseMessage message) {
-        LOGGER.log(Level.INFO, MessageFormat.format("Received get-balance success Result message from process {0}", message.getSenderId()));
+        LOGGER.log(Level.INFO, MessageFormat.format("Received get-balance success result message from process {0}", message.getSenderId()));
 
         GetBalanceRequestSuccessResultMessage response = message.deserializeGetBalanceSuccessResultMessage();
 
@@ -96,11 +96,11 @@ public class ClientService implements UDPService {
             bucket.addAccountBalanceSuccessResponseMsg(response);
 
             if (
-                bucket.hasAccountBalanceSuccessQuorum(response)
+                bucket.hasAccountBalanceSuccessQuorum(response.getUuid())
                 &&
-                !displayedReplies.contains(response.getUuid())
+                !processedReplies.contains(response.getUuid())
             ) {
-                displayedReplies.add(response.getUuid());
+                processedReplies.add(response.getUuid());
                 formatReply(MessageFormat.format("Balance: {0} units", response.getBalance()));
             }
 
@@ -121,9 +121,9 @@ public class ClientService implements UDPService {
             if (
                 bucket.hasAccountBalanceErrorQuorum(response)
                 &&
-                !displayedReplies.contains(response.getUuid())
+                !processedReplies.contains(response.getUuid())
             ) {
-                displayedReplies.add(response.getUuid());
+                processedReplies.add(response.getUuid());
                 formatReply(
                     MessageFormat.format("Error from the server: {0}", response.getErrorMessage())
                 );
@@ -135,21 +135,21 @@ public class ClientService implements UDPService {
         }
     }
 
-    public void transfer(String clientSourceId, String clientDestinationId, int amount, boolean isByzantine) {
+    public void transfer(String processSourceId, String processDestinationId, int amount, boolean isByzantine) {
         try {
             PublicKey destPublicKey;
             PublicKey sourcePublicKey;
 
             if (isByzantine) {
-                sourcePublicKey = criptoUtils.getPublicKey(clientSourceId);
-                destPublicKey = criptoUtils.getPublicKey(clientDestinationId); // searches for clients and nodes
+                sourcePublicKey = criptoUtils.getPublicKey(processSourceId);
+                destPublicKey = criptoUtils.getPublicKey(processDestinationId); // searches for clients and nodes
             } else {
-                sourcePublicKey = criptoUtils.getClientPublicKey(clientSourceId);
-                destPublicKey = criptoUtils.getClientPublicKey(clientDestinationId);
+                sourcePublicKey = criptoUtils.getClientPublicKey(processSourceId);
+                destPublicKey = criptoUtils.getClientPublicKey(processDestinationId);
             }
 
             // [messageToSign] represents a transaction
-            byte[] messageToSign = Utils.joinArray(clientSourceId.getBytes(), clientDestinationId.getBytes(), Integer.toString(amount).getBytes());
+            byte[] messageToSign = Utils.joinArray(processSourceId.getBytes(), processDestinationId.getBytes(), Integer.toString(amount).getBytes());
             byte[] requestSignature = criptoUtils.getMessageSignature(messageToSign);
 
             TransferRequestMessage request = new TransferRequestMessage(config.getId(), sourcePublicKey, destPublicKey, amount, requestSignature);
@@ -157,13 +157,11 @@ public class ClientService implements UDPService {
 
             link.broadcast(new BlockchainRequestMessage(config.getId(), Message.Type.TRANSFER, requestStr));
 
-        } catch (InvalidClientIdException e) { // [clientDestinationId] is unknown
-            LOGGER.log(Level.INFO, "Invalid client ID!");
-        } catch (InvalidIdException e) { // [clientDestinationId] is unknown
-            LOGGER.log(Level.INFO, "Invalid ID!");
+        } catch (InvalidClientIdException | InvalidIdException e) { // [clientDestinationId] is unknown
+            formatReply("Invalid client ID!");
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE,
-                MessageFormat.format("Error while trying to request transfer to client id: {0}. \n{1}", clientDestinationId, e.getMessage())
+                MessageFormat.format("Error while trying to request transfer to client id: {0}. \n{1}", processDestinationId, e.getMessage())
             );
         }
     }
@@ -180,11 +178,11 @@ public class ClientService implements UDPService {
             bucket.addAccountTransferSuccessResponseMsg(response);
 
             if (
-                bucket.hasAccountTransferSuccessQuorum(response)
+                bucket.hasAccountTransferSuccessQuorum(response.getUuid())
                 &&
-                !displayedReplies.contains(response.getUuid())
+                !processedReplies.contains(response.getUuid())
             ) {
-                displayedReplies.add(response.getUuid());
+                processedReplies.add(response.getUuid());
                 formatReply(MessageFormat.format("Transfer operation with id {0}, concluded!", response.getUuid()));
             }
 
@@ -203,11 +201,11 @@ public class ClientService implements UDPService {
             bucket.addAccountTransferErrorResponseMsg(response);
 
             if (
-                bucket.hasAccountTransferErrorQuorum(response)
+                bucket.hasAccountTransferErrorQuorum(response.getUuid())
                 &&
-                !displayedReplies.contains(response.getUuid())
+                !processedReplies.contains(response.getUuid())
             ) {
-                displayedReplies.add(response.getUuid());
+                processedReplies.add(response.getUuid());
                 formatReply(
                     MessageFormat.format("Error from the server: {0}", response.getError())
                 );

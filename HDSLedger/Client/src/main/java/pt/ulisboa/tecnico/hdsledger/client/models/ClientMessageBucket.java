@@ -10,16 +10,12 @@ import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestErrorResultMe
 import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestSuccessResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestSuccessResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestErrorResultMessage;
-import pt.ulisboa.tecnico.hdsledger.utilities.CustomLogger;
 
 public class ClientMessageBucket {
-
-    private static final CustomLogger LOGGER = new CustomLogger(ClientMessageBucket.class.getName());
     // Quorum size
     private final int byzantineQuorumSize;
-    private final int shortQuorumSize;
 
-    private final HashMap<UUID, HashSet<GetBalanceRequestSuccessResultMessage>> accounBalanceSuccessResponses = new HashMap<>();
+    private final HashMap<UUID, HashSet<GetBalanceRequestSuccessResultMessage>> accountBalanceSuccessResponses = new HashMap<>();
     private final HashMap<UUID, HashSet<GetBalanceRequestErrorResultMessage>> accounBalanceErrorResponses = new HashMap<>();
 
     private final HashMap<UUID, HashSet<TransferRequestSuccessResultMessage>> transferSuccessResponses = new HashMap<>();
@@ -28,15 +24,14 @@ public class ClientMessageBucket {
     public ClientMessageBucket(int nodeCount) {
         int f = Math.floorDiv(nodeCount - 1, 3);
         byzantineQuorumSize = Math.floorDiv(nodeCount + f, 2) + 1;
-        shortQuorumSize = f + 1;
     }
 
     public void addAccountBalanceSuccessResponseMsg(GetBalanceRequestSuccessResultMessage message) throws NoSuchAlgorithmException, InvalidKeySpecException {
         UUID uuid = message.getUuid();
 
-        HashSet<GetBalanceRequestSuccessResultMessage> msgs = accounBalanceSuccessResponses.putIfAbsent(uuid, new HashSet<>());
+        HashSet<GetBalanceRequestSuccessResultMessage> msgs = accountBalanceSuccessResponses.putIfAbsent(uuid, new HashSet<>());
         if (msgs == null)
-            msgs = accounBalanceSuccessResponses.get(uuid);
+            msgs = accountBalanceSuccessResponses.get(uuid);
 
         msgs.add(message);
     }
@@ -51,37 +46,24 @@ public class ClientMessageBucket {
         msgs.add(message);
     }
 
-    public boolean hasAccountBalanceSuccessQuorum(GetBalanceRequestSuccessResultMessage message) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        HashSet<GetBalanceRequestSuccessResultMessage> responses = accounBalanceSuccessResponses.get(message.getUuid());
-        int count = 0;
+    public boolean hasAccountBalanceSuccessQuorum(UUID uuid) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        HashSet<GetBalanceRequestSuccessResultMessage> responses = accountBalanceSuccessResponses.get(uuid);
 
         if (responses == null) {
             return false; // No responses for this account owner ID
+        } else {
+            return responses.size() >= byzantineQuorumSize;
         }
-
-        for (GetBalanceRequestSuccessResultMessage response : responses) {
-            if (response.getUuid().equals(message.getUuid())) {
-                count++;
-            }
-        }
-
-        return count >= byzantineQuorumSize;
     }
 
     public boolean hasAccountBalanceErrorQuorum(GetBalanceRequestErrorResultMessage message) throws NoSuchAlgorithmException, InvalidKeySpecException {
         HashSet<GetBalanceRequestErrorResultMessage> responses = accounBalanceErrorResponses.get(message.getUuid());
-        int count = 0;
-
+        
         if (responses == null) {
             return false; // No responses for this account owner ID
+        } else {
+            return responses.size() >= byzantineQuorumSize;
         }
-
-        for (GetBalanceRequestErrorResultMessage response : responses) {
-            if (response.getUuid().equals(message.getUuid()))
-                count++;
-        }
-
-        return count >= byzantineQuorumSize;
     }
 
 
@@ -106,36 +88,23 @@ public class ClientMessageBucket {
         msgs.add(message);
     }
 
-    public boolean hasAccountTransferSuccessQuorum(TransferRequestSuccessResultMessage message) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        HashSet<TransferRequestSuccessResultMessage> responses = transferSuccessResponses.get(message.getUuid());
-        int count = 0;
-
+    public boolean hasAccountTransferSuccessQuorum(UUID uuid) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        HashSet<TransferRequestSuccessResultMessage> responses = transferSuccessResponses.get(uuid);
+        
         if (responses == null) {
             return false; // No responses for this account owner ID
+        } else {
+            return responses.size() >= byzantineQuorumSize;
         }
-
-        for (TransferRequestSuccessResultMessage response : responses) {
-            if (response.getUuid().equals(message.getUuid())) {
-                count++;
-            }
-        }
-
-        return count >= byzantineQuorumSize;
     }
 
-    public boolean hasAccountTransferErrorQuorum(TransferRequestErrorResultMessage message) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        HashSet<TransferRequestErrorResultMessage> responses = transferErrorResponses.get(message.getUuid());
-        int count = 0;
-
+    public boolean hasAccountTransferErrorQuorum(UUID uuid) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        HashSet<TransferRequestErrorResultMessage> responses = transferErrorResponses.get(uuid);
+        
         if (responses == null) {
             return false; // No responses for this account owner ID
+        } else {
+            return responses.size() >= byzantineQuorumSize;
         }
-
-        for (TransferRequestErrorResultMessage response : responses) {
-            if (response.getUuid().equals(message.getUuid()))
-                count++;
-        }
-
-        return count >= byzantineQuorumSize;
     }
 }

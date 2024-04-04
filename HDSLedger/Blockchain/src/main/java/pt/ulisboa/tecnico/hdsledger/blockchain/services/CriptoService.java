@@ -6,6 +6,7 @@ import java.text.MessageFormat;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
 import pt.ulisboa.tecnico.hdsledger.blockchain.models.CryptocurrencyStorage;
@@ -23,6 +24,7 @@ import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestErrorResultMess
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.TransferRequestSuccessResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils;
+import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidClientIdException;
 import pt.ulisboa.tecnico.hdsledger.communication.cripto.CriptoUtils.InvalidClientPublicKeyException;
 import pt.ulisboa.tecnico.hdsledger.utilities.ByzantineBehavior;
 import pt.ulisboa.tecnico.hdsledger.utilities.ClientConfig;
@@ -50,9 +52,11 @@ public class CriptoService implements UDPService {
     private String[] nodeIds;
 
     private final int FEE = 1;
-    private final int NUMBER_OF_TRANSACTIONS_PER_BLOCK = 1;
+    private final int NUMBER_OF_TRANSACTIONS_PER_BLOCK = 2;
 
     private LinkedList<Transaction> pendingTransactions = new LinkedList<Transaction>();
+
+    private ReentrantLock lock = new ReentrantLock();
 
     public CriptoService(
         Link link,
@@ -128,14 +132,14 @@ public class CriptoService implements UDPService {
     }
 
     private void transfer(UUID requestUuid, PublicKey source, PublicKey destination, int amount, byte[] valueSignature, String requestSenderId) {
-        String sourceClientId;
-        String destinationClientId;
+        String sourceProcessId;
+        String destinationProcessId;
 
         if (config.getByzantineBehavior() == ByzantineBehavior.DONT_VALIDATE_TRANSACTION) {
-            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Node is Byzantine. Not verifying transaction {1}.", config.getId(), requestUuid));
+            LOGGER.log(Level.INFO, MessageFormat.format("{0} - Node is Byzantine. Not verifying transaction {1}", config.getId(), requestUuid));
 
-            sourceClientId = criptoUtils.getId(source); // could be Client or Node
-            destinationClientId = criptoUtils.getId(destination); // could be Client or Node
+            sourceProcessId = criptoUtils.getId(source); // could be Client or Node
+            destinationProcessId = criptoUtils.getId(destination); // could be Client or Node
 
         } else {
             if (!criptoUtils.isOwnerOfKey(source, requestSenderId)) {
@@ -144,19 +148,26 @@ public class CriptoService implements UDPService {
 
             int sourceBalance = getClientBalance(source);
 
-            sourceClientId = criptoUtils.getClientId(source);
-            destinationClientId = criptoUtils.getClientId(destination);
+            sourceProcessId = criptoUtils.getClientId(source);
+            destinationProcessId = criptoUtils.getClientId(destination);
 
             if (sourceBalance < amount + FEE)
                 throw new InvalidAmountException();
         }
 
-        Transaction transaction = new Transaction(sourceClientId, destinationClientId, amount, requestUuid, valueSignature);
+        Transaction transaction = new Transaction(sourceProcessId, destinationProcessId, amount, requestUuid, valueSignature);
 
+        // mutual exclusion to store the request and get the size of them
+        lock.lock();
+        
         pendingTransactions.add(transaction);
+        int size = pendingTransactions.size();
+        
+        lock.unlock();
 
-        if (pendingTransactions.size() < NUMBER_OF_TRANSACTIONS_PER_BLOCK)
+        if (size < NUMBER_OF_TRANSACTIONS_PER_BLOCK) {
             return;
+        }
 
         List<Transaction> transactionsToPropose = new LinkedList<>();
         transactionsToPropose.addAll(pendingTransactions);
@@ -226,6 +237,11 @@ public class CriptoService implements UDPService {
                     boolean successful = payFeeToNode(sourceClientId, block.getReceiverId()); // Should always be successful
                     transactionAppliedCount += 1;
 
+                    // TODO: remove transaction from local cache, if it's needed!
+                    // This is because, the transactions executed in this function could have been
+                    // proposed by a different node that isen't self. Therefore, he already cleared this
+                    // trasaction, but not self.
+
                     if (
                         config.getByzantineBehavior() == ByzantineBehavior.DONT_VALIDATE_TRANSACTION
                         &&
@@ -278,6 +294,8 @@ public class CriptoService implements UDPService {
             } else {
                 link.send(senderId, buildGetBalanceRequestErrorResult(GetBalanceErrorResultType.INVALID_ACCOUNT, requestUuid));
             }
+        } catch(InvalidClientIdException e) {
+            LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Received GET-BALANCE-REQUEST message from {1}, which is not known to be a client", config.getId(), senderId));
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - Error: {1}", config.getId(), e.getMessage()));
         }
@@ -291,7 +309,7 @@ public class CriptoService implements UDPService {
         if (type == GetBalanceErrorResultType.INVALID_ACCOUNT)
             message = "Invalid Account";
         else
-            message = "Not authorized";
+            message = "Not Authorized";
         GetBalanceRequestErrorResultMessage reply = new GetBalanceRequestErrorResultMessage(config.getId(), message, requestUuid);
         return new BlockchainRequestMessage(config.getId(), Message.Type.GET_BALANCE_ERROR_RESULT, reply.tojson());
     }
