@@ -179,27 +179,6 @@ public class NodeService implements UDPService {
     }
 
     /**
-     * Uses this node Private key to generate the signature.
-     * @return the signature correspondent to the [transactionV2] value.
-     */
-    /*
-    private byte[] generateValueSignature(TransactionBlock transactionV2)
-        throws
-            InvalidKeyException,
-            NoSuchAlgorithmException,
-            SignatureException,
-            InvalidKeySpecException, IOException
-    {
-        byte[] messageToSign = Utils.joinArray(
-            transactionV2.getSourceId().getBytes(),
-            transactionV2.getDestinationId().getBytes(),
-            Integer.toString(transactionV2.getAmount()).getBytes()
-        );
-        return criptoUtils.getMessageSignature(messageToSign, config.getId());
-    }
-    */
-
-    /**
      * @return the first instance where [nodeId] is leader.
      */
     private int getConsensusInstanceWithLeader(String nodeId) {
@@ -234,7 +213,7 @@ public class NodeService implements UDPService {
      * In non Byzantine coditions, only the current leader will start a consensus instance
      * the remaining nodes only update values.
      */
-    public void startConsensus(List<Transaction> transactions) {
+    public void startConsensus(List<Transaction> transactions, int fee) {
 
         // Set initial consensus values
         int localConsensusInstance;
@@ -250,14 +229,13 @@ public class NodeService implements UDPService {
 
         String leaderId;
 
-        // If self is faking instance number,
         if (config.getByzantineBehavior() == ByzantineBehavior.FAKE_CONSENSUS_INSTANCE) {
             leaderId = config.getId();
         } else {
             leaderId = getLeaderId(localConsensusInstance);
         }
 
-        Block value = new Block(transactions, leaderId);
+        Block value = new Block(transactions, leaderId, fee);
 
         InstanceInfo existingConsensus = this.instanceInfo.put(localConsensusInstance, new InstanceInfo(value, leaderId)); // should be putIfAbsent!!! What if he receives a PREPARE message first, and already creates a new InstanceInfo???
 
@@ -421,7 +399,7 @@ public class NodeService implements UDPService {
                 return;
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, MessageFormat.format("{0} - {1}\n{2}", config.getId(), e.getLocalizedMessage()));
+            e.printStackTrace();
             throw new HDSSException(ErrorMessage.ProgrammingError);
         }
 

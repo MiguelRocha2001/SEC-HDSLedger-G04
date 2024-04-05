@@ -5,9 +5,12 @@ import java.security.PublicKey;
 import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
+
+import javax.swing.text.html.Option;
 
 import pt.ulisboa.tecnico.hdsledger.client.models.ClientMessageBucket;
 import pt.ulisboa.tecnico.hdsledger.communication.BlockchainRequestMessage;
@@ -95,13 +98,14 @@ public class ClientService implements UDPService {
         try {
             bucket.addAccountBalanceSuccessResponseMsg(response);
 
+            Optional<Integer> balance = bucket.hasAccountBalanceSuccessQuorum(response.getUuid());
             if (
-                bucket.hasAccountBalanceSuccessQuorum(response.getUuid())
+                balance.isPresent()
                 &&
                 !processedReplies.contains(response.getUuid())
             ) {
                 processedReplies.add(response.getUuid());
-                formatReply(MessageFormat.format("Balance: {0} units", response.getBalance()));
+                formatReply(MessageFormat.format("Balance: {0} units", balance.get()));
             }
 
         } catch (Exception e) {
@@ -118,14 +122,15 @@ public class ClientService implements UDPService {
         try {
             bucket.addAccountBalanceErrorResponseMsg(response);
 
+            Optional<String> errorMessage = bucket.hasAccountBalanceErrorQuorum(response.getUuid());
             if (
-                bucket.hasAccountBalanceErrorQuorum(response)
+                errorMessage.isPresent()
                 &&
                 !processedReplies.contains(response.getUuid())
             ) {
                 processedReplies.add(response.getUuid());
                 formatReply(
-                    MessageFormat.format("Error from the server: {0}", response.getErrorMessage())
+                    MessageFormat.format("Error from the server: {0}", errorMessage.get())
                 );
             }
         } catch (Exception e) {
@@ -184,6 +189,8 @@ public class ClientService implements UDPService {
             ) {
                 processedReplies.add(response.getUuid());
                 formatReply(MessageFormat.format("Transfer operation with id {0}, concluded!", response.getUuid()));
+
+                // TODO: fetch the most common value
             }
 
         } catch (Exception e) {
@@ -200,14 +207,15 @@ public class ClientService implements UDPService {
         try {
             bucket.addAccountTransferErrorResponseMsg(response);
 
+            Optional<String> errorMessage = bucket.hasAccountTransferErrorQuorum(response.getUuid());
             if (
-                bucket.hasAccountTransferErrorQuorum(response.getUuid())
+                errorMessage.isPresent()
                 &&
                 !processedReplies.contains(response.getUuid())
             ) {
                 processedReplies.add(response.getUuid());
                 formatReply(
-                    MessageFormat.format("Error from the server: {0}", response.getError())
+                    MessageFormat.format("Error from the server: {0}", errorMessage.get())
                 );
             }
         } catch (Exception e) {

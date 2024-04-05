@@ -4,7 +4,9 @@ import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.Map;
 
 import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestErrorResultMessage;
 import pt.ulisboa.tecnico.hdsledger.communication.GetBalanceRequestSuccessResultMessage;
@@ -46,24 +48,42 @@ public class ClientMessageBucket {
         msgs.add(message);
     }
 
-    public boolean hasAccountBalanceSuccessQuorum(UUID uuid) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    public Optional<Integer> hasAccountBalanceSuccessQuorum(UUID uuid) throws NoSuchAlgorithmException, InvalidKeySpecException {
         HashSet<GetBalanceRequestSuccessResultMessage> responses = accountBalanceSuccessResponses.get(uuid);
 
-        if (responses == null) {
-            return false; // No responses for this account owner ID
-        } else {
-            return responses.size() >= byzantineQuorumSize;
-        }
+        // Create mapping of value to frequency
+        HashMap<Integer, Integer> frequency = new HashMap<>();
+        responses.forEach((message) -> {
+            int balance = message.getBalance();
+            frequency.put(balance, frequency.getOrDefault(balance, 0) + 1);
+        });
+
+        // Only one value (if any, thus the optional) will have a frequency
+        // greater than or equal to the quorum size
+        return frequency.entrySet().stream().filter((Map.Entry<Integer, Integer> entry) -> {
+            return entry.getValue() >= byzantineQuorumSize;
+        }).map((Map.Entry<Integer, Integer> entry) -> {
+            return entry.getKey();
+        }).findFirst();
     }
 
-    public boolean hasAccountBalanceErrorQuorum(GetBalanceRequestErrorResultMessage message) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        HashSet<GetBalanceRequestErrorResultMessage> responses = accounBalanceErrorResponses.get(message.getUuid());
-        
-        if (responses == null) {
-            return false; // No responses for this account owner ID
-        } else {
-            return responses.size() >= byzantineQuorumSize;
-        }
+    public Optional<String> hasAccountBalanceErrorQuorum(UUID uuid) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        HashSet<GetBalanceRequestErrorResultMessage> responses = accounBalanceErrorResponses.get(uuid);
+
+        // Create mapping of value to frequency
+        HashMap<String, Integer> frequency = new HashMap<>();
+        responses.forEach((message) -> {
+            String errorMessage = message.getErrorMessage();
+            frequency.put(errorMessage, frequency.getOrDefault(errorMessage, 0) + 1);
+        });
+
+        // Only one value (if any, thus the optional) will have a frequency
+        // greater than or equal to the quorum size
+        return frequency.entrySet().stream().filter((Map.Entry<String, Integer> entry) -> {
+            return entry.getValue() >= byzantineQuorumSize;
+        }).map((Map.Entry<String, Integer> entry) -> {
+            return entry.getKey();
+        }).findFirst();
     }
 
 
@@ -90,7 +110,7 @@ public class ClientMessageBucket {
 
     public boolean hasAccountTransferSuccessQuorum(UUID uuid) throws NoSuchAlgorithmException, InvalidKeySpecException {
         HashSet<TransferRequestSuccessResultMessage> responses = transferSuccessResponses.get(uuid);
-        
+
         if (responses == null) {
             return false; // No responses for this account owner ID
         } else {
@@ -98,13 +118,22 @@ public class ClientMessageBucket {
         }
     }
 
-    public boolean hasAccountTransferErrorQuorum(UUID uuid) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    public Optional<String> hasAccountTransferErrorQuorum(UUID uuid) throws NoSuchAlgorithmException, InvalidKeySpecException {
         HashSet<TransferRequestErrorResultMessage> responses = transferErrorResponses.get(uuid);
-        
-        if (responses == null) {
-            return false; // No responses for this account owner ID
-        } else {
-            return responses.size() >= byzantineQuorumSize;
-        }
+
+        // Create mapping of value to frequency
+        HashMap<String, Integer> frequency = new HashMap<>();
+        responses.forEach((message) -> {
+            String errorMessage = message.getErrorMessage();
+            frequency.put(errorMessage, frequency.getOrDefault(errorMessage, 0) + 1);
+        });
+
+        // Only one value (if any, thus the optional) will have a frequency
+        // greater than or equal to the quorum size
+        return frequency.entrySet().stream().filter((Map.Entry<String, Integer> entry) -> {
+            return entry.getValue() >= byzantineQuorumSize;
+        }).map((Map.Entry<String, Integer> entry) -> {
+            return entry.getKey();
+        }).findFirst();
     }
 }

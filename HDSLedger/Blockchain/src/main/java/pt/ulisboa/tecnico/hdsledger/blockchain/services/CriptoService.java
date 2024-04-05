@@ -151,7 +151,7 @@ public class CriptoService implements UDPService {
             sourceProcessId = criptoUtils.getClientId(source);
             destinationProcessId = criptoUtils.getClientId(destination);
 
-            if (sourceBalance < amount + FEE)
+            if (isTransactionValid(sourceBalance, amount))
                 throw new InvalidAmountException();
         }
 
@@ -173,7 +173,7 @@ public class CriptoService implements UDPService {
         transactionsToPropose.addAll(pendingTransactions);
         pendingTransactions.clear();
 
-        nodeService.startConsensus(transactionsToPropose);
+        nodeService.startConsensus(transactionsToPropose, FEE);
     }
 
     private void sendTransactionReplyToClient(String clientId, UUID requestUuid) {
@@ -199,6 +199,10 @@ public class CriptoService implements UDPService {
         return false;
     }
 
+    boolean isTransactionValid(int sourceBalance, int amount) {
+        return sourceBalance < amount + FEE && amount > 0;
+    }
+
     /**
      * Transfers units from [sourceClientId] to destinationClientId, for all transactions included [block].
      * If, meanwhile, [sourceClientId] has not a sufficient balance, the function sends an apropriate
@@ -220,7 +224,7 @@ public class CriptoService implements UDPService {
                 if (validateTransaction) {
                     // checks balance again...
                     int sourceBalance = getClientBalance(sourceClientId);
-                    if (sourceBalance < amount + FEE) {
+                    if (isTransactionValid(sourceBalance, amount)) {
                         LOGGER.log(Level.INFO, MessageFormat.format("{0} - Transaction {1} could not be verified after end of consensus!", config.getId(), requestUuid));
 
                         sendInvalidAmountReply(sourceClientId, requestUuid);

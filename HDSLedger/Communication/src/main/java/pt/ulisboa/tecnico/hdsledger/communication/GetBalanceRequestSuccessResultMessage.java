@@ -4,8 +4,6 @@ import java.util.UUID;
 
 import com.google.gson.Gson;
 
-import pt.ulisboa.tecnico.hdsledger.communication.cripto.RSAKeyGenerator;
-
 public class GetBalanceRequestSuccessResultMessage extends Message {
 
     private int balance;

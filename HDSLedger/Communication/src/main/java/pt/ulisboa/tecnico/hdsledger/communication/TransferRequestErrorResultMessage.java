@@ -8,17 +8,17 @@ import pt.ulisboa.tecnico.hdsledger.communication.cripto.RSAKeyGenerator;
 
 public class TransferRequestErrorResultMessage extends Message {
 
-    private String error;
+    private String errorMessage;
     private UUID uuid;
 
-    public TransferRequestErrorResultMessage(String senderId, String error, UUID uuid) {
+    public TransferRequestErrorResultMessage(String senderId, String errorMessage, UUID uuid) {
         super(senderId, Type.TRANSFER_ERROR_RESULT);
-        this.error = error;
+        this.errorMessage = errorMessage;
         this.uuid = uuid;
     }
 
-    public String getError() {
-        return error;
+    public String getErrorMessage() {
+        return errorMessage;
     }
 
     public String tojson() {

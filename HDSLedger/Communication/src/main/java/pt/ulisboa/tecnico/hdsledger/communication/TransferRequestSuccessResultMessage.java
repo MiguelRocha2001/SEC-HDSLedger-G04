@@ -4,8 +4,6 @@ import java.util.UUID;
 
 import com.google.gson.Gson;
 
-import pt.ulisboa.tecnico.hdsledger.communication.cripto.RSAKeyGenerator;
-
 public class TransferRequestSuccessResultMessage extends Message {
 
     private UUID uuid;

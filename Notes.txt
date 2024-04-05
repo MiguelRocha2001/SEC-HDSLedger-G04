@@ -47,17 +47,6 @@ For stage 1:
     - Ter amplificação.
 
 For stage 2:
-    - Nao é preciso assinar "hello" no get_balance pq o Link layer ja garante: Done
-    - Tolerar clientes bizantinos. Os nodes podem ser bizantinos de formas diferenetes da fase 1;
-    - Garantir que o clientes nao csg quebrar as dependabilities novas;
     - Performance é muito importante: performace normal é performance assumindo que toda a gente sao amigos uns dos outros e ta tudo correto. Existe uma soluçao que melhora a performance no lado do server e piora no lado do cliente. Analisar esse impacto. Pode ser da outra way arround; Agr performance under atacks: atackes bizantinos. Garantir que os atackes nao sao problematicos e garantir que a performance nao piora. Alguns casos o IBF ja previne. Mas explicar esses casos que ja tao garantidos no report.
-    - Tomar atençao pra que um cliente nao possa mesmo pegar dinheiro de outra conta pra meter na sua. Isso é mega importante.
     - Garantir nao repudio: garatir mesmo depois das coisas ficarem na blockchain.
-    - Os nodes tambem têm contas. Eles vao receber o pagamento da fee (gas in eutherum) dos clients.
-    - No transfer: garantir nao repudio, nao transferir se n tem dinheiro e n transferir de outra conta;
-    - Pensar nas implicaçoes da fee e explicar no report.
     - Garantir que conseguimos re-construir o estado a partir da blockchain. Ate mesmo os pagamentos ao produtor (tem de tar na blocchain).
-    - Nao podemos modificar o bloco apos o consensus ter sido decidido. Existe um problema. Nao se sabe quem é o lider a partida. Pode começar com um lider e terminar com outro. O melhor é pagar sempre ao lider inicial. Met-lo logo no bloco cm recebedor da fee. Mesmo que outro lider termine, o pagamento vai ser feito ao primeiro lider (que ta registado no bloco). O produtor do bloco é o que começou. O importante é o lider inicial.
-    - Pensar nos ataques que um cliete e server podem fazer as 3 novas garantias da segunda stage. Clusion atacque é muito importante. Deve ser testado e explicado no report. Por exemplo, um cliente fazer um reqwuest que leva a conta a ficar negativa. E se o cliente e o node sao os dois buizanmtinos e tentem que esta oper seja possivel? Provavelkmnente vamos ter de verificar se as transaçoes podem ser verificadas num sitio que n seja no inicio. Verificar em mais que um sitio.
-    - Importante implementar testes nesta fase. Os testes tem de mostrar que o sistema esta bastante rebusto. E que isso seja mostrado no report.
-    - Usar imgs pra explicar cenarios. poupa-se palavras. Depois é so dizer que a img demonstra x.
