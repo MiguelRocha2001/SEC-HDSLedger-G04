@@ -135,4 +135,7 @@ Index | Test
 8 | Force Round Change
 
 ---
-This codebase was adapted from last year's project solution, which was kindly provided by the following group: [David Belchior](https://github.com/DavidAkaFunky), [Diogo Santos](https://github.com/DiogoSantoss), [Vasco Correia](https://github.com/Vaascoo). We thank all the group members for sharing their code.
+
+# Report
+
+The report for this project, can be found [here](docs/Report.pdf)
