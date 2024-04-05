@@ -139,3 +139,6 @@ Index | Test
 # Report
 
 The report for this project, can be found [here](docs/Report.pdf)
+
+# Disclaimer
+This project was part of the IST MEIC SEC course.
